@@ -1,0 +1,43 @@
+name: build_and_test
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
+      - '*-devel'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - '*'
+  workflow_dispatch:
+
+# Do not run multiple jobs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pixi_build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && (github.ref_name == 'main' || endsWith(github.ref_name, '-devel')) }}
+          frozen: true
+          manifest-path: pixi.toml
+      - name: Run tests
+        run: pixi run test
+      - name: Display test results
+        run: pixi run test-results
