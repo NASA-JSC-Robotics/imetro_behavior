@@ -8,10 +8,15 @@ channels = [
   "https://prefix.dev/robostack-jazzy",
 ]
 
+[activation.env]
+COLCON_DEFAULT_OUTPUT_STYLE = "catkin_tools"
+COLCON_DEFAULTS_FILE = "${PIXI_PROJECT_ROOT}/config/colcon-defaults.yaml"
+RCUTILS_COLORIZED_OUTPUT = "1"
+
 [tasks]
-build = "colcon build"
+build = "colcon build --cmake-args"
 test = "colcon test"
-test-result = "colcon test-result --verbose"
+test-result = "colcon test-result"
 clean = "rm -rf build/* install/* log/*"
 
 [dependencies]
