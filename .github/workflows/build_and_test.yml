@@ -37,6 +37,8 @@ jobs:
           cache-write: ${{ github.event_name == 'push' && (github.ref_name == 'main' || endsWith(github.ref_name, '-devel')) }}
           frozen: true
           manifest-path: pixi.toml
+      - name: Build repository
+        run: pixi run build
       - name: Run tests
         run: pixi run test
       - name: Display test results
