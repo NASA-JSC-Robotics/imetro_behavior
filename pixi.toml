@@ -19,7 +19,6 @@ RCUTILS_COLORIZED_OUTPUT = "1"
 [tasks]
 build = "colcon build --cmake-args"
 test = "colcon test"
-test-result = "colcon test-result"
 clean = "rm -rf build/* install/* log/*"
 
 [dependencies]

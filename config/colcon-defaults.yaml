@@ -3,5 +3,3 @@ build:
 test:
   event-handlers:
     - console_direct+
-test-result:
-  verbose: true

@@ -41,5 +41,3 @@ jobs:
         run: pixi run build
       - name: Run tests
         run: pixi run test
-      - name: Display test results
-        run: pixi run test-result
