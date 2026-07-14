@@ -8,6 +8,9 @@ channels = [
   "https://prefix.dev/robostack-jazzy",
 ]
 
+[activation]
+scripts = ["scripts/entrypoint.sh"]
+
 [activation.env]
 COLCON_DEFAULT_OUTPUT_STYLE = "catkin_tools"
 COLCON_DEFAULTS_FILE = "${PIXI_PROJECT_ROOT}/config/colcon-defaults.yaml"
