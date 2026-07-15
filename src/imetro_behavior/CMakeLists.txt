@@ -17,4 +17,8 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
+
 ament_package()
