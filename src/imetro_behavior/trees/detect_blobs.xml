@@ -1,0 +1,38 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <Parallel name="Left">
+          <Repeat name="repeat" num_success="-1">
+            <CallTriggerService
+              name="trigger_camera"
+              service_name="/phoebe/phoebe_left_wrist_mounted_camera/request_images"
+            />
+          </Repeat>
+          <GetSyncedImagePointCloudDepth
+            name="get_synced_images_pointcloud"
+            camera_info_topic="/phoebe/phoebe_left_wrist_mounted_camera/color/camera_info"
+            rgb_image_topic="/phoebe/phoebe_left_wrist_mounted_camera/color/image_raw"
+            depth_image_topic="/phoebe/phoebe_left_wrist_mounted_camera/aligned_depth_to_color/image_raw"
+            point_cloud_topic="/phoebe/phoebe_left_wrist_mounted_camera/depth/color/points"
+            time_slop="0.1"
+            sync_timeout="3.0"
+            camera_info="{left_camera_info}"
+            rgb_image="{left_rgb_image}"
+            depth_image="{left_depth_image}"
+            point_cloud="{left_point_cloud}"
+          />
+      </Parallel>
+      <DetectColorBlobs
+        name="detect_color_blobs"
+        camera_info="{left_camera_info}"
+        rgb_image="{left_rgb_image}"
+        depth_image="{left_depth_image}"
+        target_color="red"
+        min_blob_size="10"
+        debug_viz="true"
+        masked_image="{left_masked_image}"
+        blob_pose="{left_blob_pose}"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,11 @@
+# Goal definition
+moveit_msgs/RobotTrajectory trajectory
+
+---
+
+# Result definition
+bool approved
+
+---
+
+# Feedback definition

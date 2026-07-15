@@ -1,0 +1,68 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <SubTree ID="MoveToPose" name="MoveToPose"/>
+      <SubTree ID="MoveToHome" name="MoveToHome"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="MoveToPose">
+    <Sequence name="Sequence">
+      <CreatePoseStamped
+        name="set_target_pose"
+        position_xyz="-1.68, 0.5745, 1.8"
+        orientation_wxyz="-0.02, 0.045, 0.95, 0.295"
+        frame="world"
+        msg="{target_pose}"
+      />
+      <PlanToPose
+        name="plan_to_home"
+        service_name="/clr/plan_kinematic_path"
+        pipeline="ompl"
+        planner="RRTConnect"
+        group_name="chonkur_grasp"
+        target_frame="clr_grasp_frame"
+        target_pose="{target_pose}"
+        position_tolerance="0.005"
+        orientation_tolerance="0.005, 0.005, 0.005"
+        trajectory="{trajectory}"
+      />
+      <PreviewTrajectoryBehavior
+        name="preview_trajectory"
+        action_name="/clr/preview_trajectory"
+        trajectory="{trajectory}"
+      />
+      <ExecuteTrajectoryBehavior
+        name="execute_trajectory"
+        action_name="/clr/execute_trajectory"
+        trajectory="{trajectory}"
+      />
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="MoveToHome">
+    <Sequence name="Sequence">
+      <PlanToJointState
+        name="plan_to_home"
+        service_name="/clr/plan_kinematic_path"
+        pipeline="ompl"
+        planner="RRTConnect"
+        group_name="chonkur_grasp"
+        joint_names="clr_shoulder_pan_joint, clr_shoulder_lift_joint, clr_elbow_joint, clr_wrist_1_joint, clr_wrist_2_joint, clr_wrist_3_joint"
+        joint_positions="3.2, -2.4, -1.78, -0.47, -1.62, -1.62"
+        tolerance="0.005"
+        trajectory="{trajectory}"
+      />
+      <PreviewTrajectoryBehavior
+        name="preview_trajectory"
+        action_name="/clr/preview_trajectory"
+        trajectory="{trajectory}"
+      />
+      <ExecuteTrajectoryBehavior
+        name="execute_trajectory"
+        action_name="/clr/execute_trajectory"
+        trajectory="{trajectory}"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>
