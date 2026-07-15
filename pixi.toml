@@ -1,0 +1,29 @@
+[workspace]
+name = "imetro_behavior"
+authors = ["Sebastian Castro <sebastian.a.castrofernandez@nasa.gov>"]
+platforms = ["linux-aarch64", "linux-64"]
+version = "0.1.0"
+channels = [
+  "https://prefix.dev/conda-forge",
+  "https://prefix.dev/robostack-jazzy",
+]
+
+[activation]
+scripts = ["scripts/entrypoint.sh"]
+
+[activation.env]
+COLCON_DEFAULT_OUTPUT_STYLE = "catkin_tools"
+COLCON_DEFAULTS_FILE = "${PIXI_PROJECT_ROOT}/config/colcon-defaults.yaml"
+RCUTILS_COLORIZED_OUTPUT = "1"
+
+[tasks]
+build = "colcon build --cmake-args"
+test = "colcon test"
+clean = "rm -rf build/* install/* log/*"
+
+[dependencies]
+pydot = ">=4.0.1,<5"
+pyqtwebengine = ">=5.15.11,<6"
+
+colcon-common-extensions = ">=0.3.0,<0.4"
+ros-jazzy-ros-base = "*"

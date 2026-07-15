@@ -1,0 +1,12 @@
+# IDE metadata
+.vscode
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# build artifacts
+.ccache/
+build/
+install/
+log/

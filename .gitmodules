@@ -1,0 +1,15 @@
+[submodule "external/py_trees"]
+	path = src/external/py_trees
+	url = https://github.com/splintered-reality/py_trees.git
+[submodule "external/py_trees_ros"]
+	path = src/external/py_trees_ros
+	url = https://github.com/splintered-reality/py_trees_ros.git
+[submodule "src/external/py_trees_ros_interfaces"]
+	path = src/external/py_trees_ros_interfaces
+	url = https://github.com/splintered-reality/py_trees_ros_interfaces.git
+[submodule "src/external/py_trees_ros_viewer"]
+	path = src/external/py_trees_ros_viewer
+	url = https://github.com/splintered-reality/py_trees_ros_viewer.git
+[submodule "src/external/py_trees_js"]
+	path = src/external/py_trees_js
+	url = https://github.com/splintered-reality/py_trees_js.git
