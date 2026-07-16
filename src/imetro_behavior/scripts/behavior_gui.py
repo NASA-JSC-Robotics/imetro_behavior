@@ -55,8 +55,7 @@ class RosWorker(QThread):
     def quit(self) -> None:
         self.executor.remove_node(self.node)
         self.executor.shutdown()
-        if rclpy.ok():
-            rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 class TrajectoryInterfaceNode(Node):

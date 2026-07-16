@@ -6,6 +6,7 @@
 !.pixi/config.toml
 
 # build artifacts
+**/__pycache__/
 .ccache/
 build/
 install/
