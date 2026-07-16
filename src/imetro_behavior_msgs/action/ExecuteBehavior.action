@@ -1,0 +1,12 @@
+# Goal definition
+string tree_file_name
+
+---
+
+# Result definition
+bool success
+string message
+
+---
+
+# Feedback definition
