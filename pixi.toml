@@ -25,7 +25,7 @@ clean = "rm -rf build/* install/* log/*"
 # Python dependencies
 pydot = ">=4.0.1,<5"
 pyqtwebengine = ">=5.15.11,<6"
-pyside6 = ">=6.11.1,<7"
+pyside6 = ">=6.10.2,<7"
 pytest = "<9.1.0"  # Gets around error with ament running pytest on newer versions
 scipy = ">=1.18.0,<2"
 

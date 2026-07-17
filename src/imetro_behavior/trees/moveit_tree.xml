@@ -27,7 +27,7 @@
         orientation_tolerance="0.005, 0.005, 0.005"
         trajectory="{trajectory}"
       />
-      <PreviewTrajectoryBehavior
+      <RequestTrajectoryApproval
         name="preview_trajectory"
         action_name="/clr/preview_trajectory"
         trajectory="{trajectory}"
@@ -53,7 +53,7 @@
         tolerance="0.005"
         trajectory="{trajectory}"
       />
-      <PreviewTrajectoryBehavior
+      <RequestTrajectoryApproval
         name="preview_trajectory"
         action_name="/clr/preview_trajectory"
         trajectory="{trajectory}"

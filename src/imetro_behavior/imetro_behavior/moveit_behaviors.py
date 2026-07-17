@@ -237,8 +237,8 @@ class PlanToPose(RosServiceClientBase):
             return Status.FAILURE
 
 
-class PreviewTrajectoryBehavior(RosActionClientBase):
-    """Sends a planned trajectory to the behavior GUI for preview."""
+class RequestTrajectoryApproval(RosActionClientBase):
+    """Sends a planned trajectory to the behavior GUI for preview and approval."""
 
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=PreviewTrajectory, **kwargs)

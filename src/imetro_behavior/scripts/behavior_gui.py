@@ -219,22 +219,23 @@ class TrajectoryGUIPanel(QWidget):
         if state:
             self.status_label.setText("Trajectory received")
             self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: blue;")
+
+            # Make sure the window is brought to the top to notify users
+            self.raise_()
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            self.show()
         else:
             self.status_label.setText("Waiting for trajectory")
             self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: gray;")
+
+            # Turn the hint back off immediately so the window isn't permanently stuck on top
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            self.show()
 
     @Slot(RobotTrajectory)
     def handle_new_trajectory(self, msg: RobotTrajectory) -> None:
         """Called when a new trajectory message comes in over ROS."""
         self.set_trajectory_button_state(True)
-
-        # Make sure the window is brought to the top to notify users
-        self.raise_()
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.show()
-        # Turn the hint back off immediately so the window isn't permanently stuck on top
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-        self.show()
 
     def on_accept_clicked(self):
         """Called when the user clicks the 'Accept' button."""
