@@ -79,6 +79,13 @@ class BehaviorTreeExecutor:
 
         self._logger.info("Behavior tree executor ready!")
 
+    def _fail_action(self, goal_handle: ServerGoalHandle, result: ExecuteBehavior.Result, message: str):
+        """Helper function to consistently manage failing an action."""
+        result.message = message
+        self._logger.error(result.message)
+        goal_handle.abort()
+        self._current_behavior = None
+
     def run_tree(self, goal_handle: ServerGoalHandle) -> ExecuteBehavior.Result:
         """
         Starts a new behavior and runs it to completion, or until it's canceled..
@@ -87,9 +94,7 @@ class BehaviorTreeExecutor:
 
         tree_file_name = goal_handle.request.tree_file_name
         if not tree_file_name:
-            result.message = "Behavior tree file name cannot be empty!"
-            self._logger.error(result.message)
-            goal_handle.abort()
+            self._fail_action(goal_handle, result, "Behavior tree file name cannot be empty!")
             return result
 
         # First get the path using the search paths.
@@ -103,17 +108,14 @@ class BehaviorTreeExecutor:
                 if os.path.exists(candidate_path):
                     xml_path = candidate_path
         if xml_path is None:
-            result.message = f"Could not find tree: {xml_name}"
-            self._logger.error(result.message)
-            goal_handle.abort()
+            self._fail_action(goal_handle, result, f"Could not find tree: {xml_name}")
             return result
 
         self._logger.info(f"Running behavior: {tree_file_name}")
         try:
             root = parse_behaviour_tree_xml(xml_path, search_paths=self._search_paths)
         except Exception as e:
-            result.message = f"Failed to parse XML file: {e}"
-            goal_handle.abort()
+            self._fail_action(goal_handle, result, f"Failed to parse XML file: {e}")
             return result
 
         # This is ugly, but it's how to get the PyTrees viewer to behave well.
