@@ -18,17 +18,20 @@
 # under the License.
 
 import copy
+import yaml
+from pathlib import Path
 
 import numpy as np
+from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from rclpy.time import Time
 from scipy.spatial.transform import Rotation as R
 
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-
-from geometry_msgs.msg import PoseStamped
 import tf2_geometry_msgs
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
+from std_msgs.msg import Header
 
 
 class CreatePoseStamped(BehaviourWithPorts):
@@ -199,4 +202,78 @@ class OffsetPoseStamped(BehaviourWithPorts):
         msg.pose.orientation.w = q_new[3]
 
         self._set_output("output_pose", msg)
+        return Status.SUCCESS
+
+
+class YamlPoseToPoseStamped(BehaviourWithPorts):
+    """Load a Pose object from a YAML and output a PoseStamped ROS message
+
+    Valid yaml configuration for a pose:
+
+    pose_name:
+        frame_id: ""
+        pose:
+            position:
+                x: 0.0
+                y: 0.0
+                z: 0.0
+            orientation:
+                x: 0.0
+                y: 0.0
+                z: 0.0
+                w: 1.0
+    """
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the port declarations."""
+        return {
+            "package_name": PortInformation(data_type=str, required=True),
+            "yaml_file": PortInformation(data_type=str, required=True),
+            "pose_name": PortInformation(data_type=str, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {"msg": PortInformation(data_type=PoseStamped, required=True)}
+
+    def setup(self, **kwargs):
+        """Get access to the node for error statements."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    def update(self) -> Status:
+        """Load the YAML, create the message, and set it as an output port."""
+
+        yaml_path = Path(get_package_share_directory(self.get_input("package_name"))) / self.get_input("yaml_file")
+        if not yaml_path.is_file():
+            self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
+            return Status.FAILURE
+
+        with open(yaml_path) as file:
+            data = yaml.safe_load(file)
+        pose_name = self.get_input("pose_name")
+        pose_dict = data.get(pose_name)
+        if pose_dict is None:
+            self.node.get_logger().error(f"Failed to find pose {pose_name} in {yaml_path}")
+            return Status.FAILURE
+        frame_id = pose_dict["frame_id"]
+        pose = pose_dict["pose"]
+
+        msg = PoseStamped(
+            header=Header(frame_id=frame_id),
+            pose=Pose(
+                position=Point(x=pose["position"]["x"], y=pose["position"]["y"], z=pose["position"]["z"]),
+                orientation=Quaternion(
+                    x=pose["orientation"]["x"],
+                    y=pose["orientation"]["y"],
+                    z=pose["orientation"]["z"],
+                    w=pose["orientation"]["w"],
+                ),
+            ),
+        )
+
+        self._set_output("msg", msg)
         return Status.SUCCESS
