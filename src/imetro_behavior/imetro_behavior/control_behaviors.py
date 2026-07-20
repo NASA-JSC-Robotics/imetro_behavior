@@ -22,6 +22,7 @@ from typing import Any
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
+from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
@@ -110,15 +111,23 @@ class SwitchRosControllers(RosServiceClientBase):
 
             # First figure out all the necessary interfaces that must be claimed by the
             # incoming controllers to activate.
-            interfaces_to_claim = []
+            interfaces_to_claim = set()
             for info in controller_info:
                 if info.name in activate_controllers:
-                    interfaces_to_claim.extend(info.required_command_interfaces)
+                    interfaces_to_claim.update(info.required_command_interfaces)
 
             # Next, look at all the currently active controllers. If any of their claimed
             # interfaces conflict with the list above, we must add it to the deactivate list.
             for info in controller_info:
-                if info.state == "active" and not set(info.claimed_interfaces).isdisjoint(interfaces_to_claim):
+                if info.state != "active":
+                    continue
+
+                conflicting_interfaces = set(info.claimed_interfaces).intersection(interfaces_to_claim)
+                if len(conflicting_interfaces) > 0:
+                    self.node.get_logger().info(
+                        f"Adding controller '{info.name}' to deactivate list since it claims "
+                        f"the following command interfaces: {conflicting_interfaces}."
+                    )
                     deactivate_controllers.append(info.name)
 
         return SwitchController.Request(
@@ -164,9 +173,9 @@ class CommandGripper(RosActionClientBase):
 
     def process_result(self, result: GripperCommand.Result) -> Status:
         """Process the trajectory execution action result."""
-        if result.result.stalled or result.result.reached_goal:
+        if result.status == GoalStatus.STATUS_SUCCEEDED:
             self.node.get_logger().debug("Successfully commanded gripper!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Gripper command action did not reach its goal or reach a stall condition.")
+            self.node.get_logger().error("Gripper command action did not reach its goal or hit a stall condition.")
             return Status.FAILURE
