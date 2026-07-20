@@ -17,28 +17,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
-from ament_index_python.packages import get_package_share_directory
-
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
 from imetro_behavior.executor import BehaviorTreeExecutor
-
-# These imports auto-register behaviors, so we should grab them all
-from imetro_behavior.basic_behaviors import *  # noqa: F401,F403
-from imetro_behavior.control_behaviors import *  # noqa: F401,F403
-from imetro_behavior.geometry_behaviors import *  # noqa: F401,F403
-from imetro_behavior.moveit_behaviors import *  # noqa: F401,F403
-from imetro_behavior.nav_behaviors import *  # noqa: F401,F403
-from imetro_behavior.ros_behaviors.perception import *  # noqa: F401,F403
-from imetro_behavior.ros_behaviors.service_client import *  # noqa: F401,F403
-
-# Omitting this import for now since they require the `color_tools` external repo:
-#   https://github.com/NASA-JSC-Robotics/color_tools
-# If you want to use these, add the dependency yourself.
-# from imetro_behavior.color_behaviors import *  # noqa: F401,F403
 
 
 if __name__ == "__main__":
@@ -47,9 +30,7 @@ if __name__ == "__main__":
     executor = MultiThreadedExecutor()
     executor.add_node(node)
 
-    bt_exec = BehaviorTreeExecutor(
-        node, dt=0.1, search_paths=[os.path.join(get_package_share_directory("imetro_behavior"), "trees")]
-    )
+    bt_exec = BehaviorTreeExecutor(node)
 
     try:
         executor.spin()

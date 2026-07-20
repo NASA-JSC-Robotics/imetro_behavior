@@ -1,0 +1,23 @@
+# Default configuration for behavior tree executor.
+
+# Behavior executor parameters.
+params:
+  dt: 0.1  # Execution sample time
+
+# Behavior tree node import locations.
+imports:
+  - imetro_behavior.basic_behaviors
+  - imetro_behavior.control_behaviors
+  - imetro_behavior.geometry_behaviors
+  - imetro_behavior.moveit_behaviors
+  - imetro_behavior.nav_behaviors
+  - imetro_behavior.ros_behaviors
+
+  # Omitting this import for now since they require the `color_tools` external repo:
+  # https://github.com/NASA-JSC-Robotics/color_tools
+  # - imetro_behavior.color_behaviors
+
+# Paths for which to search for behavior tree XML files.
+tree_search_paths:
+  - package: imetro_behavior
+    path: trees

@@ -18,7 +18,11 @@
 # under the License.
 
 import os
+import yaml
+from importlib import import_module
+from pathlib import Path
 
+from ament_index_python.packages import get_package_share_path
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -35,25 +39,29 @@ from py_trees_ros.trees import BehaviourTree
 from imetro_behavior_msgs.action import ExecuteBehavior
 
 
+DEFAULT_CONFIG = get_package_share_path("imetro_behavior") / "config" / "default_config.yaml"
+
+
 class BehaviorTreeExecutor:
     """
     Behavior tree executor with a ROS action server for starting and stopping behaviors.
     """
 
-    def __init__(self, node: Node, dt: float = 0.1, search_paths: list[str] = None):
+    def __init__(self, node: Node):
         """
         Initializes a behavior tree executor.
 
         Args:
             node: The ROS node associated with this behavior tree executor.
-            dt: The time step at which to tick the active behavior tree.
-            search_paths: A list of search paths to find behavior tree XML files and subtrees.
         """
         self._node = node
         self._logger = node.get_logger()
         self._clock = node.get_clock()
-        self._dt = dt
-        self._search_paths = search_paths or []
+
+        # Load config from parameters
+        self._node.declare_parameter("behavior_config", DEFAULT_CONFIG.as_posix())
+        config_path = Path(self._node.get_parameter("behavior_config").get_parameter_value().string_value)
+        self._load_config(config_path)
 
         # Create a global TF buffer to share across behaviors.
         self._tf_buffer = Buffer()
@@ -78,6 +86,28 @@ class BehaviorTreeExecutor:
         )
 
         self._logger.info("Behavior tree executor ready!")
+
+    def _load_config(self, config_path: Path):
+        """Loads parameters, imports, and tree search paths from a YAML configuration file."""
+        with open(config_path) as file:
+            config = yaml.safe_load(file)
+
+        # Load general parameters
+        params_config = config.get("params", {})
+        self._dt = params_config.get("dt", 0.1)
+
+        # Import any modules specified
+        for module_to_import in config.get("imports", []):
+            import_module(module_to_import)
+
+        # Set the search paths
+        self._search_paths = []
+        for path_config in config.get("tree_search_paths", []):
+            package = path_config.get("package")
+            path = path_config.get("path")
+            if package is None or path is None:
+                raise RuntimeError("Search paths must specify 'package' and a 'path' fields.")
+            self._search_paths.append((get_package_share_path(package) / path).as_posix())
 
     def _fail_action(self, goal_handle: ServerGoalHandle, result: ExecuteBehavior.Result, message: str):
         """Helper function to consistently manage failing an action."""
