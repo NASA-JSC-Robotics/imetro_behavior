@@ -1,0 +1,34 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <GetRosControllerInfo
+        name="get_controller_info"
+        service_name="/controller_manager/list_controllers"
+        controller_info="{controller_info}"
+      />
+      <!-- Implicitly figures out what to activate with controller info. -->
+      <SwitchRosControllers
+        name="enable_clr_combined_controller"
+        service_name="/controller_manager/switch_controller"
+        service_timeout="3.0"
+        controller_info="{controller_info}"
+        activate_controllers="clr_joint_trajectory_controller"
+        deactivate_controllers="clr_robotiq_gripper_hande_controller"
+      />
+      <WaitForDuration name="wait" duration_sec="3.0" />
+      <!-- Explicitly activates and deactivates; no controller info. -->
+      <SwitchRosControllers
+        name="enable_clr_individual_controllers"
+        service_name="/controller_manager/switch_controller"
+        service_timeout="3.0"
+        activate_controllers="
+          clr_ur_joint_trajectory_controller,
+          clr_rail_joint_trajectory_controller,
+          clr_lift_joint_trajectory_controller,
+          clr_robotiq_gripper_hande_controller,
+        "
+        deactivate_controllers="clr_joint_trajectory_controller"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -30,7 +30,8 @@ pytest = "<9.1.0"  # Gets around error with ament running pytest on newer versio
 scipy = ">=1.18.0,<2"
 
 # ROS dependencies
-colcon-common-extensions = ">=0.3.0,<0.4"
+colcon-common-extensions = "*"
 ros-jazzy-ros-base = "*"
-ros-jazzy-moveit-msgs = ">=2.6.0,<3"
-ros-jazzy-nav2-msgs = ">=1.3.12,<2"
+ros-jazzy-moveit-msgs = "*"
+ros-jazzy-nav2-msgs = "*"
+ros-jazzy-controller-manager-msgs = "*"
