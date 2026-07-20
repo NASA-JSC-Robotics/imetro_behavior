@@ -22,9 +22,11 @@ from typing import Any
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
+from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
 
+from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
 
@@ -131,4 +133,40 @@ class SwitchRosControllers(RosServiceClientBase):
             return Status.SUCCESS
         else:
             self.node.get_logger().error(f"Failed to switch controllers: {response.message}")
+            return Status.FAILURE
+
+
+class CommandGripper(RosActionClientBase):
+    """Sends an action goal to a ROS 2 gripper command controller."""
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, action_type=GripperCommand, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "position": PortInformation(data_type=float, required=True),
+            "max_effort": PortInformation(data_type=float, required=False),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def create_goal(self) -> GripperCommand.Goal:
+        """Create a gripper command goal."""
+        goal = GripperCommand.Goal()
+        goal.command.position = self.get_input("position")
+        goal.command.max_effort = self.get_input("max_effort", 0.0)
+        return goal
+
+    def process_result(self, result: GripperCommand.Result) -> Status:
+        """Process the trajectory execution action result."""
+        if result.result.stalled or result.result.reached_goal:
+            self.node.get_logger().debug("Successfully commanded gripper!")
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error("Gripper command action did not reach its goal or reach a stall condition.")
             return Status.FAILURE
