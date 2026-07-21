@@ -17,9 +17,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
-from ament_index_python.packages import get_package_share_directory
-
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -33,9 +30,7 @@ def test_create_executor():
     executor = MultiThreadedExecutor()
     executor.add_node(node)
 
-    BehaviorTreeExecutor(
-        node, dt=0.1, search_paths=[os.path.join(get_package_share_directory("imetro_behavior"), "trees")]
-    )
+    BehaviorTreeExecutor(node)
 
     for _ in range(10):
         executor.spin_once(timeout_sec=0.1)

@@ -14,7 +14,7 @@ on:
       - reopened
       - ready_for_review
     branches:
-      - '*'
+      - '**'
   workflow_dispatch:
 
 # Do not run multiple jobs for the same branch

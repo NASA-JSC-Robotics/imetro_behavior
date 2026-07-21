@@ -7,7 +7,7 @@ find_package(rclpy REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
-install(DIRECTORY launch trees
+install(DIRECTORY config launch trees
   DESTINATION share/${PROJECT_NAME}
 )
 
