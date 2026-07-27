@@ -241,6 +241,7 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
 
+
 class PlanArcPath(RosServiceClientBase):
     """
     Uses MoveIt to plan an arc motion path.
@@ -416,7 +417,7 @@ class PlanArcPath(RosServiceClientBase):
         request.motion_plan_request.path_constraints = path_constraints
         self.node.get_logger().info(f"{request}")
         return request
-    
+
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion plan service response."""
         error_code = response.motion_plan_response.error_code
@@ -430,6 +431,7 @@ class PlanArcPath(RosServiceClientBase):
             self.node.get_logger().error(f"Message: {error_code.message}")
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
+
 
 class RequestTrajectoryApproval(RosActionClientBase):
     """Sends a planned trajectory to the behavior GUI for preview and approval."""

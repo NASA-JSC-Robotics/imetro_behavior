@@ -16,7 +16,7 @@
         target_pose="{setup_pose}"
         max_velocity_scaling="1.0"
         max_acceleration_scaling="1.0"
-      />      
+      />
       <CreatePoseStamped name="grasp_start_pose"
         position_xyz="0.513, -0.509, 0.663"
         orientation_wxyz="0.654, 0.656, 0.266, 0.267"
