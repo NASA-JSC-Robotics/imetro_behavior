@@ -135,8 +135,10 @@ class BehaviorTreeExecutor:
         else:
             for path in self._search_paths:
                 candidate_path = os.path.join(path, xml_name)
+                # Found it, so return
                 if os.path.exists(candidate_path):
                     xml_path = candidate_path
+                    break
         if xml_path is None:
             self._fail_action(goal_handle, result, f"Could not find tree: {xml_name}")
             return result
@@ -159,7 +161,11 @@ class BehaviorTreeExecutor:
         else:
             self._tree.replace_subtree(self._tree.root.children[0].id, root)
 
-        self._tree.setup(node=self._node)
+        try:
+            self._tree.setup(node=self._node)
+        except Exception as e:
+            self._fail_action(goal_handle, result, f"Failed to set up tree: {e}")
+            return result
 
         # Once the tree is set up, tick it periodically, checking for completion or cancellation.
         while self._tree.root.status not in (Status.SUCCESS, Status.FAILURE):
@@ -206,3 +212,8 @@ class BehaviorTreeExecutor:
             self._current_behavior = None
             self._tree.root.status = Status.INVALID
             self._tree.shutdown(destroy_node=False)
+
+        # Wipe per-run state, otherwise sequential runs might pick up blackboard items
+        # from the previous tree.
+        Blackboard.clear()
+        Blackboard.set("ros/tf_buffer", self._tf_buffer)
