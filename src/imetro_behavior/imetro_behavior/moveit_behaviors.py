@@ -262,9 +262,11 @@ class PlanArcPath(RosServiceClientBase):
             "rotation_amount_rad": PortInformation(data_type=float, required=True),
             "keep_start_orientation": PortInformation(data_type=bool, required=True),
             "position_tolerance": PortInformation(data_type=float, required=True),
-            "orientation_tolerance": PortInformation(data_type=list[float], required=True),
+            "orientation_tolerance_xyz": PortInformation(data_type=list[float], required=True),
             "max_velocity_scaling": PortInformation(data_type=float, required=True),
             "max_acceleration_scaling": PortInformation(data_type=float, required=True),
+            "planning_attempt_count": PortInformation(data_type=int, required=False),
+            "planning_attempt_timeout": PortInformation(data_type=float, required=False),
         }
 
     @classmethod
@@ -281,22 +283,30 @@ class PlanArcPath(RosServiceClientBase):
 
     def rotate_about_frame(self):
         """
-        Given:
-            target_frame: The frame which you are moving from
-            rotation_pose: The pose which you are rotating about
-            rotation_axis: The axis of rotation_pose that you are rotating about
-            rotation_amount: The degrees you want to rotate target_frame by
-        Return:
-            target_pose: The pose you are moving target_frame too
-            center_point: The point you are rotating around
+        Calculate the center and final pose of an arc path given a target_frame to plan from, a rotation_pose and
+        rotation_axis to rotate about, and a rotation_amount
+
+        Input ports:
+            target_frame: Frame that the arc is planned from
+            rotation_pose: Pose which the target_frame will be rotated about
+            rotation_axis: Axis of rotation_pose that is rotated about
+            rotation_amount: Amount of rotation to apply to target_frame about the rotation axis, in radians
+            keep_start_orientation: If true, final_pose will have the same orientation as target_frame
+
+        Returns:
+            final_pose: End pose of the arc
+            center_point: Center point of the arc
+
         """
+
+        # Get input ports
         fixed_frame = self.get_input("fixed_frame")
         target_frame = self.get_input("target_frame")
         rotation_pose = self.get_input("rotation_pose")
         rotation_axis = np.array(self.get_input("rotation_axis_xyz"))
         rotation_amount = self.get_input("rotation_amount_rad")
         keep_start_orientation = self.get_input("keep_start_orientation")
-        self.node.get_logger().info(f"ROTATION_AMOUNT: {rotation_amount}")
+
         # Get target_frame
         target_tf = self.tf_buffer.lookup_transform(fixed_frame, target_frame, Time())
         rot_target = target_tf.transform.rotation
@@ -307,21 +317,24 @@ class PlanArcPath(RosServiceClientBase):
         # Get rotation frame
         rot_rotation = rotation_pose.pose.orientation
         q_rotation = R.from_quat([rot_rotation.x, rot_rotation.y, rot_rotation.z, rot_rotation.w])
-        self.node.get_logger().info(f"q_rotation: {q_rotation.as_quat()}")
         trans_rotation = rotation_pose.pose.position
         p_rotation = np.array([trans_rotation.x, trans_rotation.y, trans_rotation.z])
 
+        # Normalize rotation axis, transformed relative to fixed frame/world
         rotation_axis_normalized = rotation_axis / np.linalg.norm(rotation_axis)
         rotation_axis_in_fixed = q_rotation.apply(rotation_axis_normalized)
 
+        # Find center point relative to fixed frame
         p_rotation_to_target = p_target - p_rotation
         p_rotation_to_target_rotaxis_projection = np.dot(p_rotation_to_target, rotation_axis_in_fixed)
         p_center = p_rotation + p_rotation_to_target_rotaxis_projection * rotation_axis_in_fixed
 
+        # Get rotation operator
         rotation = R.from_rotvec(rotation_axis_in_fixed * rotation_amount)
 
-        arc_radius = p_target - p_center
-        p_final = p_center + rotation.apply(arc_radius)
+        # Get final pose
+        p_center_to_target = p_target - p_center
+        p_final = p_center + rotation.apply(p_center_to_target)
         if keep_start_orientation:
             q_final = q_target
         else:
@@ -337,10 +350,7 @@ class PlanArcPath(RosServiceClientBase):
         final_pose.orientation.z = quat_final[2]
         final_pose.orientation.w = quat_final[3]
 
-        center_point = Point()
-        center_point.x = p_center[0]
-        center_point.y = p_center[1]
-        center_point.z = p_center[2]
+        center_point = Point(x=p_center[0], y=p_center[1], z=p_center[2])
 
         return final_pose, center_point
 
@@ -349,16 +359,14 @@ class PlanArcPath(RosServiceClientBase):
         target_pose = Pose()
         center_point = Point()
         target_pose, center_point = self.rotate_about_frame()
-        self.node.get_logger().info(f"TARGET_POSE: {target_pose}")
-        self.node.get_logger().info(f"CENTER_POINT: {center_point}")
         fixed_frame = self.get_input("fixed_frame")
         target_frame = self.get_input("target_frame")
         request = GetMotionPlan.Request()
         request.motion_plan_request.pipeline_id = "pilz_industrial_motion_planner"
         request.motion_plan_request.planner_id = "CIRC"
         request.motion_plan_request.group_name = self.get_input("group_name")
-        request.motion_plan_request.num_planning_attempts = 20
-        request.motion_plan_request.allowed_planning_time = 25.0
+        request.motion_plan_request.num_planning_attempts = self.get_input("planning_attempt_count", 10)
+        request.motion_plan_request.allowed_planning_time = self.get_input("planning_attempt_timeout", 15.0)
         request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
         request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 0.1)
 
@@ -369,17 +377,13 @@ class PlanArcPath(RosServiceClientBase):
         goal_position_constraint.link_name = target_frame
 
         goal_bounding_volume = BoundingVolume()
-        # TODO: try sphere
-        goal_bounding_volume.primitives = [SolidPrimitive(type=SolidPrimitive.BOX, dimensions=[0.01, 0.01, 0.01])]
+        goal_bounding_volume.primitives = [
+            SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[self.get_input("position_tolerance")])
+        ]
         goal_bounding_volume.primitive_poses = [
             Pose(
                 position=Point(x=target_pose.position.x, y=target_pose.position.y, z=target_pose.position.z),
-                orientation=Quaternion(
-                    x=target_pose.orientation.x,
-                    y=target_pose.orientation.y,
-                    z=target_pose.orientation.z,
-                    w=target_pose.orientation.w,
-                ),
+                orientation=Quaternion(w=1.0),
             )
         ]
         goal_position_constraint.constraint_region = goal_bounding_volume
@@ -389,10 +393,12 @@ class PlanArcPath(RosServiceClientBase):
         goal_orientation_constraint = OrientationConstraint()
         goal_orientation_constraint.header.frame_id = fixed_frame
         goal_orientation_constraint.link_name = target_frame
+        goal_orientation_constraint.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
         goal_orientation_constraint.orientation = target_pose.orientation
-        goal_orientation_constraint.absolute_x_axis_tolerance = 1.0
-        goal_orientation_constraint.absolute_y_axis_tolerance = 1.0
-        goal_orientation_constraint.absolute_z_axis_tolerance = 0.1
+        orientation_tolerance = self.get_input("orientation_tolerance_xyz")
+        goal_orientation_constraint.absolute_x_axis_tolerance = orientation_tolerance[0]
+        goal_orientation_constraint.absolute_y_axis_tolerance = orientation_tolerance[1]
+        goal_orientation_constraint.absolute_z_axis_tolerance = orientation_tolerance[2]
         goal_orientation_constraint.weight = 1.0
         goal_constraints.orientation_constraints.append(goal_orientation_constraint)
         goal_constraints.joint_constraints = []
@@ -404,7 +410,9 @@ class PlanArcPath(RosServiceClientBase):
         path_position_constraint.header.frame_id = fixed_frame
         path_position_constraint.link_name = target_frame
         center_bounding_volume = BoundingVolume()
-        center_bounding_volume.primitives = [SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[0.01, 0.01, 0.01])]
+        center_bounding_volume.primitives = [
+            SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[self.get_input("position_tolerance")])
+        ]
         center_bounding_volume.primitive_poses = [
             Pose(
                 position=Point(x=center_point.x, y=center_point.y, z=center_point.z),
@@ -415,7 +423,6 @@ class PlanArcPath(RosServiceClientBase):
         path_position_constraint.weight = 1.0
         path_constraints.position_constraints.append(path_position_constraint)
         request.motion_plan_request.path_constraints = path_constraints
-        self.node.get_logger().info(f"{request}")
         return request
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
