@@ -356,8 +356,6 @@ class PlanArcPath(RosServiceClientBase):
 
     def create_request(self) -> GetMotionPlan.Request:
         """Create a motion plan service request with position and orientation constraints."""
-        target_pose = Pose()
-        center_point = Point()
         target_pose, center_point = self.rotate_about_frame()
         fixed_frame = self.get_input("fixed_frame")
         target_frame = self.get_input("target_frame")
