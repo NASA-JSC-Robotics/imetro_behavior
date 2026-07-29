@@ -278,8 +278,8 @@ class PlanArcPath(RosServiceClientBase):
         """Get access to the TF buffer."""
         super().setup(**kwargs)
 
-        self.blackboard_client.register_key(key="ros/tf_buffer", access=Access.READ)
-        self.tf_buffer = self.blackboard_client.get("ros/tf_buffer")
+        self.blackboard_client.register_key(key="/ros/tf_buffer", access=Access.READ)
+        self.tf_buffer = self.blackboard_client.get("/ros/tf_buffer")
 
     def rotate_about_frame(self):
         """
