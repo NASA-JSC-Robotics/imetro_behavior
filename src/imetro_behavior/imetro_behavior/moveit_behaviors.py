@@ -244,7 +244,7 @@ class PlanToPose(RosServiceClientBase):
 
 class PlanArcPath(RosServiceClientBase):
     """
-    Uses MoveIt to plan an arc motion path.
+    Uses MoveIt's Pilz CIRC tool to plan an arc motion path.
     """
 
     def __init__(self, name: str, **kwargs: Any):
