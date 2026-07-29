@@ -66,7 +66,7 @@ class BehaviorTreeExecutor:
         # Create a global TF buffer to share across behaviors.
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, node)
-        Blackboard.set("ros/tf_buffer", self._tf_buffer)
+        Blackboard.set("/ros/tf_buffer", self._tf_buffer)
 
         # Initialize state.
         self._tree = None
