@@ -32,7 +32,7 @@ from moveit_msgs.msg import (
     OrientationConstraint,
     RobotTrajectory,
 )
-from moveit_msgs.srv import GetMotionPlan
+from moveit_msgs.srv import GetMotionPlan, GetCartesianPath
 from shape_msgs.msg import SolidPrimitive
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -236,6 +236,54 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
 
+class PlanCartesian(RosServiceClientBase):
+    """
+    Uses MoveIt to plan a motion to a target pose using cartesian path planning.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=GetMotionPlan, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "group_name": PortInformation(data_type=str, required=True),
+            "waypoints": PortInformation(data_type=list[PoseStamped], required=True),
+            "max_step": PortInformation(data_type=float, required=False),
+            "jump_threshold": PortInformation(data_type=float, required=False),
+            "avoid_collisions": PortInformation(data_type=bool, required=False),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {"trajectory": PortInformation(data_type=RobotTrajectory)}
+
+    def create_request(self) -> GetCartesianPath.Request:
+        """Create a cartesian path service request."""
+        request = GetCartesianPath.Request()
+
+        request.group_name = self.get_input("group_name")
+        request.waypoints = self.get_input("waypoints")
+        request.max_step = self.get_input("jump_threshold", 0.05)
+        request.jump_threshold = self.get_input("jump_threshold", 0.00)
+        request.avoid_collisions = self.get_input("avoid_collisions", True)
+        return request
+
+    def process_response(self, response: GetCartesianPath.Response) -> Status:
+        """Process the cartesian path service response."""
+        error_code = response.error_code
+        if error_code.val == MoveItErrorCodes.SUCCESS:
+            self.node.get_logger().info("Cartesian plan succeeded!")
+            self._set_output("trajectory", response.solution)
+            return Status.SUCCESS
+        else:
+            error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
+            self.node.get_logger().error(f"Cartesian plan failed with error code: {error_code_str}, computed {response.fraction}% of trajectory.")
+            self.node.get_logger().error(f"Message: {error_code.message}")
+            self.node.get_logger().error(f"Source: {error_code.source}")
+            return Status.FAILURE
 
 class RequestTrajectoryApproval(RosActionClientBase):
     """Sends a planned trajectory to the behavior GUI for preview and approval."""
