@@ -241,6 +241,7 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
 
+
 class PlanCartesian(RosServiceClientBase):
     """
     Uses MoveIt to plan a motion to a target pose using cartesian path planning.
@@ -254,7 +255,9 @@ class PlanCartesian(RosServiceClientBase):
         """Return the input port declarations."""
         return {
             "group_name": PortInformation(data_type=str, required=True),
-            "waypoints": PortInformation(data_type=PoseStamped, required=True), #TODO support TransformStamped and support list of waypoints
+            "waypoints": PortInformation(
+                data_type=PoseStamped, required=True
+            ),  # TODO support TransformStamped and support list of waypoints
             "max_step": PortInformation(data_type=float, required=False),
             "jump_threshold": PortInformation(data_type=float, required=False),
             "avoid_collisions": PortInformation(data_type=bool, required=False),
@@ -287,10 +290,13 @@ class PlanCartesian(RosServiceClientBase):
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(f"Cartesian plan failed with error code: {error_code_str}, computed {response.fraction}% of trajectory.")
+            self.node.get_logger().error(
+                f"Cartesian plan failed with error code: {error_code_str}, computed {response.fraction}% of trajectory."
+            )
             self.node.get_logger().error(f"Message: {error_code.message}")
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
+
 
 class PlanArcPath(RosServiceClientBase):
     """
