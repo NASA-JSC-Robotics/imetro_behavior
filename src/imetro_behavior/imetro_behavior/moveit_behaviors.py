@@ -242,7 +242,7 @@ class PlanCartesian(RosServiceClientBase):
     """
 
     def __init__(self, name: str, **kwargs: Any):
-        super().__init__(name, service_type=GetMotionPlan, **kwargs)
+        super().__init__(name, service_type=GetCartesianPath, **kwargs)
 
     @classmethod
     def input_ports(cls) -> dict:
@@ -264,8 +264,13 @@ class PlanCartesian(RosServiceClientBase):
         """Create a cartesian path service request."""
         request = GetCartesianPath.Request()
 
+        waypoints_stamped = self.get_input("waypoints")
+        waypoints = Pose()
+        for pose_stamped in waypoints_stamped:
+            waypoints.append(pose_stamped.pose)
+
         request.group_name = self.get_input("group_name")
-        request.waypoints = self.get_input("waypoints")
+        request.waypoints = waypoints
         request.max_step = self.get_input("jump_threshold", 0.05)
         request.jump_threshold = self.get_input("jump_threshold", 0.00)
         request.avoid_collisions = self.get_input("avoid_collisions", True)
