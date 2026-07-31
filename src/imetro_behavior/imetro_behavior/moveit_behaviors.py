@@ -249,7 +249,7 @@ class PlanCartesian(RosServiceClientBase):
         """Return the input port declarations."""
         return {
             "group_name": PortInformation(data_type=str, required=True),
-            "waypoints": PortInformation(data_type=list[PoseStamped], required=True),
+            "waypoints": PortInformation(data_type=PoseStamped, required=True),
             "max_step": PortInformation(data_type=float, required=False),
             "jump_threshold": PortInformation(data_type=float, required=False),
             "avoid_collisions": PortInformation(data_type=bool, required=False),
@@ -263,11 +263,8 @@ class PlanCartesian(RosServiceClientBase):
     def create_request(self) -> GetCartesianPath.Request:
         """Create a cartesian path service request."""
         request = GetCartesianPath.Request()
-
-        waypoints_stamped = self.get_input("waypoints")
-        waypoints = Pose()
-        for pose_stamped in waypoints_stamped:
-            waypoints.append(pose_stamped.pose)
+        waypoints = [Pose()]
+        waypoints.append(self.get_input("waypoints").pose)
 
         request.group_name = self.get_input("group_name")
         request.waypoints = waypoints
