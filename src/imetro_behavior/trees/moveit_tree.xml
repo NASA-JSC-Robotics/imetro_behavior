@@ -1,8 +1,38 @@
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <Sequence name="Sequence">
+      <SubTree ID="MoveCartesian" name="MoveCartesian"/>
       <SubTree ID="MoveToPose" name="MoveToPose"/>
       <SubTree ID="MoveToHome" name="MoveToHome"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="MoveCartesian">
+    <Sequence name="Sequence">
+      <CreatePoseStamped
+        name="set_target_pose"
+        position_xyz="0.212, 0.786, 1.501"
+        orientation_wxyz="-0.056, 0.531, 0.845, 0.015"
+        frame="phoebe_base_link"
+        msg="{waypoints}"
+      />
+      <PlanCartesian
+        name="plan_cartesian"
+        service_name="/phoebe/compute_cartesian_path"
+        group_name="left_lift_ur"
+        waypoints="{waypoints}"
+        trajectory="{trajectory}"
+      />
+      <RequestTrajectoryApproval
+        name="preview_trajectory"
+        action_name="/phoebe/preview_trajectory"
+        trajectory="{trajectory}"
+      />
+      <ExecuteTrajectoryBehavior
+        name="execute_trajectory"
+        action_name="/phoebe/execute_trajectory"
+        trajectory="{trajectory}"
+      />
     </Sequence>
   </BehaviorTree>
 

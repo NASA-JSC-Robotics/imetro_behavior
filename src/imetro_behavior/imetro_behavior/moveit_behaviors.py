@@ -249,7 +249,7 @@ class PlanCartesian(RosServiceClientBase):
         """Return the input port declarations."""
         return {
             "group_name": PortInformation(data_type=str, required=True),
-            "waypoints": PortInformation(data_type=PoseStamped, required=True),
+            "waypoints": PortInformation(data_type=PoseStamped, required=True), #TODO support TransformStamped and support list of waypoints
             "max_step": PortInformation(data_type=float, required=False),
             "jump_threshold": PortInformation(data_type=float, required=False),
             "avoid_collisions": PortInformation(data_type=bool, required=False),
