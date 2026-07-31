@@ -276,8 +276,8 @@ class PlanCartesian(RosServiceClientBase):
 
         request.group_name = self.get_input("group_name")
         request.waypoints = waypoints
-        request.max_step = self.get_input("jump_threshold", 0.05)
-        request.jump_threshold = self.get_input("jump_threshold", 0.00)
+        request.max_step = self.get_input("max_step", 0.05)
+        request.jump_threshold = self.get_input("jump_threshold", 0.05)
         request.avoid_collisions = self.get_input("avoid_collisions", True)
         return request
 
