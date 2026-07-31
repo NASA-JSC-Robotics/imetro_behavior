@@ -161,6 +161,33 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class TwistAboutFrame(BehaviourWithPorts):
+    """Twist one TF about an axis of another TF by specified amount of radians."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "rotation_tf": PortInformation(data_type=PoseStamped, required=True, description="TF to rotate about, with respect to world"),
+            "ee_tf": PortInformation(data_type=PoseStamped, required=True, description="TF that will be rotated with respect to world, usually the EndEffector"),
+            "rotation_amount": PortInformation(data_type=float, required=False, description="Amount of rotation in radians"),
+            "rotation_axis": PortInformation(data_type=str, required=False, description="Choose: 'X'/'Y'/'Z', axis to rotate about the rotation TF"),
+            "keep_start_orientation": PortInformation(data_type=bool, required=False, description="Keep orientation of EndEffector static throughout rotation"),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+
+    def update(self) -> Status:
+        """Twist about the rotation frame."""
+
+        # TODO port over cpp twist logic
+
+        self._set_output("output_pose", msg)
+        return Status.SUCCESS
+
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
 
