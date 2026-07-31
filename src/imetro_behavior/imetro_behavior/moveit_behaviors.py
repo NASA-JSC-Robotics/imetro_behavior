@@ -271,13 +271,16 @@ class PlanCartesian(RosServiceClientBase):
     def create_request(self) -> GetCartesianPath.Request:
         """Create a cartesian path service request."""
         request = GetCartesianPath.Request()
-        waypoints = [Pose()]
-        waypoints.append(self.get_input("waypoints").pose)
+
+        waypoints = self.get_input("waypoints")
+        if isinstance(waypoints, PoseStamped):
+            request.waypoints = [Pose(), waypoints.pose]
+        else:  # let's assume it's a list
+            request.waypoints = waypoints
 
         request.group_name = self.get_input("group_name")
-        request.waypoints = waypoints
-        request.max_step = self.get_input("max_step", 0.05)
-        request.jump_threshold = self.get_input("jump_threshold", 0.05)
+        request.max_step = self.get_input("max_step", 0.01)
+        request.jump_threshold = self.get_input("jump_threshold", 1.25)
         request.avoid_collisions = self.get_input("avoid_collisions", True)
         return request
 
