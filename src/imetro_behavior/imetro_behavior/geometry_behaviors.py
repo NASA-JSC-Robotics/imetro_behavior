@@ -91,8 +91,8 @@ class TransformPose(BehaviourWithPorts):
         if not isinstance(self.node, Node):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
-        self.blackboard_client.register_key(key="ros/tf_buffer", access=Access.READ)
-        self.tf_buffer = self.blackboard_client.get("ros/tf_buffer")
+        self.blackboard_client.register_key(key="/ros/tf_buffer", access=Access.READ)
+        self.tf_buffer = self.blackboard_client.get("/ros/tf_buffer")
 
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""

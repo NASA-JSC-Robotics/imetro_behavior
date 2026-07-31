@@ -66,7 +66,7 @@ class BehaviorTreeExecutor:
         # Create a global TF buffer to share across behaviors.
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, node)
-        Blackboard.set("ros/tf_buffer", self._tf_buffer)
+        self._init_global_blackboard()
 
         # Initialize state.
         self._tree = None
@@ -86,6 +86,11 @@ class BehaviorTreeExecutor:
         )
 
         self._logger.info("Behavior tree executor ready!")
+
+    def _init_global_blackboard(self):
+        """Initializes the blackboard and places shared resources on it as necessary."""
+        Blackboard.clear()
+        Blackboard.set("/ros/tf_buffer", self._tf_buffer)
 
     def _load_config(self, config_path: Path):
         """Loads parameters, imports, and tree search paths from a YAML configuration file."""
@@ -135,8 +140,10 @@ class BehaviorTreeExecutor:
         else:
             for path in self._search_paths:
                 candidate_path = os.path.join(path, xml_name)
+                # Found it, so return
                 if os.path.exists(candidate_path):
                     xml_path = candidate_path
+                    break
         if xml_path is None:
             self._fail_action(goal_handle, result, f"Could not find tree: {xml_name}")
             return result
@@ -206,3 +213,7 @@ class BehaviorTreeExecutor:
             self._current_behavior = None
             self._tree.root.status = Status.INVALID
             self._tree.shutdown(destroy_node=False)
+
+        # Wipe per-run state, otherwise sequential runs might pick up blackboard items
+        # from the previous tree.
+        self._init_global_blackboard()
