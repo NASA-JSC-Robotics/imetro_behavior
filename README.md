@@ -47,8 +47,8 @@ Generally behavior names should be self-explanatory, but to understand how to us
 * ROS Behaviors
   * [Ros Action Client Base](src/imetro_behavior/imetro_behavior/ros_behaviors/action_client.py)
   * [Get Synced Image PointCloud Depth](src/imetro_behavior/imetro_behavior/ros_behaviors/perception.py)
-  * Ros Service Client Base
-  * Call Trigger Service
+  * [Ros Service Client Base](src/imetro_behavior/imetro_behavior/ros_behaviors/service_client.py#29)
+  * [Call Trigger Service](src/imetro_behavior/imetro_behavior/ros_behaviors/service_client.py#178)
 * Basic Behaviors
   * [WaitForDuration](src/imetro_behavior/imetro_behavior/basic_behaviors.py)
 * Color Behaviors
