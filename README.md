@@ -11,12 +11,11 @@ This repo uses [Pixi](https://pixi.prefix.dev/latest/) to manage the environment
 
 To get started,
 
-1. Install Pixi: https://pixi.prefix.dev/latest/installation/
+1. Install Pixi: <https://pixi.prefix.dev/latest/installation/>
 
 2. `pixi run build`
 
 Then, you can open up a `pixi shell` and do all your development and testing there!
-
 
 ## Running the Core
 
@@ -40,6 +39,7 @@ For example,
 ```bash
 ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehavior '{tree_file_name: nav_tree}'
 ```
+
 ## Implemented Behaviors
 
 Generally behavior names should be self-explanatory, but to understand how to use it effectively be sure to check the header, where the inputs and outputs are defined.
@@ -59,7 +59,7 @@ Generally behavior names should be self-explanatory, but to understand how to us
   * [Command Gripper](src/imetro_behavior/imetro_behavior/control_behaviors.py#148)
 * Decorators
   * [SuccessIfVariableIsTrue](src/imetro_behavior/imetro_behavior/decorators.py#25)
-  * [SuccessIfVariableIsFalse](src/imetro_behavior/imetro_behavior/decorators.py#50) 
+  * [SuccessIfVariableIsFalse](src/imetro_behavior/imetro_behavior/decorators.py#50)
 * Geometry Behaviors
   * [Create Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#37)
   * [Transform Pose](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#72)
