@@ -42,7 +42,7 @@ ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehav
 
 ## Implemented Behaviors
 
-Generally behavior names should be self-explanatory, but to understand how to use it effectively be sure to check the header, where the inputs and outputs are defined.
+Generally behavior names should be self-explanatory, but to understand how to use it effectively be sure to check the docstrings, where the inputs and outputs ports are defined.
 
 * ROS Behaviors
   * [Ros Action Client Base](src/imetro_behavior/imetro_behavior/ros_behaviors/action_client.py)
