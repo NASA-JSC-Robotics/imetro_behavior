@@ -43,7 +43,7 @@ class CreatePoseStamped(BehaviourWithPorts):
         """Return the input port declarations."""
         return {
             "position_xyz": PortInformation(data_type=list[float], required=True),
-            "orientation_wxyz": PortInformation(data_type=list[float], required=True),
+            "orientation_xyzw": PortInformation(data_type=list[float], required=True),
             "frame": PortInformation(data_type=str, required=False),
         }
 
@@ -60,10 +60,10 @@ class CreatePoseStamped(BehaviourWithPorts):
         msg.pose.position.x = position_xyz[0]
         msg.pose.position.y = position_xyz[1]
         msg.pose.position.z = position_xyz[2]
-        msg.pose.orientation.w = orientation_wxyz[0]
-        msg.pose.orientation.x = orientation_wxyz[1]
-        msg.pose.orientation.y = orientation_wxyz[2]
-        msg.pose.orientation.z = orientation_wxyz[3]
+        msg.pose.orientation.x = orientation_wxyz[0]
+        msg.pose.orientation.y = orientation_wxyz[1]
+        msg.pose.orientation.z = orientation_wxyz[2]
+        msg.pose.orientation.w = orientation_wxyz[3]
         # TODO: Update this when default values are added to PyTrees ports.
         msg.header.frame_id = self.get_input("frame", "")
         self._set_output("msg", msg)
