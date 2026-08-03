@@ -243,7 +243,7 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
         
-class GetPlanningScene(RosServiceClientBase):
+class RequestPlanningScene(RosServiceClientBase):
     """
     Get planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
     """
@@ -302,6 +302,11 @@ class ModifyCollisions(RosServiceClientBase):
     def create_request(self) -> ApplyPlanningScene.Request:
         """Create an ApplyPlanningScene service request to modify the ACM."""
         request = ApplyPlanningScene.Request()
+        planning_scene = self.get_input("planning_scene")
+        links_list_1 = self.get_input("links_list_1")
+        links_list_2 = self.get_input("links_list_2")
+        disable_collisions = self.get_input("disable_collisions")
+
         return request
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
