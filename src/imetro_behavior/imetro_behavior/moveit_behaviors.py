@@ -36,8 +36,10 @@ from moveit_msgs.msg import (
     PositionConstraint,
     OrientationConstraint,
     RobotTrajectory,
+    PlanningScene,
+    AllowedCollisionMatrix
 )
-from moveit_msgs.srv import GetMotionPlan, GetCartesianPath
+from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, 
 from shape_msgs.msg import SolidPrimitive
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -240,7 +242,40 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Message: {error_code.message}")
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
+        
+class GetPlanningScene(RosServiceClientBase):
+    """
+    Get planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
+    """
 
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=GetPlanningScene, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {"planning_scene": PortInformation(data_type=PlanningScene)}
+
+    def create_request(self) -> GetPlanningScene.Request:
+        """Create a PlanningScene service request."""
+        request = GetPlanningScene.Request()
+        return request
+
+    def process_response(self, response: GetPlanningScene.Response) -> Status:
+        """Process the PlanningScene service response."""
+        planning_scene = response.scene
+        if planning_scene:
+            self.node.get_logger().info("Got planning scene!")
+            self._set_output("planning_scene", planning_scene)
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error(f"Error, failed to get planning scene.")
+            return Status.FAILURE
 
 class PlanCartesian(RosServiceClientBase):
     """
