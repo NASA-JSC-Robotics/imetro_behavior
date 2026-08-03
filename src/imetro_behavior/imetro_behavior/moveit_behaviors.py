@@ -38,7 +38,7 @@ from moveit_msgs.msg import (
     OrientationConstraint,
     RobotTrajectory,
     PlanningScene,
-    AllowedCollisionEntry
+    AllowedCollisionEntry,
 )
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
 
@@ -244,7 +244,8 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Message: {error_code.message}")
             self.node.get_logger().error(f"Source: {error_code.source}")
             return Status.FAILURE
-        
+
+
 class RequestPlanningScene(RosServiceClientBase):
     """
     Get planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
@@ -278,7 +279,8 @@ class RequestPlanningScene(RosServiceClientBase):
         else:
             self.node.get_logger().error(f"Error: failed to get planning scene.")
             return Status.FAILURE
-        
+
+
 class ModifyCollisions(RosServiceClientBase):
     """
     Modify the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
@@ -293,9 +295,20 @@ class ModifyCollisions(RosServiceClientBase):
         """Return the input port declarations."""
         return {
             "planning_scene": PortInformation(data_type=PlanningScene, required=True),
-            "links_list_1": PortInformation(data_type=list[str], required=True, description="first list of objects to modify collisions for"),
-            "links_list_2": PortInformation(data_type=list[str], required=True, description="second list of objects to modify collisions against links_list_1"),
-            "allow_collision": PortInformation(data_type=bool, required=True, description="True: links are able to collide with eachother. False: collision is forbidden between links."),}
+            "links_list_1": PortInformation(
+                data_type=list[str], required=True, description="first list of objects to modify collisions for"
+            ),
+            "links_list_2": PortInformation(
+                data_type=list[str],
+                required=True,
+                description="second list of objects to modify collisions against links_list_1",
+            ),
+            "allow_collision": PortInformation(
+                data_type=bool,
+                required=True,
+                description="True: links are able to collide with eachother. False: collision is forbidden between links.",
+            ),
+        }
 
     @classmethod
     def output_ports(cls) -> dict:
@@ -317,13 +330,13 @@ class ModifyCollisions(RosServiceClientBase):
         for link in all_links:
             if link not in acm.entry_names:
                 acm.entry_names.append(link)
-                
+
         num_entries = len(acm.entry_names)
 
         # Add any missing entries to the collision matrix if new ones are required
         while len(acm.entry_values) < num_entries:
             acm.entry_values.append(AllowedCollisionEntry())
-        
+
         # If new links were added in previous steps, append forbidden collisions between existing links and the new link entries
         for entry in acm.entry_values:
             while len(entry.enabled) < num_entries:
@@ -335,10 +348,10 @@ class ModifyCollisions(RosServiceClientBase):
             for link2 in links_list_2:
                 index1 = acm.entry_names.index(link1)
                 index2 = acm.entry_names.index(link2)
-                
+
                 acm.entry_values[index1].enabled[index2] = allow_collision
                 acm.entry_values[index2].enabled[index1] = allow_collision
-            
+
         planning_scene.allowed_collision_matrix = acm
         planning_scene.is_diff = True
         request.scene = planning_scene
@@ -352,6 +365,7 @@ class ModifyCollisions(RosServiceClientBase):
         else:
             self.node.get_logger().error(f"Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
+
 
 class PlanCartesian(RosServiceClientBase):
     """
