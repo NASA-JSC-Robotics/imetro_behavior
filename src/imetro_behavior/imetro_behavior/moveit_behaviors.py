@@ -306,7 +306,7 @@ class ModifyCollisions(RosServiceClientBase):
             "allow_collision": PortInformation(
                 data_type=bool,
                 required=True,
-                description="True: links are able to collide with eachother."
+                description="True: links are able to collide with each other."
                 "False: collision is forbidden between links.",
             ),
         }
@@ -345,7 +345,7 @@ class ModifyCollisions(RosServiceClientBase):
                 entry.enabled.append(False)
 
         # Finally, apply the input port collision flag to the given link lists
-        # Note: when allow_collision is True, links are able to collide with eachother
+        # Note: when allow_collision is True, links are able to collide with each other
         for link1 in links_list_1:
             for link2 in links_list_2:
                 index1 = acm.entry_names.index(link1)
@@ -362,7 +362,7 @@ class ModifyCollisions(RosServiceClientBase):
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
         """Process the ApplyPlanningScene service response."""
         if response.success:
-            self.node.get_logger().info("Sucessfully modified the planning scene!")
+            self.node.get_logger().info("Successfully modified the planning scene!")
             return Status.SUCCESS
         else:
             self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
