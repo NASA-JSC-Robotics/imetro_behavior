@@ -17,12 +17,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 from typing import Any
 
 from py_trees.common import Access, Status
 from py_trees.ports import PortInformation
 
-import copy
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
@@ -283,7 +283,8 @@ class RequestPlanningScene(RosServiceClientBase):
 
 class ModifyCollisions(RosServiceClientBase):
     """
-    Modify the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
+    Modifies the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
+    The Allowed Collision Matrix is a matrix of pairs of links/objects that are allowed to touch without triggering a collision
     Note: collision flag will be applied for all combinations of given link lists.
     """
 
@@ -296,12 +297,12 @@ class ModifyCollisions(RosServiceClientBase):
         return {
             "planning_scene": PortInformation(data_type=PlanningScene, required=True),
             "links_list_1": PortInformation(
-                data_type=list[str], required=True, description="first list of objects to modify collisions for"
+                data_type=list[str], required=True, description="First list of objects for which to modify collisions"
             ),
             "links_list_2": PortInformation(
                 data_type=list[str],
                 required=True,
-                description="second list of objects to modify collisions against links_list_1",
+                description="Second list of objects to modify collisions against links_list_1",
             ),
             "allow_collision": PortInformation(
                 data_type=bool,
