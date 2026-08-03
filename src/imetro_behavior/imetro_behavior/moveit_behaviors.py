@@ -297,12 +297,14 @@ class ModifyCollisions(RosServiceClientBase):
         return {
             "planning_scene": PortInformation(data_type=PlanningScene, required=True),
             "links_list_1": PortInformation(
-                data_type=list[str], required=True, description="First list of objects for which to modify collisions"
+                data_type=list[str],
+                required=True,
+                description="First list of robot links or scene objects for which to modify collisions",
             ),
             "links_list_2": PortInformation(
                 data_type=list[str],
                 required=True,
-                description="Second list of objects to modify collisions against links_list_1",
+                description="Second list of robot links or scene objects to modify collisions against links_list_1",
             ),
             "allow_collision": PortInformation(
                 data_type=bool,
