@@ -284,7 +284,7 @@ class RequestPlanningScene(RosServiceClientBase):
 class ModifyCollisions(RosServiceClientBase):
     """
     Modifies the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
-    The Allowed Collision Matrix is a matrix of pairs of links/objects that are allowed to touch without triggering a collision
+    The Allowed Collision Matrix is a matrix of pairs of links/objects that are allowed/disallowed to collide.
     Note: collision flag will be applied for all combinations of given link lists.
     """
 
