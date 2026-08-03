@@ -32,6 +32,7 @@ from py_trees.ports import BehaviourWithPorts, PortInformation
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped
 from std_msgs.msg import Header
+from tf2_ros import TransformBroadcaster
 
 
 class CreatePoseStamped(BehaviourWithPorts):
@@ -192,9 +193,21 @@ class OffsetPoseStamped(BehaviourWithPorts):
         # Note that SciPy uses xyzw notation!
         orientation_wxyz = self.get_input("orientation_wxyz", [1.0, 0.0, 0.0, 0.0])
         rot_cur = R.from_quat(
-            [msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w]
+            [
+                msg.pose.orientation.x,
+                msg.pose.orientation.y,
+                msg.pose.orientation.z,
+                msg.pose.orientation.w,
+            ]
         )
-        rot_offset = R.from_quat([orientation_wxyz[1], orientation_wxyz[2], orientation_wxyz[3], orientation_wxyz[0]])
+        rot_offset = R.from_quat(
+            [
+                orientation_wxyz[1],
+                orientation_wxyz[2],
+                orientation_wxyz[3],
+                orientation_wxyz[0],
+            ]
+        )
         q_new = (rot_offset * rot_cur).as_quat()
         msg.pose.orientation.x = q_new[0]
         msg.pose.orientation.y = q_new[1]
@@ -265,7 +278,11 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
         msg = PoseStamped(
             header=Header(frame_id=frame_id),
             pose=Pose(
-                position=Point(x=pose["position"]["x"], y=pose["position"]["y"], z=pose["position"]["z"]),
+                position=Point(
+                    x=pose["position"]["x"],
+                    y=pose["position"]["y"],
+                    z=pose["position"]["z"],
+                ),
                 orientation=Quaternion(
                     x=pose["orientation"]["x"],
                     y=pose["orientation"]["y"],
@@ -320,3 +337,30 @@ class LookupTransform(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class PublishTransform(BehaviourWithPorts):
+    """Publish transform stamped message to the tf2_ros server."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def setup(self, **kwargs):
+        """Setup transform broadcaster."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        self.tf_broadcaster = TransformBroadcaster(self.node)
+
+    def update(self) -> Status:
+        """Publish the transform frame."""
+        transform_stamped = self.get_input("transform_stamped")
+        self.tf_broadcaster.sendTransform(transform_stamped)
+        return Status.SUCCESS
