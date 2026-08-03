@@ -1,0 +1,17 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <LookupTransform
+        name="get_transform"
+        source_frame="world"
+        target_frame="test_frame"
+        output_transform_stamped="{test_transform}"
+      />
+
+      <PublishTransform
+        name="publish_transform"
+        transform_stamped="{test_transform}"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>

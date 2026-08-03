@@ -66,6 +66,8 @@ Generally behavior names should be self-explanatory, but to understand how to us
   * [Align Pose To Nearest Axis](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#114)
   * [Offset Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#164)
   * [YAML Pose To Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#208)
+  * [Lookup Transform](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#299)
+  * [Publish Transform](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#340)
 * MoveIt Behaviors
   * [Plan To Joint State](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#85)
   * [Plan To Pose](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#157)
