@@ -17,6 +17,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 from typing import Any
 
 from py_trees.common import Access, Status
@@ -36,8 +37,11 @@ from moveit_msgs.msg import (
     PositionConstraint,
     OrientationConstraint,
     RobotTrajectory,
+    PlanningScene,
+    AllowedCollisionEntry,
 )
-from moveit_msgs.srv import GetMotionPlan, GetCartesianPath
+from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
+
 from shape_msgs.msg import SolidPrimitive
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -239,6 +243,132 @@ class PlanToPose(RosServiceClientBase):
             self.node.get_logger().error(f"Motion plan failed with error code: {error_code_str}")
             self.node.get_logger().error(f"Message: {error_code.message}")
             self.node.get_logger().error(f"Source: {error_code.source}")
+            return Status.FAILURE
+
+
+class RequestPlanningScene(RosServiceClientBase):
+    """
+    Get planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=GetPlanningScene, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {"planning_scene": PortInformation(data_type=PlanningScene)}
+
+    def create_request(self) -> GetPlanningScene.Request:
+        """Create a PlanningScene service request."""
+        request = GetPlanningScene.Request()
+        return request
+
+    def process_response(self, response: GetPlanningScene.Response) -> Status:
+        """Process the PlanningScene service response."""
+        planning_scene = response.scene
+        if planning_scene:
+            self.node.get_logger().info("Got planning scene!")
+            self._set_output("planning_scene", planning_scene)
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error("Error: failed to get planning scene.")
+            return Status.FAILURE
+
+
+class ModifyCollisions(RosServiceClientBase):
+    """
+    Modifies the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
+    The Allowed Collision Matrix is a matrix of pairs of links/objects that are allowed/disallowed to collide.
+    Note: collision flag will be applied for all combinations of given link lists.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=ApplyPlanningScene, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "planning_scene": PortInformation(data_type=PlanningScene, required=True),
+            "links_list_1": PortInformation(
+                data_type=list[str],
+                required=True,
+                description="First list of robot links or scene objects for which to modify collisions",
+            ),
+            "links_list_2": PortInformation(
+                data_type=list[str],
+                required=True,
+                description="Second list of robot links or scene objects to modify collisions against links_list_1",
+            ),
+            "allow_collision": PortInformation(
+                data_type=bool,
+                required=True,
+                description="True: links are able to collide with each other."
+                "False: collision is forbidden between links.",
+            ),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def create_request(self) -> ApplyPlanningScene.Request:
+        """Create an ApplyPlanningScene service request to modify the ACM."""
+        request = ApplyPlanningScene.Request()
+        planning_scene = self.get_input("planning_scene")
+        links_list_1 = self.get_input("links_list_1")
+        links_list_2 = self.get_input("links_list_2")
+        allow_collision = self.get_input("allow_collision")
+
+        acm = copy.deepcopy(planning_scene.allowed_collision_matrix)
+
+        # Manually update ACM, add links if they dont already exist in the ACM
+        all_links = set(list(links_list_1) + list(links_list_2))
+        for link in all_links:
+            if link not in acm.entry_names:
+                acm.entry_names.append(link)
+
+        num_entries = len(acm.entry_names)
+        num_new_entries_needed = num_entries - len(acm.entry_values)
+
+        if num_new_entries_needed > 0:
+            # Extend the list of existing enables for the existing ACM entries.
+            for entry in acm.entry_values:
+                entry.enabled.extend([False] * num_new_entries_needed)
+
+            # Create brand new all-false entries for the new entries added
+            if num_new_entries_needed > 0:
+                acm.entry_values.extend([AllowedCollisionEntry(enabled=[False] * num_entries)] * num_new_entries_needed)
+
+        # Finally, apply the input port collision flag to the given link lists
+        # Note: when allow_collision is True, links are able to collide with each other
+        for link1 in links_list_1:
+            index1 = acm.entry_names.index(link1)
+            for link2 in links_list_2:
+                index2 = acm.entry_names.index(link2)
+
+                acm.entry_values[index1].enabled[index2] = allow_collision
+                acm.entry_values[index2].enabled[index1] = allow_collision
+
+        planning_scene.allowed_collision_matrix = acm
+        planning_scene.is_diff = True
+        request.scene = planning_scene
+        return request
+
+    def process_response(self, response: ApplyPlanningScene.Response) -> Status:
+        """Process the ApplyPlanningScene service response."""
+        if response.success:
+            self.node.get_logger().info("Successfully modified the planning scene!")
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
 
 

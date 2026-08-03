@@ -12,7 +12,7 @@
       <CreatePoseStamped
         name="set_target_pose"
         position_xyz="0.212, 0.786, 1.501"
-        orientation_wxyz="-0.056, 0.531, 0.845, 0.015"
+        orientation_xyzw="0.531, 0.845, 0.015, -0.056"
         frame="phoebe_base_link"
         msg="{waypoints}"
       />
@@ -41,7 +41,7 @@
       <CreatePoseStamped
         name="set_target_pose"
         position_xyz="-1.68, 0.5745, 1.8"
-        orientation_wxyz="-0.02, 0.045, 0.95, 0.295"
+        orientation_xyzw="0.045, 0.95, 0.295, -0.02"
         frame="world"
         msg="{target_pose}"
       />
