@@ -39,7 +39,7 @@ from moveit_msgs.msg import (
     PlanningScene,
     AllowedCollisionMatrix
 )
-from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, 
+from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
 from shape_msgs.msg import SolidPrimitive
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -274,7 +274,43 @@ class GetPlanningScene(RosServiceClientBase):
             self._set_output("planning_scene", planning_scene)
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Error, failed to get planning scene.")
+            self.node.get_logger().error(f"Error: failed to get planning scene.")
+            return Status.FAILURE
+        
+class ModifyCollisions(RosServiceClientBase):
+    """
+    Modify the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=ApplyPlanningScene, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "planning_scene": PortInformation(data_type=PlanningScene, required=True),
+            "links_list_1": PortInformation(data_type=list[str], required=True),
+            "links_list_2": PortInformation(data_type=list[str], required=True),
+            "disable_collisions": PortInformation(data_type=bool, required=True),}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def create_request(self) -> ApplyPlanningScene.Request:
+        """Create an ApplyPlanningScene service request to modify the ACM."""
+        request = ApplyPlanningScene.Request()
+        return request
+
+    def process_response(self, response: ApplyPlanningScene.Response) -> Status:
+        """Process the ApplyPlanningScene service response."""
+        if response.success:
+            self.node.get_logger().info("Sucessfully modified the planning scene!")
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error(f"Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
 
 class PlanCartesian(RosServiceClientBase):
