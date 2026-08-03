@@ -22,6 +22,7 @@ from typing import Any
 from py_trees.common import Access, Status
 from py_trees.ports import PortInformation
 
+import copy
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
@@ -37,9 +38,10 @@ from moveit_msgs.msg import (
     OrientationConstraint,
     RobotTrajectory,
     PlanningScene,
-    AllowedCollisionMatrix
+    AllowedCollisionEntry
 )
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
+
 from shape_msgs.msg import SolidPrimitive
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -280,6 +282,7 @@ class RequestPlanningScene(RosServiceClientBase):
 class ModifyCollisions(RosServiceClientBase):
     """
     Modify the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
+    Note: collision flag will be applied for all combinations of given link lists.
     """
 
     def __init__(self, name: str, **kwargs: Any):
@@ -290,9 +293,9 @@ class ModifyCollisions(RosServiceClientBase):
         """Return the input port declarations."""
         return {
             "planning_scene": PortInformation(data_type=PlanningScene, required=True),
-            "links_list_1": PortInformation(data_type=list[str], required=True),
-            "links_list_2": PortInformation(data_type=list[str], required=True),
-            "disable_collisions": PortInformation(data_type=bool, required=True),}
+            "links_list_1": PortInformation(data_type=list[str], required=True, description="first list of objects to modify collisions for"),
+            "links_list_2": PortInformation(data_type=list[str], required=True, description="second list of objects to modify collisions against links_list_1"),
+            "allow_collision": PortInformation(data_type=bool, required=True, description="True: links are able to collide with eachother. False: collision is forbidden between links."),}
 
     @classmethod
     def output_ports(cls) -> dict:
@@ -305,8 +308,40 @@ class ModifyCollisions(RosServiceClientBase):
         planning_scene = self.get_input("planning_scene")
         links_list_1 = self.get_input("links_list_1")
         links_list_2 = self.get_input("links_list_2")
-        disable_collisions = self.get_input("disable_collisions")
+        allow_collision = self.get_input("allow_collision")
 
+        acm = copy.deepcopy(planning_scene.allowed_collision_matrix)
+
+        # Manually update ACM, add links if they dont already exist in the ACM
+        all_links = set(list(links_list_1) + list(links_list_2))
+        for link in all_links:
+            if link not in acm.entry_names:
+                acm.entry_names.append(link)
+                
+        num_entries = len(acm.entry_names)
+
+        # Add any missing entries to the collision matrix if new ones are required
+        while len(acm.entry_values) < num_entries:
+            acm.entry_values.append(AllowedCollisionEntry())
+        
+        # If new links were added in previous steps, append forbidden collisions between existing links and the new link entries
+        for entry in acm.entry_values:
+            while len(entry.enabled) < num_entries:
+                entry.enabled.append(False)
+
+        # Finally, apply the input port collision flag to the given link lists
+        # Note: when allow_collision is True, links are able to collide with eachother
+        for link1 in links_list_1:
+            for link2 in links_list_2:
+                index1 = acm.entry_names.index(link1)
+                index2 = acm.entry_names.index(link2)
+                
+                acm.entry_values[index1].enabled[index2] = allow_collision
+                acm.entry_values[index2].enabled[index1] = allow_collision
+            
+        planning_scene.allowed_collision_matrix = acm
+        planning_scene.is_diff = True
+        request.scene = planning_scene
         return request
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
