@@ -30,7 +30,7 @@ from scipy.spatial.transform import Rotation as R
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped
 from std_msgs.msg import Header
 
 
@@ -277,3 +277,46 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
 
         self._set_output("msg", msg)
         return Status.SUCCESS
+
+
+class LookupTransform(BehaviourWithPorts):
+    """Lookup transform between two frames from the tf2_ros server."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "source_frame": PortInformation(data_type=str, required=True),
+            "target_frame": PortInformation(data_type=str, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {
+            "output_transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    def setup(self, **kwargs):
+        """Get access to the TF buffer."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+        self.blackboard_client.register_key(key="/ros/tf_buffer", access=Access.READ)
+        self.tf_buffer = self.blackboard_client.get("/ros/tf_buffer")
+
+    def update(self) -> Status:
+        """Look up the transform in TF and transform the frame."""
+        source_frame = self.get_input("source_frame")
+        target_frame = self.get_input("target_frame")
+        try:
+            tform = self.tf_buffer.lookup_transform(source_frame, target_frame, Time())
+        except Exception as e:
+            self.node.get_logger().error(f"TF lookup failed: {e}")
+            return Status.FAILURE
+
+        self._set_output("output_transform_stamped", tform)
+        return Status.SUCCESS
+
+
