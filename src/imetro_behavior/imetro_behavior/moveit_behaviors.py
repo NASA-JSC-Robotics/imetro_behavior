@@ -336,12 +336,16 @@ class ModifyCollisions(RosServiceClientBase):
                 acm.entry_names.append(link)
 
         num_entries = len(acm.entry_names)
+        num_new_entries_needed = num_entries - len(acm.entry_values)
 
-        # Add any missing entries to the collision matrix if new ones are required
-        # append forbidden collisions between existing links and the new link entries
-        additional_entries_needed = len(acm.entry_values) - num_entries
-        if additional_entries_needed > 0:
-            acm.entry_values.extend([AllowedCollisionEntry(enabled=[False])] * additional_entries_needed)
+        if num_new_entries_needed > 0:
+            # Extend the list of existing enables for the existing ACM entries.
+            for entry in acm.entry_values:
+                entry.enabled.extend([False] * num_new_entries_needed)
+
+            # Create brand new all-false entries for the new entries added
+            if num_new_entries_needed > 0:
+                acm.entry_values.extend([AllowedCollisionEntry(enabled=[False] * num_entries)] * num_new_entries_needed)
 
         # Finally, apply the input port collision flag to the given link lists
         # Note: when allow_collision is True, links are able to collide with each other
