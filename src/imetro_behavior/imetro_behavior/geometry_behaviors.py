@@ -56,14 +56,14 @@ class CreatePoseStamped(BehaviourWithPorts):
         """Create the message and set it as an output port."""
         msg = PoseStamped()
         position_xyz = self.get_input("position_xyz")
-        orientation_wxyz = self.get_input("orientation_wxyz")
+        orientation_xyzw = self.get_input("orientation_xyzw")
         msg.pose.position.x = position_xyz[0]
         msg.pose.position.y = position_xyz[1]
         msg.pose.position.z = position_xyz[2]
-        msg.pose.orientation.x = orientation_wxyz[0]
-        msg.pose.orientation.y = orientation_wxyz[1]
-        msg.pose.orientation.z = orientation_wxyz[2]
-        msg.pose.orientation.w = orientation_wxyz[3]
+        msg.pose.orientation.x = orientation_xyzw[0]
+        msg.pose.orientation.y = orientation_xyzw[1]
+        msg.pose.orientation.z = orientation_xyzw[2]
+        msg.pose.orientation.w = orientation_xyzw[3]
         # TODO: Update this when default values are added to PyTrees ports.
         msg.header.frame_id = self.get_input("frame", "")
         self._set_output("msg", msg)
@@ -171,7 +171,7 @@ class OffsetPoseStamped(BehaviourWithPorts):
         return {
             "input_pose": PortInformation(data_type=PoseStamped, required=True),
             "translation_xyz": PortInformation(data_type=list[float], required=False),
-            "orientation_wxyz": PortInformation(data_type=list[float], required=False),
+            "orientation_xyzw": PortInformation(data_type=list[float], required=False),
         }
 
     @classmethod
@@ -191,7 +191,7 @@ class OffsetPoseStamped(BehaviourWithPorts):
 
         # Orientation offset must be applied with quaternion multiplication.
         # Note that SciPy uses xyzw notation!
-        orientation_wxyz = self.get_input("orientation_wxyz", [1.0, 0.0, 0.0, 0.0])
+        orientation_xyzw = self.get_input("orientation_xyzw", [0.0, 0.0, 0.0, 1.0])
         rot_cur = R.from_quat(
             [
                 msg.pose.orientation.x,
@@ -202,10 +202,10 @@ class OffsetPoseStamped(BehaviourWithPorts):
         )
         rot_offset = R.from_quat(
             [
-                orientation_wxyz[1],
-                orientation_wxyz[2],
-                orientation_wxyz[3],
-                orientation_wxyz[0],
+                orientation_xyzw[0],
+                orientation_xyzw[1],
+                orientation_xyzw[2],
+                orientation_xyzw[3],
             ]
         )
         q_new = (rot_offset * rot_cur).as_quat()
