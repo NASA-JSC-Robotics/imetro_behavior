@@ -52,9 +52,9 @@ class NavigateToPoseBehavior(RosActionClientBase):
 
     def process_result(self, result: NavigateToPose.Result) -> Status:
         """Process the navigation action result."""
-        if result.result.error_code == NavigateToPose.Result.NONE:
+        if result.error_code == NavigateToPose.Result.NONE:
             self.node.get_logger().info("Navigation action succeeded!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Navigation action failed with error: {result.result.error_msg}")
+            self.node.get_logger().error(f"Navigation action failed with error: {result.error_msg}")
             return Status.FAILURE
