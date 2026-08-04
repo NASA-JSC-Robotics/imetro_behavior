@@ -15,6 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+"""
+Shared pytest fixtures for imetro_behavior unit tests, can be pulled in as needed.
+
+For more information refer to:
+https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
+"""
+
 import pytest
 
 import rclpy
