@@ -297,7 +297,11 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
 
 
 class LookupTransform(BehaviourWithPorts):
-    """Lookup transform between two frames from the tf2_ros server."""
+    """Lookup transform between two frames from the tf2_ros server.
+    
+    Returns the transform required to convert from the source frame, to the target frame.
+    Namely, `target_T_source`.
+    """
 
     @classmethod
     def input_ports(cls) -> dict:
