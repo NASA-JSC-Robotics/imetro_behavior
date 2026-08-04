@@ -21,7 +21,7 @@ import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
-from imetro_behavior.executor import BehaviorTreeExecutor
+from imetro_behavior.executor import BehaviorTreeServer
 
 
 if __name__ == "__main__":
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     executor = MultiThreadedExecutor()
     executor.add_node(node)
 
-    bt_exec = BehaviorTreeExecutor(node)
+    bt_server = BehaviorTreeServer(node)
 
     try:
         executor.spin()
