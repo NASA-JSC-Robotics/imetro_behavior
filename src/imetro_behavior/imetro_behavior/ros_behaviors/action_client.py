@@ -18,6 +18,7 @@
 import time
 from typing import Any, Type
 
+from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -25,6 +26,17 @@ from rclpy.task import Future
 
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
+
+
+GOAL_STATUS_DICT = {
+    GoalStatus.STATUS_UNKNOWN: "UNKNOWN",
+    GoalStatus.STATUS_ACCEPTED: "ACCEPTED",
+    GoalStatus.STATUS_EXECUTING: "EXECUTING",
+    GoalStatus.STATUS_CANCELING: "CANCELING",
+    GoalStatus.STATUS_SUCCEEDED: "SUCCEEDED",
+    GoalStatus.STATUS_CANCELED: "CANCELED",
+    GoalStatus.STATUS_ABORTED: "ABORTED",
+}
 
 
 class RosActionClientBase(BehaviourWithPorts):
@@ -74,6 +86,9 @@ class RosActionClientBase(BehaviourWithPorts):
     def process_result(self, result: Any) -> Status:
         """
         Abstract method for processing a ROS action result.
+
+        This receives the action's result message directly, and is only called after
+        the base class has already checked that the goal status reports success.
         """
         raise NotImplementedError("Must implement process_result() method.")
 
@@ -144,11 +159,18 @@ class RosActionClientBase(BehaviourWithPorts):
             return Status.FAILURE
 
         elif self.get_result_future is not None and self.get_result_future.done():
-            # If the action completed, process the result and return the corresponding status.
+            # If the action completed, check that the goal succeeded before handing
+            # the unwrapped result message off to the implementation.
+            self.goal_handle = None
+            response = self.get_result_future.result()
+            if response.status != GoalStatus.STATUS_SUCCEEDED:
+                status_str = GOAL_STATUS_DICT.get(response.status, "UNKNOWN")
+                self.node.get_logger().error(f"Action did not succeed, with goal status: {status_str}.")
+                return Status.FAILURE
+
             try:
                 # Must be implemented
-                self.goal_handle = None
-                return self.process_result(self.get_result_future.result())
+                return self.process_result(response.result)
             except Exception as e:
                 self.node.get_logger().error(f"Failed to process action result: {e}")
                 return Status.FAILURE

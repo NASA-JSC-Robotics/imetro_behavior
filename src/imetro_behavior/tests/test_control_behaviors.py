@@ -19,25 +19,14 @@
 
 import pytest
 
-import rclpy
 from rclpy.node import Node
+from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
+from controller_manager_msgs.srv import ListControllers, SwitchController
 from py_trees.blackboard import Blackboard
+from py_trees.common import Status
 
-from imetro_behavior.control_behaviors import SwitchRosControllers
-
-
-@pytest.fixture()
-def ros_node():
-    # Setup
-    rclpy.init()
-    node = Node("test_control_behaviors_node")
-
-    yield node
-
-    # Teardown
-    node.destroy_node()
-    rclpy.try_shutdown()
+from imetro_behavior.control_behaviors import CommandGripper, GetRosControllerInfo, SwitchRosControllers
 
 
 @pytest.fixture()
@@ -99,3 +88,57 @@ def test_switch_ros_controllers_using_info(ros_node: Node, sample_controller_inf
     request = behavior.create_request()
     assert request.activate_controllers == ["full_robot_controller"]
     assert request.deactivate_controllers == ["arm_controller", "lift_controller"]
+
+
+def test_switch_ros_controllers_process_response(ros_node: Node) -> None:
+    behavior = SwitchRosControllers(name="switch_controllers", service_name="/foo")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    assert behavior.process_response(SwitchController.Response(ok=True)) == Status.SUCCESS
+    assert behavior.process_response(SwitchController.Response(ok=False, message="oops")) == Status.FAILURE
+
+
+def test_get_ros_controller_info(ros_node: Node, sample_controller_info: list[ControllerState]) -> None:
+    behavior = GetRosControllerInfo(name="get_controller_info", service_name="/foo")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    # The request has no fields to fill in.
+    assert isinstance(behavior.create_request(), ListControllers.Request)
+
+    response = ListControllers.Response(controller=sample_controller_info)
+    assert behavior.process_response(response) == Status.SUCCESS
+    assert behavior.get_last_output("controller_info") == sample_controller_info
+
+
+def test_command_gripper_create_goal(ros_node: Node) -> None:
+    behavior = CommandGripper(name="command_gripper", action_name="/gripper_command")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    position_port = behavior._get_blackboard_key("position")
+    Blackboard.set(position_port, 0.025)
+
+    # Max effort should default to zero when not specified.
+    goal = behavior.create_goal()
+    assert goal.command.position == 0.025
+    assert goal.command.max_effort == 0.0
+
+    max_effort_port = behavior._get_blackboard_key("max_effort")
+    Blackboard.set(max_effort_port, 10.0)
+
+    goal = behavior.create_goal()
+    assert goal.command.position == 0.025
+    assert goal.command.max_effort == 10.0
+
+
+def test_command_gripper_process_result(ros_node: Node) -> None:
+    behavior = CommandGripper(name="command_gripper", action_name="/gripper_command")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    assert behavior.process_result(GripperCommand.Result(reached_goal=True)) == Status.SUCCESS
+    # Stalling is considered success, since it can mean the gripper closed on an object.
+    assert behavior.process_result(GripperCommand.Result(stalled=True)) == Status.SUCCESS
+    assert behavior.process_result(GripperCommand.Result()) == Status.FAILURE
