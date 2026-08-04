@@ -297,7 +297,11 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
 
 
 class LookupTransform(BehaviourWithPorts):
-    """Lookup transform between two frames from the tf2_ros server."""
+    """Lookup transform between two frames from the tf2_ros server.
+
+    Returns the transform required to convert from the source frame, to the target frame.
+    Namely, `target_T_source`.
+    """
 
     @classmethod
     def input_ports(cls) -> dict:
@@ -311,7 +315,7 @@ class LookupTransform(BehaviourWithPorts):
     def output_ports(cls) -> dict:
         """Return the output port declarations."""
         return {
-            "output_transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+            "target_T_source": PortInformation(data_type=TransformStamped, required=True),
         }
 
     def setup(self, **kwargs):
@@ -328,12 +332,12 @@ class LookupTransform(BehaviourWithPorts):
         source_frame = self.get_input("source_frame")
         target_frame = self.get_input("target_frame")
         try:
-            tform = self.tf_buffer.lookup_transform(source_frame, target_frame, Time())
+            target_T_source = self.tf_buffer.lookup_transform(target_frame, source_frame, Time())
         except Exception as e:
             self.node.get_logger().error(f"TF lookup failed: {e}")
             return Status.FAILURE
 
-        self._set_output("output_transform_stamped", tform)
+        self._set_output("target_T_source", target_T_source)
         return Status.SUCCESS
 
 

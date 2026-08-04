@@ -5,12 +5,12 @@
         name="get_transform"
         source_frame="world"
         target_frame="test_frame"
-        output_transform_stamped="{test_transform}"
+        target_T_source="{test_T_world}"
       />
 
       <PublishTransform
         name="publish_transform"
-        transform_stamped="{test_transform}"
+        transform_stamped="{test_T_world}"
       />
     </Sequence>
   </BehaviorTree>

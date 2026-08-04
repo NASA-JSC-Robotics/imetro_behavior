@@ -294,10 +294,10 @@ def test_lookup_transform(ros_node: Node, tf_buffer: Buffer) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
-    tform = behavior.get_last_output("output_transform_stamped")
-    assert tform.header.frame_id == "map"
-    assert tform.child_frame_id == "base"
-    assert tform.transform.translation.x == pytest.approx(1.0)
+    tform = behavior.get_last_output("target_T_source")
+    assert tform.header.frame_id == "base"
+    assert tform.child_frame_id == "map"
+    assert tform.transform.translation.x == pytest.approx(-1.0)
 
 
 def test_lookup_transform_unknown_frame(ros_node: Node, tf_buffer: Buffer) -> None:
