@@ -49,7 +49,19 @@ jobs:
       - name: Build docs
         run: pixi run -e docs docs
       - name: Upload docs artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_site
+
+  # If building main, push a documentation update to pages
+  # TODO: Remove the conditional before this branch merges
+  deploy-docs:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/docs-pages')
+    needs: pixi_build_and_test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
