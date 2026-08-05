@@ -346,16 +346,15 @@ class TransformStampedToPoseStamped(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Return the input port declarations."""
         return {
             "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
         }
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Return the output port declarations."""
         return {
             "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+            "child_frame_id": PortInformation(data_type=str, required=True),
         }
 
     def update(self) -> Status:
@@ -370,6 +369,7 @@ class TransformStampedToPoseStamped(BehaviourWithPorts):
         pose_stamped.pose.orientation = t_stamped.transform.rotation
 
         self._set_output("pose_stamped", pose_stamped)
+        self._set_output("child_frame_id", t_stamped.child_frame_id)
         return Status.SUCCESS
 
 
@@ -378,7 +378,6 @@ class PoseStampedToTransformStamped(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Return the input port declarations."""
         return {
             "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
             "child_frame_id": PortInformation(data_type=str, required=True),
@@ -386,7 +385,6 @@ class PoseStampedToTransformStamped(BehaviourWithPorts):
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Return the output port declarations."""
         return {
             "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
         }
