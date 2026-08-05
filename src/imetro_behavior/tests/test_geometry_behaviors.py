@@ -36,6 +36,8 @@ from imetro_behavior.geometry_behaviors import (
     PublishTransform,
     TransformPose,
     YamlPoseToPoseStamped,
+    PoseStampedToTransformStamped,
+    TransformStampedToPoseStamped,
 )
 
 
@@ -325,3 +327,52 @@ def test_publish_transform(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
+
+def test_transform_stamped_to_pose_stamped() -> None:
+    behavior = TransformStampedToPoseStamped(name="tf_to_pose")
+    behavior.setup_ports()
+
+    t_msg = TransformStamped()
+    t_msg.header.frame_id = "map"
+    t_msg.child_frame_id = "base"
+    t_msg.transform.translation.x = 2.0
+    t_msg.transform.translation.y = 3.0
+    t_msg.transform.translation.z = 4.0
+    t_msg.transform.rotation.w = 1.0
+
+    Blackboard.set(behavior._get_blackboard_key("transform_stamped"), t_msg)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    pose_msg = behavior.get_last_output("pose_stamped")
+    assert pose_msg.header.frame_id == "map"
+    assert pose_msg.pose.position.x == 2.0
+    assert pose_msg.pose.position.y == 3.0
+    assert pose_msg.pose.position.z == 4.0
+    assert pose_msg.pose.orientation.w == 1.0
+
+    child_frame = behavior.get_last_output("child_frame_id")
+    assert child_frame == "base"
+
+
+def test_pose_stamped_to_transform_stamped() -> None:
+    behavior = PoseStampedToTransformStamped(name="pose_to_tf")
+    behavior.setup_ports()
+
+    p_msg = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="odom")
+
+    Blackboard.set(behavior._get_blackboard_key("pose_stamped"), p_msg)
+    Blackboard.set(behavior._get_blackboard_key("child_frame_id"), "base_footprint")
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    t_msg = behavior.get_last_output("transform_stamped")
+    assert t_msg.header.frame_id == "odom"
+    assert t_msg.child_frame_id == "base_footprint"
+    assert t_msg.transform.translation.x == 1.0
+    assert t_msg.transform.translation.y == 2.0
+    assert t_msg.transform.translation.z == 3.0
+    assert t_msg.transform.rotation.w == 1.0
