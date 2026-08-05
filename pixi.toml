@@ -43,7 +43,7 @@ ros-jazzy-controller-manager-msgs = "*"
 pdoc = ">=15,<16"
 
 [feature.docs.tasks]
-docs = { cmd = "python3 scripts/build_docs.py", depends-on = ["build"] }
+build-docs = { cmd = "python3 scripts/build_docs.py", depends-on = ["build"] }
 
 [environments]
 docs = { features = ["docs"], solve-group = "default" }

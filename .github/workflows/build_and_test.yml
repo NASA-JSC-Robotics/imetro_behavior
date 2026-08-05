@@ -47,7 +47,7 @@ jobs:
       - name: Run tests
         run: pixi run test
       - name: Build docs
-        run: pixi run -e docs docs
+        run: pixi run -e docs build-docs
       - name: Upload docs artifact
         uses: actions/upload-pages-artifact@v5
         with:

@@ -47,7 +47,7 @@ Information on supported behaviors is available in [GitHub Pages](https://nasa-j
 To build the docs locally, use the pixi action:
 
 ```bash
-pixi run -e docs docs
+pixi run -e docs build-docs
 ```
 
 Which will drop the compiled pydocs pages into `docs/`.
