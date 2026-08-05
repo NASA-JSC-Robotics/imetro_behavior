@@ -405,7 +405,7 @@ class PlanCartesian(RosServiceClientBase):
 
         waypoints = self.get_input("waypoints")
         if isinstance(waypoints, PoseStamped):
-            request.waypoints = [Pose(), waypoints.pose]
+            request.waypoints = [waypoints.pose]
         else:  # let's assume it's a list
             request.waypoints = waypoints
 
