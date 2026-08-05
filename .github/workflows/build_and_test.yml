@@ -22,6 +22,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   pixi_build_and_test:
     runs-on: ubuntu-latest
@@ -41,3 +46,10 @@ jobs:
         run: pixi run build
       - name: Run tests
         run: pixi run test
+      - name: Build docs
+        run: pixi run -e docs docs
+      - name: Upload docs artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/_site
