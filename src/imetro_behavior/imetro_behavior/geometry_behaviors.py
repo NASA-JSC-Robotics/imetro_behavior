@@ -340,6 +340,7 @@ class LookupTransform(BehaviourWithPorts):
         self._set_output("target_T_source", target_T_source)
         return Status.SUCCESS
 
+
 class TransformStampedToPoseStamped(BehaviourWithPorts):
     """Convert a TransformStamped ROS message to a PoseStamped ROS message."""
 
@@ -360,14 +361,14 @@ class TransformStampedToPoseStamped(BehaviourWithPorts):
     def update(self) -> Status:
         """Extract the transform's translation and rotation into a PoseStamped message."""
         t_stamped = self.get_input("transform_stamped")
-        
+
         pose_stamped = PoseStamped()
         pose_stamped.header = t_stamped.header
         pose_stamped.pose.position.x = t_stamped.transform.translation.x
         pose_stamped.pose.position.y = t_stamped.transform.translation.y
         pose_stamped.pose.position.z = t_stamped.transform.translation.z
         pose_stamped.pose.orientation = t_stamped.transform.rotation
-        
+
         self._set_output("pose_stamped", pose_stamped)
         return Status.SUCCESS
 
@@ -405,6 +406,7 @@ class PoseStampedToTransformStamped(BehaviourWithPorts):
 
         self._set_output("transform_stamped", t_stamped)
         return Status.SUCCESS
+
 
 class PublishTransform(BehaviourWithPorts):
     """Publish transform stamped message to the tf2_ros server."""
