@@ -345,12 +345,16 @@ def test_transform_stamped_to_pose_stamped() -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
     pose_msg = behavior.get_last_output("pose_stamped")
     assert pose_msg.header.frame_id == "map"
     assert pose_msg.pose.position.x == 2.0
     assert pose_msg.pose.position.y == 3.0
     assert pose_msg.pose.position.z == 4.0
     assert pose_msg.pose.orientation.w == 1.0
+
+    child_frame = behavior.get_last_output("child_frame_id")
+    assert child_frame == "base"
 
 
 def test_pose_stamped_to_transform_stamped() -> None:
@@ -364,6 +368,7 @@ def test_pose_stamped_to_transform_stamped() -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
     t_msg = behavior.get_last_output("transform_stamped")
     assert t_msg.header.frame_id == "odom"
     assert t_msg.child_frame_id == "base_footprint"
