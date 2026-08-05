@@ -340,6 +340,71 @@ class LookupTransform(BehaviourWithPorts):
         self._set_output("target_T_source", target_T_source)
         return Status.SUCCESS
 
+class TransformStampedToPoseStamped(BehaviourWithPorts):
+    """Convert a TransformStamped ROS message to a PoseStamped ROS message."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+        }
+
+    def update(self) -> Status:
+        """Extract the transform's translation and rotation into a PoseStamped message."""
+        t_stamped = self.get_input("transform_stamped")
+        
+        pose_stamped = PoseStamped()
+        pose_stamped.header = t_stamped.header
+        pose_stamped.pose.position.x = t_stamped.transform.translation.x
+        pose_stamped.pose.position.y = t_stamped.transform.translation.y
+        pose_stamped.pose.position.z = t_stamped.transform.translation.z
+        pose_stamped.pose.orientation = t_stamped.transform.rotation
+        
+        self._set_output("pose_stamped", pose_stamped)
+        return Status.SUCCESS
+
+
+class PoseStampedToTransformStamped(BehaviourWithPorts):
+    """Convert a PoseStamped ROS message to a TransformStamped ROS message."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+            "child_frame_id": PortInformation(data_type=str, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {
+            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    def update(self) -> Status:
+        """Extract the pose's position and orientation into a TransformStamped message."""
+        pose_stamped = self.get_input("pose_stamped")
+        child_frame_id = self.get_input("child_frame_id")
+
+        t_stamped = TransformStamped()
+        t_stamped.header = pose_stamped.header
+        t_stamped.child_frame_id = child_frame_id
+        t_stamped.transform.translation.x = pose_stamped.pose.position.x
+        t_stamped.transform.translation.y = pose_stamped.pose.position.y
+        t_stamped.transform.translation.z = pose_stamped.pose.position.z
+        t_stamped.transform.rotation = pose_stamped.pose.orientation
+
+        self._set_output("transform_stamped", t_stamped)
+        return Status.SUCCESS
 
 class PublishTransform(BehaviourWithPorts):
     """Publish transform stamped message to the tf2_ros server."""
