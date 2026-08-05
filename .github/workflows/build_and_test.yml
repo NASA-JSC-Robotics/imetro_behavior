@@ -56,9 +56,7 @@ jobs:
   # If building main, push a documentation update to pages
   # TODO: Remove the conditional before this branch merges
   deploy-docs:
-    if: >-
-      (github.event_name == 'push' && (github.ref == 'refs/heads/main' )
-      || (github.event_name == 'pull_request' && github.head_ref == 'docs-pages')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.head_ref == 'docs-pages')
     needs: pixi_build_and_test
     runs-on: ubuntu-latest
     environment:
