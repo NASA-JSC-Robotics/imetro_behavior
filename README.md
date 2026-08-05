@@ -40,39 +40,14 @@ For example,
 ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehavior '{tree_file_name: nav_tree}'
 ```
 
-## Implemented Behaviors
+## Documentation
 
-Generally behavior names should be self-explanatory, but to understand how to use it effectively be sure to check the docstrings, where the inputs and outputs ports are defined.
+Information on supported behaviors is available in [GitHub Pages](https://nasa-jsc-robotics.github.io/imetro_behavior/imetro_behavior.html).
 
-* ROS Behaviors
-  * [Ros Action Client Base](src/imetro_behavior/imetro_behavior/ros_behaviors/action_client.py)
-  * [Get Synced Image PointCloud Depth](src/imetro_behavior/imetro_behavior/ros_behaviors/perception.py)
-  * [Ros Service Client Base](src/imetro_behavior/imetro_behavior/ros_behaviors/service_client.py#29)
-  * [Call Trigger Service](src/imetro_behavior/imetro_behavior/ros_behaviors/service_client.py#178)
-* Basic Behaviors
-  * [WaitForDuration](src/imetro_behavior/imetro_behavior/basic_behaviors.py)
-* Color Behaviors
-  * [Detect Color Blobs](src/imetro_behavior/imetro_behavior/color_behaviors.py)
-* Control Behaviors
-  * [Get Ros Controller Info](src/imetro_behavior/imetro_behavior/control_behaviors.py#34)
-  * [Switch Ros Controllers](src/imetro_behavior/imetro_behavior/control_behaviors.py#67)
-  * [Command Gripper](src/imetro_behavior/imetro_behavior/control_behaviors.py#148)
-* Decorators
-  * [SuccessIfVariableIsTrue](src/imetro_behavior/imetro_behavior/decorators.py#25)
-  * [SuccessIfVariableIsFalse](src/imetro_behavior/imetro_behavior/decorators.py#50)
-* Geometry Behaviors
-  * [Create Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#37)
-  * [Transform Pose](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#72)
-  * [Align Pose To Nearest Axis](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#114)
-  * [Offset Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#164)
-  * [YAML Pose To Pose Stamped](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#208)
-  * [Lookup Transform](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#299)
-  * [Publish Transform](src/imetro_behavior/imetro_behavior/geometry_behaviors.py#340)
-* MoveIt Behaviors
-  * [Plan To Joint State](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#85)
-  * [Plan To Pose](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#157)
-  * [Plan Arc Path](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#245)
-  * [Request Trajectory Approval](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#441)
-  * [Execute Trajectory Behavior](src/imetro_behavior/imetro_behavior/moveit_behaviors.py#473)
-* Nav Behaviors
-  * [Navigate To Pose Behavior](src/imetro_behavior/imetro_behavior/nav_behaviors.py)
+To build the docs locally, use the pixi action:
+
+```bash
+pixi run -e docs build-docs
+```
+
+Which will drop the compiled pydocs pages into `docs/`.
