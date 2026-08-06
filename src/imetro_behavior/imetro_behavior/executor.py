@@ -99,14 +99,17 @@ class BehaviorTreeExecutor:
         for module_to_import in config.get("imports", []):
             import_module(module_to_import)
 
-        # Set the search paths
+        # Set the search paths, including all the subfolders below each specified path.
         self._search_paths = []
         for path_config in config.get("tree_search_paths", []):
             package = path_config.get("package")
             path = path_config.get("path")
             if package is None or path is None:
                 raise RuntimeError("Search paths must specify 'package' and a 'path' fields.")
-            self._search_paths.append((get_package_share_path(package) / path).as_posix())
+
+            full_path = get_package_share_path(package) / path
+            self._search_paths.append(full_path.as_posix())
+            self._search_paths.extend([p.as_posix() for p in full_path.rglob("*") if p.is_dir()])
 
     @property
     def current_behavior(self) -> str | None:
