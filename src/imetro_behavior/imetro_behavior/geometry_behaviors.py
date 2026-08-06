@@ -406,6 +406,47 @@ class PoseStampedToTransformStamped(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class DecomposePoseStamped(BehaviourWithPorts):
+    """
+    Decomposes a ROS PoseStamped message into frame_id, xyz translation, and xyzw quaternion.
+
+    Works well with OffsetPoseStamped.
+    """
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        return {
+            "frame_id": PortInformation(data_type=str, required=False),
+            "translation_xyz": PortInformation(data_type=list[float], required=False),
+            "rotation_xyzw": PortInformation(data_type=list[float], required=False),
+        }
+
+    def update(self) -> Status:
+        """Extract the pose's position, orientation, and frame_id and return as list[float] and str"""
+        pose_stamped = self.get_input("pose_stamped")
+        frame_id = pose_stamped.header.frame_id
+        translation_xyz = []
+        translation_xyz.append(pose_stamped.pose.position.x)
+        translation_xyz.append(pose_stamped.pose.position.y)
+        translation_xyz.append(pose_stamped.pose.position.z)
+        orientation_xyzw = []
+        orientation_xyzw.append(pose_stamped.pose.orientation.x)
+        orientation_xyzw.append(pose_stamped.pose.orientation.y)
+        orientation_xyzw.append(pose_stamped.pose.orientation.z)
+        orientation_xyzw.append(pose_stamped.pose.orientation.w)
+
+        self._set_output("frame_id", frame_id)
+        self._set_output("translation_xyz", translation_xyz)
+        self._set_output("rotation_xyzw", orientation_xyzw)
+        return Status.SUCCESS
+
+
 class PublishTransform(BehaviourWithPorts):
     """Publish transform stamped message to the tf2_ros server."""
 
