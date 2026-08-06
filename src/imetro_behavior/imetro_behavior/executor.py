@@ -35,6 +35,7 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.composites import Sequence
 from py_trees.parsers.behaviour_tree_xml import parse_behaviour_tree_xml
+from py_trees.ports import NoDataAvailable
 from py_trees_ros.trees import BehaviourTree
 
 from imetro_behavior_msgs.action import ExecuteBehavior
@@ -282,7 +283,7 @@ class BehaviorTreeServer:
         result = ExecuteBehavior.Result()
         try:
             final_status = self._executor.run_tree(goal_handle.request.tree_file_name)
-        except RuntimeError as e:
+        except (NoDataAvailable, RuntimeError) as e:
             result.message = str(e)
             self._logger.error(result.message)
             goal_handle.abort()
