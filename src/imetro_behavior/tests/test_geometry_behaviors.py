@@ -234,8 +234,8 @@ def test_offset_pose_stamped_no_offsets() -> None:
 def yaml_pose_behavior(ros_node: Node, tmp_path: Path, mocker) -> YamlPoseToPoseStamped:
     """A YamlPoseToPoseStamped behavior whose package share directory resolves to a temporary path."""
     mocker.patch(
-        "imetro_behavior.geometry_behaviors.get_package_share_directory",
-        return_value=str(tmp_path),
+        "imetro_behavior.geometry_behaviors.get_package_share_path",
+        return_value=tmp_path,
     )
     (tmp_path / "poses.yaml").write_text(
         """
