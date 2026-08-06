@@ -408,7 +408,7 @@ class PoseStampedToTransformStamped(BehaviourWithPorts):
 
 class DecomposePoseStamped(BehaviourWithPorts):
     """
-    Decomposes a ROS PoseStamped message into frame_id, xyz translation, and xyzw quaternion.
+    Decomposes a ROS PoseStamped message into frame_id, xyz translation, and xyzw orientation.
 
     Works well with OffsetPoseStamped.
     """
@@ -424,7 +424,7 @@ class DecomposePoseStamped(BehaviourWithPorts):
         return {
             "frame_id": PortInformation(data_type=str, required=False),
             "translation_xyz": PortInformation(data_type=list[float], required=False),
-            "rotation_xyzw": PortInformation(data_type=list[float], required=False),
+            "orientation_xyzw": PortInformation(data_type=list[float], required=False),
         }
 
     def update(self) -> Status:
@@ -443,7 +443,7 @@ class DecomposePoseStamped(BehaviourWithPorts):
 
         self._set_output("frame_id", frame_id)
         self._set_output("translation_xyz", translation_xyz)
-        self._set_output("rotation_xyzw", orientation_xyzw)
+        self._set_output("orientation_xyzw", orientation_xyzw)
         return Status.SUCCESS
 
 
