@@ -162,7 +162,7 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
         return Status.SUCCESS
 
 
-class TwistAboutFrame(BehaviourWithPorts):
+class TwistAboutPose(BehaviourWithPorts):
     """Twist one TF about an axis of another TF by specified amount of radians."""
 
     @classmethod
