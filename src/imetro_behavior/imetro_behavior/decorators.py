@@ -17,6 +17,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
+
+from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from py_trees.decorators import Decorator
 from py_trees.ports import PortInformation, PortsMixin
@@ -24,7 +27,8 @@ from py_trees.ports import PortInformation, PortsMixin
 
 class SuccessIfVariableIsTrue(PortsMixin, Decorator):
     """
-    Immediately returns success if a specific blackboard variable is true.
+    Immediately returns success if a specific blackboard variable is true,
+    without ticking the decorated child node.
     Otherwise, ticks the decorated child node and returns its underlying status.
     """
 
@@ -38,18 +42,27 @@ class SuccessIfVariableIsTrue(PortsMixin, Decorator):
         """Return the output port declarations."""
         return {}
 
-    def update(self) -> Status:
-        """Either return success or tick the child node."""
+    def tick(self) -> Iterator[Behaviour]:
+        """Either return success without ticking the child node, or tick it.
+
+        The base decorator tick always ticks the child, so the skip must happen here
+        rather than in update(). Stopping also invalidates a previously running child.
+        """
         if self.get_input("variable"):
-            return Status.SUCCESS
+            self.stop(Status.SUCCESS)
+            yield self
         else:
-            self.decorated.tick_once()
-            return self.decorated.status
+            yield from super().tick()
+
+    def update(self) -> Status:
+        """Reflect the child's status, since it is only ticked when the variable is false."""
+        return self.decorated.status
 
 
 class SuccessIfVariableIsFalse(PortsMixin, Decorator):
     """
-    Immediately returns success if a specific blackboard variable is false.
+    Immediately returns success if a specific blackboard variable is false,
+    without ticking the decorated child node.
     Otherwise, ticks the decorated child node and returns its underlying status.
     """
 
@@ -63,9 +76,18 @@ class SuccessIfVariableIsFalse(PortsMixin, Decorator):
         """Return the output port declarations."""
         return {}
 
-    def update(self) -> Status:
-        """Either return success or tick the child node."""
+    def tick(self) -> Iterator[Behaviour]:
+        """Either return success without ticking the child node, or tick it.
+
+        The base decorator tick always ticks the child, so the skip must happen here
+        rather than in update(). Stopping also invalidates a previously running child.
+        """
         if not self.get_input("variable"):
-            return Status.SUCCESS
+            self.stop(Status.SUCCESS)
+            yield self
         else:
-            return self.decorated.status
+            yield from super().tick()
+
+    def update(self) -> Status:
+        """Reflect the child's status, since it is only ticked when the variable is true."""
+        return self.decorated.status

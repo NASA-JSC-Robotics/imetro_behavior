@@ -343,9 +343,10 @@ class ModifyCollisions(RosServiceClientBase):
             for entry in acm.entry_values:
                 entry.enabled.extend([False] * num_new_entries_needed)
 
-            # Create brand new all-false entries for the new entries added
-            if num_new_entries_needed > 0:
-                acm.entry_values.extend([AllowedCollisionEntry(enabled=[False] * num_entries)] * num_new_entries_needed)
+            # Create brand new all-false entries for the new entries added.
+            acm.entry_values.extend(
+                [AllowedCollisionEntry(enabled=[False] * num_entries) for _ in range(num_new_entries_needed)]
+            )
 
         # Finally, apply the input port collision flag to the given link lists
         # Note: when allow_collision is True, links are able to collide with each other
@@ -404,7 +405,7 @@ class PlanCartesian(RosServiceClientBase):
 
         waypoints = self.get_input("waypoints")
         if isinstance(waypoints, PoseStamped):
-            request.waypoints = [Pose(), waypoints.pose]
+            request.waypoints = [waypoints.pose]
         else:  # let's assume it's a list
             request.waypoints = waypoints
 
@@ -643,13 +644,13 @@ class RequestTrajectoryApproval(RosActionClientBase):
         """Return the output port declarations."""
         return {"approved": PortInformation(data_type=bool, required=True)}
 
-    def create_goal(self) -> ExecuteTrajectory.Goal:
+    def create_goal(self) -> PreviewTrajectory.Goal:
         """Create a trajectory preview goal."""
-        return PreviewTrajectory.Goal(robot_id="clr", trajectory=self.get_input("trajectory"))
+        return PreviewTrajectory.Goal(trajectory=self.get_input("trajectory"))
 
-    def process_result(self, result: ExecuteTrajectory.Result) -> Status:
+    def process_result(self, result: PreviewTrajectory.Result) -> Status:
         """Process the trajectory preview action result."""
-        approved = result.result.approved
+        approved = result.approved
         self._set_output("approved", approved)
         if approved:
             self.node.get_logger().info("Trajectory preview approved by user.")
@@ -681,7 +682,7 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
 
     def process_result(self, result: ExecuteTrajectory.Result) -> Status:
         """Process the trajectory execution action result."""
-        error_code = result.result.error_code
+        error_code = result.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Trajectory execution succeeded!")
             return Status.SUCCESS

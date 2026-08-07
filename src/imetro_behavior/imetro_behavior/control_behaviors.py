@@ -22,7 +22,6 @@ from typing import Any
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
-from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
@@ -172,8 +171,8 @@ class CommandGripper(RosActionClientBase):
         return goal
 
     def process_result(self, result: GripperCommand.Result) -> Status:
-        """Process the trajectory execution action result."""
-        if result.status == GoalStatus.STATUS_SUCCEEDED:
+        """Process the gripper command action result."""
+        if result.reached_goal or result.stalled:
             self.node.get_logger().debug("Successfully commanded gripper!")
             return Status.SUCCESS
         else:

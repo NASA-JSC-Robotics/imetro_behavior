@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,26 +15,27 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import rclpy
-from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
+"""Build API docs with pdoc, mocking unavailable dependencies."""
 
-from imetro_behavior.executor import BehaviorTreeServer
+import pdoc
+import sys
 
+from pathlib import Path
+from unittest.mock import MagicMock
 
-if __name__ == "__main__":
-    rclpy.init()
-    node = Node("run_behavior")
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
+# Mock any modules that aren't available, many of these are pulled
+# in my color_tools, but mocking them still lets that module have documentation.
+mocks = ["cv2", "cv_bridge", "color_blob_centroid", "color_blob_centroid.bindings"]
+for mod in mocks:
+    sys.modules[mod] = MagicMock()
 
-    bt_server = BehaviorTreeServer(node)
+# Module paths
+module_paths = [
+    "src/imetro_behavior/imetro_behavior",
+]
 
-    try:
-        executor.spin()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        executor.shutdown()
-        node.destroy_node()
-        rclpy.try_shutdown()
+pdoc.render.configure(docformat="google")
+pdoc.pdoc(
+    *module_paths,
+    output_directory=Path("docs/_site"),
+)
