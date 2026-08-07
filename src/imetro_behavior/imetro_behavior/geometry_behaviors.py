@@ -193,22 +193,25 @@ class TwistAboutFrame(BehaviourWithPorts):
         # Convert the inputs to 4x4 transformation matrices
         rotation_orientation = R.from_quat([rotation_posestamp.pose.orientation.x,rotation_posestamp.pose.orientation.y,rotation_posestamp.pose.orientation.z,rotation_posestamp.pose.orientation.w])
         rotation_translation = np.array([rotation_posestamp.pose.position.x,rotation_posestamp.pose.position.y,rotation_posestamp.pose.position.z])
-        rotation_tf_matrix = RigidTransform.from_components(rotation_translation,rotation_orientation)
+        rotation_T_world = RigidTransform.from_components(rotation_translation,rotation_orientation)
         ee_orientation = R.from_quat([ee_posestamp.pose.orientation.x,ee_posestamp.pose.orientation.y,ee_posestamp.pose.orientation.z,ee_posestamp.pose.orientation.w])
         ee_translation = np.array([ee_posestamp.pose.position.x,ee_posestamp.pose.position.y,ee_posestamp.pose.position.z])
-        ee_tf_matrix = RigidTransform.from_components(ee_translation,ee_orientation)
+        ee_T_world = RigidTransform.from_components(ee_translation,ee_orientation)
 
-        ee_T_rotation = rotation_tf_matrix.inv()*ee_tf_matrix
+        ee_T_rotation = rotation_T_world.inv()*ee_T_world
 
-        # Create the angle rotation (radians) and apply it to transformation matrix
+        # Rotate the EE about the rotation frame by the given angle in radians and axis
         axis = np.array([0.0, 0.0, 1.0])
         twist_vector = rotation_amount * axis
         twist = R.from_rotvec(twist_vector)
-        twist_tf = RigidTransform.from_components(np.zeros(3), twist)
+        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
 
-        final_pose_tf_matrix = twist_tf*ee_T_rotation
-        final_pose = final_pose_tf_matrix.translation
-        final_rotation = final_pose_tf_matrix.rotation.as_quat()
+        twistedEE_T_rotation = twist_matrix*ee_T_rotation
+
+        # Lastly we want to take the twisted point and put in respect to world
+        twistedEE_T_world = rotation_T_world * twistedEE_T_rotation 
+        final_pose = twistedEE_T_world.translation
+        final_rotation = twistedEE_T_world.rotation.as_quat()
 
         # Output final message
         output_pose = PoseStamped()
@@ -224,7 +227,7 @@ class TwistAboutFrame(BehaviourWithPorts):
             output_pose.pose.orientation.y = float(final_rotation[1])
             output_pose.pose.orientation.z = float(final_rotation[2])
             output_pose.pose.orientation.w = float(final_rotation[3])
-        print(output_pose)
+
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
