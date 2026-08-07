@@ -431,16 +431,13 @@ class DecomposePoseStamped(BehaviourWithPorts):
         """Extract the pose's position, orientation, and frame_id and return as list[float] and str"""
         pose_stamped = self.get_input("pose_stamped")
         frame_id = pose_stamped.header.frame_id
-        translation_xyz = []
-        translation_xyz.append(pose_stamped.pose.position.x)
-        translation_xyz.append(pose_stamped.pose.position.y)
-        translation_xyz.append(pose_stamped.pose.position.z)
-        orientation_xyzw = []
-        orientation_xyzw.append(pose_stamped.pose.orientation.x)
-        orientation_xyzw.append(pose_stamped.pose.orientation.y)
-        orientation_xyzw.append(pose_stamped.pose.orientation.z)
-        orientation_xyzw.append(pose_stamped.pose.orientation.w)
-
+        translation_xyz = [pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z]
+        orientation_xyzw = [
+            pose_stamped.pose.orientation.x,
+            pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z,
+            pose_stamped.pose.orientation.w,
+        ]
         self._set_output("frame_id", frame_id)
         self._set_output("translation_xyz", translation_xyz)
         self._set_output("orientation_xyzw", orientation_xyzw)
