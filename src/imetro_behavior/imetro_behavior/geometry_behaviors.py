@@ -167,7 +167,9 @@ class TwistAboutPose(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Input ports for required poses to rotate and rotational configuration."""
+        """Input ports for required poses to rotate and rotational configuration.
+        Note: the ee_pose and rotation_pose MUST share the same lookup reference frame.
+        Example: (ee_T_world & rotation_T_world) or (ee_T_baselink & rotation_T_baselink)"""
         return {
             "rotation_pose": PortInformation(
                 data_type=PoseStamped, required=True, description="TF to rotate about, with respect to world"
@@ -193,7 +195,13 @@ class TwistAboutPose(BehaviourWithPorts):
     @classmethod
     def output_ports(cls) -> dict:
         """Returns output_pose, a pose rotated about the given rotation pose and parented to world."""
-        return {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+        return {
+            "output_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="Rotated pose, with a parent that shares the reference frame of the given input poses",
+            )
+        }
 
     def update(self) -> Status:
         """Twist about the rotation frame."""
@@ -246,7 +254,6 @@ class TwistAboutPose(BehaviourWithPorts):
         # Output final message
         output_pose = PoseStamped()
         output_pose.header = rotation_posestamp.header
-        output_pose.header.frame_id = "world"
         output_pose.pose.position.x = float(final_pose[0])
         output_pose.pose.position.y = float(final_pose[1])
         output_pose.pose.position.z = float(final_pose[2])
