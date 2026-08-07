@@ -1,9 +1,6 @@
 # imetro_behavior
 
-Python based robotics behavior stack for iMETRO.
-
-> [!WARNING]
-> Work in progress!
+Python based robotics behavior stack for [iMETRO](https://github.com/NASA-JSC-Robotics/imetro).
 
 ## Getting Started
 
