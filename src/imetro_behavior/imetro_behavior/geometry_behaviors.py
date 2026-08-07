@@ -183,7 +183,7 @@ class TwistAboutPose(BehaviourWithPorts):
             "rotation_axis": PortInformation(
                 data_type=list[float],
                 required=True,
-                description="Expects normalized vector of axis to rotate about. [0.0, 0.0, 1.0] for Z for example",
+                description="Expects normalized vector of axis to rotate about, relative to the rotation frame. [0.0, 0.0, 1.0] for Z for example",
             ),
             "keep_start_orientation": PortInformation(
                 data_type=bool, required=True, description="Keep orientation of EndEffector static throughout rotation"
