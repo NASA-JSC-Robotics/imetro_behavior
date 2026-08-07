@@ -172,7 +172,7 @@ class TwistAboutFrame(BehaviourWithPorts):
             "rotation_tf": PortInformation(data_type=PoseStamped, required=True, description="TF to rotate about, with respect to world"),
             "ee_tf": PortInformation(data_type=PoseStamped, required=True, description="TF that will be rotated with respect to world, usually the EndEffector"),
             "rotation_amount": PortInformation(data_type=float, required=True, description="Amount of rotation in radians"),
-            "rotation_axis": PortInformation(data_type=str, required=True, description="Choose: 'X'/'Y'/'Z', axis to rotate about the rotation TF"),
+            "rotation_axis": PortInformation(data_type=list[float], required=True, description="Expects normalized vector of axis to rotate about. [0.0, 0.0, 1.0] for Z for example"),
             "keep_start_orientation": PortInformation(data_type=bool, required=True, description="Keep orientation of EndEffector static throughout rotation"),
         }
 
@@ -201,8 +201,7 @@ class TwistAboutFrame(BehaviourWithPorts):
         ee_T_rotation = rotation_T_world.inv()*ee_T_world
 
         # Rotate the EE about the rotation frame by the given angle in radians and axis
-        axis = np.array([0.0, 0.0, 1.0])
-        twist_vector = rotation_amount * axis
+        twist_vector = rotation_amount * np.array(rotation_axis)
         twist = R.from_rotvec(twist_vector)
         twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
 
