@@ -25,7 +25,7 @@ import numpy as np
 from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from rclpy.time import Time
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import RigidTransform, Rotation as R
 
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
@@ -171,9 +171,9 @@ class TwistAboutFrame(BehaviourWithPorts):
         return {
             "rotation_tf": PortInformation(data_type=PoseStamped, required=True, description="TF to rotate about, with respect to world"),
             "ee_tf": PortInformation(data_type=PoseStamped, required=True, description="TF that will be rotated with respect to world, usually the EndEffector"),
-            "rotation_amount": PortInformation(data_type=float, required=False, description="Amount of rotation in radians"),
-            "rotation_axis": PortInformation(data_type=str, required=False, description="Choose: 'X'/'Y'/'Z', axis to rotate about the rotation TF"),
-            "keep_start_orientation": PortInformation(data_type=bool, required=False, description="Keep orientation of EndEffector static throughout rotation"),
+            "rotation_amount": PortInformation(data_type=float, required=True, description="Amount of rotation in radians"),
+            "rotation_axis": PortInformation(data_type=str, required=True, description="Choose: 'X'/'Y'/'Z', axis to rotate about the rotation TF"),
+            "keep_start_orientation": PortInformation(data_type=bool, required=True, description="Keep orientation of EndEffector static throughout rotation"),
         }
 
     @classmethod
@@ -183,10 +183,49 @@ class TwistAboutFrame(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Twist about the rotation frame."""
+        rotation_posestamp = self.get_input("rotation_tf")
+        ee_posestamp = self.get_input("ee_tf")
+        rotation_amount = self.get_input("rotation_amount")
+        rotation_axis = self.get_input("rotation_axis")
+        keep_start_orientation = self.get_input("keep_start_orientation")
 
-        # TODO port over cpp twist logic
 
-        self._set_output("output_pose", msg)
+        # Convert the inputs to 4x4 transformation matrices
+        rotation_orientation = R.from_quat([rotation_posestamp.pose.orientation.x,rotation_posestamp.pose.orientation.y,rotation_posestamp.pose.orientation.z,rotation_posestamp.pose.orientation.w])
+        rotation_translation = np.array([rotation_posestamp.pose.position.x,rotation_posestamp.pose.position.y,rotation_posestamp.pose.position.z])
+        rotation_tf_matrix = RigidTransform.from_components(rotation_translation,rotation_orientation)
+        ee_orientation = R.from_quat([ee_posestamp.pose.orientation.x,ee_posestamp.pose.orientation.y,ee_posestamp.pose.orientation.z,ee_posestamp.pose.orientation.w])
+        ee_translation = np.array([ee_posestamp.pose.position.x,ee_posestamp.pose.position.y,ee_posestamp.pose.position.z])
+        ee_tf_matrix = RigidTransform.from_components(ee_translation,ee_orientation)
+
+        ee_T_rotation = rotation_tf_matrix.inv()*ee_tf_matrix
+
+        # Create the angle rotation (radians) and apply it to transformation matrix
+        axis = np.array([0.0, 0.0, 1.0])
+        twist_vector = rotation_amount * axis
+        twist = R.from_rotvec(twist_vector)
+        twist_tf = RigidTransform.from_components(np.zeros(3), twist)
+
+        final_pose_tf_matrix = twist_tf*ee_T_rotation
+        final_pose = final_pose_tf_matrix.translation
+        final_rotation = final_pose_tf_matrix.rotation.as_quat()
+
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header=rotation_posestamp.header
+        output_pose.header.frame_id = "world"
+        output_pose.pose.position.x = float(final_pose[0])
+        output_pose.pose.position.y = float(final_pose[1])
+        output_pose.pose.position.z = float(final_pose[2])
+        if keep_start_orientation:
+            output_pose.pose.orientation = ee_posestamp.pose.orientation
+        else:
+            output_pose.pose.orientation.x = float(final_rotation[0]) 
+            output_pose.pose.orientation.y = float(final_rotation[1])
+            output_pose.pose.orientation.z = float(final_rotation[2])
+            output_pose.pose.orientation.w = float(final_rotation[3])
+        print(output_pose)
+        self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
 class OffsetPoseStamped(BehaviourWithPorts):
