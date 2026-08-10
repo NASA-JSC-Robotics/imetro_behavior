@@ -211,6 +211,9 @@ class TwistAboutPose(BehaviourWithPorts):
         rotation_axis = self.get_input("rotation_axis")
         keep_start_orientation = self.get_input("keep_start_orientation")
 
+        if rotation_posestamp.header.frame_id != ee_posestamp.header.frame_id:
+            return Status.FAILURE
+        
         # Convert the inputs to 4x4 transformation matrices
         rotation_orientation = R.from_quat(
             [
@@ -254,16 +257,16 @@ class TwistAboutPose(BehaviourWithPorts):
         # Output final message
         output_pose = PoseStamped()
         output_pose.header = rotation_posestamp.header
-        output_pose.pose.position.x = float(final_pose[0])
-        output_pose.pose.position.y = float(final_pose[1])
-        output_pose.pose.position.z = float(final_pose[2])
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
         if keep_start_orientation:
             output_pose.pose.orientation = ee_posestamp.pose.orientation
         else:
-            output_pose.pose.orientation.x = float(final_rotation[0])
-            output_pose.pose.orientation.y = float(final_rotation[1])
-            output_pose.pose.orientation.z = float(final_rotation[2])
-            output_pose.pose.orientation.w = float(final_rotation[3])
+            output_pose.pose.orientation.x = final_rotation[0]
+            output_pose.pose.orientation.y = final_rotation[1]
+            output_pose.pose.orientation.z = final_rotation[2]
+            output_pose.pose.orientation.w = final_rotation[3]
 
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
