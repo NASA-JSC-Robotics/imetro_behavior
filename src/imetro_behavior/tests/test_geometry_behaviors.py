@@ -39,6 +39,7 @@ from imetro_behavior.geometry_behaviors import (
     PoseStampedToTransformStamped,
     TransformStampedToPoseStamped,
     TwistAboutPose,
+    DecomposePoseStamped,
 )
 
 
@@ -450,3 +451,20 @@ def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+def test_decompose_pose_stamped() -> None:
+    behavior = DecomposePoseStamped(name="decompose_pose_stamped")
+    behavior.setup_ports()
+
+    p_msg = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="odom")
+
+    Blackboard.set(behavior._get_blackboard_key("pose_stamped"), p_msg)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    frame_id_msg = behavior.get_last_output("frame_id")
+    translation_msg = behavior.get_last_output("translation_xyz")
+    orientation_msg = behavior.get_last_output("orientation_xyzw")
+    assert frame_id_msg == "odom"
+    assert translation_msg == [1.0, 2.0, 3.0]
+    assert orientation_msg == [0.0, 0.0, 0.0, 1.0]
