@@ -378,6 +378,7 @@ def test_pose_stamped_to_transform_stamped() -> None:
     assert t_msg.transform.translation.z == 3.0
     assert t_msg.transform.rotation.w == 1.0
 
+
 def test_twist_about_pose() -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
@@ -401,6 +402,7 @@ def test_twist_about_pose() -> None:
     assert msg.pose.orientation.z == 0.25881915348021844
     assert msg.pose.orientation.w == 0.9659257972493451
 
+
 def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
@@ -417,6 +419,7 @@ def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+
 
 def test_twist_about_pose_orientation() -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
