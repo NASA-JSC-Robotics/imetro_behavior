@@ -168,13 +168,13 @@ class TwistAboutPose(BehaviourWithPorts):
     @classmethod
     def input_ports(cls) -> dict:
         """Input ports for required poses to rotate and rotational configuration.
-        Note: the ee_pose and rotation_pose MUST share the same lookup reference frame.
+        Note: the target_pose and rotation_pose MUST share the same lookup reference frame.
         Example: (ee_T_world & rotation_T_world) or (ee_T_baselink & rotation_T_baselink)"""
         return {
             "rotation_pose": PortInformation(
                 data_type=PoseStamped, required=True, description="PoseStamped to rotate about"
             ),
-            "ee_pose": PortInformation(
+            "target_pose": PortInformation(
                 data_type=PoseStamped,
                 required=True,
                 description="PoseStamped that will be rotated, usually the EndEffector",
@@ -188,7 +188,7 @@ class TwistAboutPose(BehaviourWithPorts):
                 description="Expects axis vector to rotate about, relative to the rotation frame. [0.0, 0.0, 1.0] for Z for example",
             ),
             "keep_start_orientation": PortInformation(
-                data_type=bool, required=True, description="Keep orientation of EndEffector static throughout rotation"
+                data_type=bool, required=True, description="Keep orientation of target_pose static throughout rotation"
             ),
         }
 
@@ -206,12 +206,12 @@ class TwistAboutPose(BehaviourWithPorts):
     def update(self) -> Status:
         """Twist about the rotation frame."""
         rotation_posestamp = self.get_input("rotation_pose")
-        ee_posestamp = self.get_input("ee_pose")
+        target_posestamp = self.get_input("target_pose")
         rotation_amount = self.get_input("rotation_amount")
         rotation_axis = self.get_input("rotation_axis")
         keep_start_orientation = self.get_input("keep_start_orientation")
 
-        if rotation_posestamp.header.frame_id != ee_posestamp.header.frame_id:
+        if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
             return Status.FAILURE
         
         # Convert the inputs to 4x4 transformation matrices
@@ -227,32 +227,32 @@ class TwistAboutPose(BehaviourWithPorts):
             [rotation_posestamp.pose.position.x, rotation_posestamp.pose.position.y, rotation_posestamp.pose.position.z]
         )
         rotation_T_reference = RigidTransform.from_components(rotation_translation, rotation_orientation)
-        ee_orientation = R.from_quat(
+        target_orientation = R.from_quat(
             [
-                ee_posestamp.pose.orientation.x,
-                ee_posestamp.pose.orientation.y,
-                ee_posestamp.pose.orientation.z,
-                ee_posestamp.pose.orientation.w,
+                target_posestamp.pose.orientation.x,
+                target_posestamp.pose.orientation.y,
+                target_posestamp.pose.orientation.z,
+                target_posestamp.pose.orientation.w,
             ]
         )
-        ee_translation = np.array(
-            [ee_posestamp.pose.position.x, ee_posestamp.pose.position.y, ee_posestamp.pose.position.z]
+        target_translation = np.array(
+            [target_posestamp.pose.position.x, target_posestamp.pose.position.y, target_posestamp.pose.position.z]
         )
-        ee_T_reference = RigidTransform.from_components(ee_translation, ee_orientation)
+        target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
-        ee_T_rotation = rotation_T_reference.inv() * ee_T_reference
+        target_T_rotation = rotation_T_reference.inv() * target_T_reference
 
         # Rotate the EE about the rotation frame by the given axis and angle in radians
         twist_vector = rotation_amount * np.array(rotation_axis)
         twist = R.from_rotvec(twist_vector)
         twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
 
-        twistedEE_T_rotation = twist_matrix * ee_T_rotation
+        twistedtarget_T_rotation = twist_matrix * target_T_rotation
 
         # Lastly we want to take the twisted point and put in respect to reference frame
-        twistedEE_T_reference = rotation_T_reference * twistedEE_T_rotation
-        final_pose = twistedEE_T_reference.translation
-        final_rotation = twistedEE_T_reference.rotation.as_quat()
+        twistedtarget_T_reference = rotation_T_reference * twistedtarget_T_rotation
+        final_pose = twistedtarget_T_reference.translation
+        final_rotation = twistedtarget_T_reference.rotation.as_quat()
 
         # Output final message
         output_pose = PoseStamped()
@@ -261,7 +261,7 @@ class TwistAboutPose(BehaviourWithPorts):
         output_pose.pose.position.y = final_pose[1]
         output_pose.pose.position.z = final_pose[2]
         if keep_start_orientation:
-            output_pose.pose.orientation = ee_posestamp.pose.orientation
+            output_pose.pose.orientation = target_posestamp.pose.orientation
         else:
             output_pose.pose.orientation.x = final_rotation[0]
             output_pose.pose.orientation.y = final_rotation[1]
