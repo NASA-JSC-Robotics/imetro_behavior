@@ -19,10 +19,9 @@
 
 import copy
 import yaml
-from pathlib import Path
 
 import numpy as np
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_path
 from rclpy.node import Node
 from rclpy.time import Time
 from scipy.spatial.transform import RigidTransform, Rotation as R
@@ -337,9 +336,9 @@ class OffsetPoseStamped(BehaviourWithPorts):
 
 
 class YamlPoseToPoseStamped(BehaviourWithPorts):
-    """Load a Pose object from a YAML and output a PoseStamped ROS message
+    """Load a Pose object from a YAML file and output a PoseStamped ROS message.
 
-    Valid yaml configuration for a pose:
+    Valid YAML configuration for a pose:
 
     pose_name:
         frame_id: ""
@@ -376,9 +375,9 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Load the YAML, create the message, and set it as an output port."""
+        """Load the YAML file, create the message, and set it as an output port."""
 
-        yaml_path = Path(get_package_share_directory(self.get_input("package_name"))) / self.get_input("yaml_file")
+        yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
             self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
             return Status.FAILURE

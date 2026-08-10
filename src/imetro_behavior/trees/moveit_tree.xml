@@ -40,8 +40,8 @@
     <Sequence name="Sequence">
       <CreatePoseStamped
         name="set_target_pose"
-        position_xyz="-1.68, 0.5745, 1.8"
-        orientation_xyzw="0.045, 0.95, 0.295, -0.02"
+        position_xyz="6.632, 0.880, 1.627"
+        orientation_xyzw="0.880, -0.032, -0.022, 0.473"
         frame="world"
         msg="{target_pose}"
       />
@@ -72,14 +72,22 @@
 
   <BehaviorTree ID="MoveToHome">
     <Sequence name="Sequence">
+      <JointNamesAndPositionsFromYaml
+        name="get_home_state"
+        package_name="imetro_behavior"
+        yaml_file="config/example_joint_states.yaml"
+        state_name="clr_home"
+        joint_names="{joint_names}"
+        joint_positions="{joint_positions}"
+      />
       <PlanToJointState
         name="plan_to_home"
         service_name="/clr/plan_kinematic_path"
         pipeline="ompl"
         planner="RRTConnect"
         group_name="chonkur_grasp"
-        joint_names="clr_shoulder_pan_joint, clr_shoulder_lift_joint, clr_elbow_joint, clr_wrist_1_joint, clr_wrist_2_joint, clr_wrist_3_joint"
-        joint_positions="3.2, -2.4, -1.78, -0.47, -1.62, -1.62"
+        joint_names="{joint_names}"
+        joint_positions="{joint_positions}"
         tolerance="0.005"
         trajectory="{trajectory}"
       />
