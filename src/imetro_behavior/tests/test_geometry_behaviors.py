@@ -38,6 +38,7 @@ from imetro_behavior.geometry_behaviors import (
     YamlPoseToPoseStamped,
     PoseStampedToTransformStamped,
     TransformStampedToPoseStamped,
+    TwistAboutPose,
 )
 
 
@@ -376,3 +377,67 @@ def test_pose_stamped_to_transform_stamped() -> None:
     assert t_msg.transform.translation.y == 2.0
     assert t_msg.transform.translation.z == 3.0
     assert t_msg.transform.rotation.w == 1.0
+
+def test_twist_about_pose() -> None:
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == -0.3660254859211274
+    assert msg.pose.position.y == 1.3660250972460048
+    assert msg.pose.position.z == 3.9999999999999996
+    assert msg.pose.orientation.z == 0.25881915348021844
+    assert msg.pose.orientation.w == 0.9659257972493451
+
+def test_twist_about_pose_reference_frame() -> None:
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="grasp_frame")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+def test_twist_about_pose_orientation() -> None:
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), True)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == -0.3660254859211274
+    assert msg.pose.position.y == 1.3660250972460048
+    assert msg.pose.position.z == 3.9999999999999996
+    assert msg.pose.orientation.x == 0.0
+    assert msg.pose.orientation.y == 0.0
+    assert msg.pose.orientation.z == 0.0
+    assert msg.pose.orientation.w == 1.0
