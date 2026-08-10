@@ -38,6 +38,7 @@ from imetro_behavior.geometry_behaviors import (
     YamlPoseToPoseStamped,
     PoseStampedToTransformStamped,
     TransformStampedToPoseStamped,
+    TwistAboutPose,
     DecomposePoseStamped,
 )
 
@@ -377,6 +378,79 @@ def test_pose_stamped_to_transform_stamped() -> None:
     assert t_msg.transform.translation.y == 2.0
     assert t_msg.transform.translation.z == 3.0
     assert t_msg.transform.rotation.w == 1.0
+
+
+def test_twist_about_pose() -> None:
+    """Tests basic functionality of twist by rotating about a center circle 90 degrees"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
+    assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.orientation.z == pytest.approx(0.7071, abs=1e-5)
+    assert msg.pose.orientation.w == pytest.approx(0.7071, abs=1e-5)
+
+
+def test_twist_about_pose_keep_start_orientation() -> None:
+    """Tests the same as above, however with keep orientation flag set to True"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), True)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
+    assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.orientation.x == 0.0
+    assert msg.pose.orientation.y == 0.0
+    assert msg.pose.orientation.z == 0.0
+    assert msg.pose.orientation.w == 1.0
+
+
+def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
+    """Tests for mismatched reference frames between two input poses"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="grasp_frame")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
 
 
 def test_decompose_pose_stamped() -> None:
