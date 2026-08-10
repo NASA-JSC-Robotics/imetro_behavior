@@ -219,7 +219,7 @@ class TwistAboutPose(BehaviourWithPorts):
         keep_start_orientation = self.get_input("keep_start_orientation")
 
         if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
-            self.node.get_logger().error(f"Error: given input poses do not share the same reference frame.")
+            self.node.get_logger().error("Error: given input poses do not share the same reference frame.")
             return Status.FAILURE
 
         # Convert the inputs to 4x4 transformation matrices

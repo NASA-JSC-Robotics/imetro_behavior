@@ -396,7 +396,7 @@ def test_twist_about_pose() -> None:
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
     msg = behavior.get_last_output("output_pose")
-    print(msg)
+
     assert msg.header.frame_id == "world"
     assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
     assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
@@ -405,7 +405,7 @@ def test_twist_about_pose() -> None:
     assert msg.pose.orientation.w == pytest.approx(0.7071, abs=1e-5)
 
 
-def test_twist_about_pose_orientation() -> None:
+def test_twist_about_pose_keep_start_orientation() -> None:
     """Tests the same as above, however with keep orientation flag set to True"""
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
@@ -422,7 +422,7 @@ def test_twist_about_pose_orientation() -> None:
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
     msg = behavior.get_last_output("output_pose")
-    print(msg)
+
     assert msg.header.frame_id == "world"
     assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
     assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
