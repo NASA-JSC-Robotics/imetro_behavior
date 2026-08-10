@@ -163,7 +163,7 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
 
 
 class TwistAboutPose(BehaviourWithPorts):
-    """Twist one TF about an axis of another TF by specified amount of radians."""
+    """Twist one PoseStamped about another PoseStamped by specified amount of radians."""
 
     @classmethod
     def input_ports(cls) -> dict:
@@ -172,12 +172,12 @@ class TwistAboutPose(BehaviourWithPorts):
         Example: (ee_T_world & rotation_T_world) or (ee_T_baselink & rotation_T_baselink)"""
         return {
             "rotation_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="TF to rotate about, with respect to world"
+                data_type=PoseStamped, required=True, description="PoseStamped to rotate about"
             ),
             "ee_pose": PortInformation(
                 data_type=PoseStamped,
                 required=True,
-                description="TF that will be rotated with respect to world, usually the EndEffector",
+                description="PoseStamped that will be rotated, usually the EndEffector",
             ),
             "rotation_amount": PortInformation(
                 data_type=float, required=True, description="Amount of rotation in radians"
@@ -185,7 +185,7 @@ class TwistAboutPose(BehaviourWithPorts):
             "rotation_axis": PortInformation(
                 data_type=list[float],
                 required=True,
-                description="Expects normalized vector of axis to rotate about, relative to the rotation frame. [0.0, 0.0, 1.0] for Z for example",
+                description="Expects axis vector to rotate about, relative to the rotation frame. [0.0, 0.0, 1.0] for Z for example",
             ),
             "keep_start_orientation": PortInformation(
                 data_type=bool, required=True, description="Keep orientation of EndEffector static throughout rotation"
@@ -194,7 +194,7 @@ class TwistAboutPose(BehaviourWithPorts):
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Returns output_pose, a pose rotated about the given rotation pose and parented to world."""
+        """Returns output_pose, a pose rotated about the given rotation pose and parented to reference frame."""
         return {
             "output_pose": PortInformation(
                 data_type=PoseStamped,
@@ -226,7 +226,7 @@ class TwistAboutPose(BehaviourWithPorts):
         rotation_translation = np.array(
             [rotation_posestamp.pose.position.x, rotation_posestamp.pose.position.y, rotation_posestamp.pose.position.z]
         )
-        rotation_T_world = RigidTransform.from_components(rotation_translation, rotation_orientation)
+        rotation_T_reference = RigidTransform.from_components(rotation_translation, rotation_orientation)
         ee_orientation = R.from_quat(
             [
                 ee_posestamp.pose.orientation.x,
@@ -238,9 +238,9 @@ class TwistAboutPose(BehaviourWithPorts):
         ee_translation = np.array(
             [ee_posestamp.pose.position.x, ee_posestamp.pose.position.y, ee_posestamp.pose.position.z]
         )
-        ee_T_world = RigidTransform.from_components(ee_translation, ee_orientation)
+        ee_T_reference = RigidTransform.from_components(ee_translation, ee_orientation)
 
-        ee_T_rotation = rotation_T_world.inv() * ee_T_world
+        ee_T_rotation = rotation_T_reference.inv() * ee_T_reference
 
         # Rotate the EE about the rotation frame by the given axis and angle in radians
         twist_vector = rotation_amount * np.array(rotation_axis)
@@ -249,10 +249,10 @@ class TwistAboutPose(BehaviourWithPorts):
 
         twistedEE_T_rotation = twist_matrix * ee_T_rotation
 
-        # Lastly we want to take the twisted point and put in respect to world
-        twistedEE_T_world = rotation_T_world * twistedEE_T_rotation
-        final_pose = twistedEE_T_world.translation
-        final_rotation = twistedEE_T_world.rotation.as_quat()
+        # Lastly we want to take the twisted point and put in respect to reference frame
+        twistedEE_T_reference = rotation_T_reference * twistedEE_T_rotation
+        final_pose = twistedEE_T_reference.translation
+        final_rotation = twistedEE_T_reference.rotation.as_quat()
 
         # Output final message
         output_pose = PoseStamped()
