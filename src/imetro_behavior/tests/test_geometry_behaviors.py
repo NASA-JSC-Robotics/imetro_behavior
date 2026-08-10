@@ -451,6 +451,8 @@ def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+
+
 def test_decompose_pose_stamped() -> None:
     behavior = DecomposePoseStamped(name="decompose_pose_stamped")
     behavior.setup_ports()
