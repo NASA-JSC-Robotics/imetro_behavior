@@ -401,9 +401,10 @@ def test_twist_about_pose() -> None:
     assert msg.pose.orientation.z == 0.25881915348021844
     assert msg.pose.orientation.w == 0.9659257972493451
 
-def test_twist_about_pose_reference_frame() -> None:
+def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
+    behavior.setup(node=ros_node)
 
     rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
     target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="grasp_frame")

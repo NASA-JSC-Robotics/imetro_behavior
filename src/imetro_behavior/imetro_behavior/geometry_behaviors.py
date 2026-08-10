@@ -202,7 +202,13 @@ class TwistAboutPose(BehaviourWithPorts):
                 description="Rotated pose, with a parent that shares the reference frame of the given input poses",
             )
         }
-
+    
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        
     def update(self) -> Status:
         """Twist about the rotation frame."""
         rotation_posestamp = self.get_input("rotation_pose")
@@ -212,6 +218,7 @@ class TwistAboutPose(BehaviourWithPorts):
         keep_start_orientation = self.get_input("keep_start_orientation")
 
         if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
+            self.node.get_logger().error(f"Error: given input poses do not share the same reference frame.")
             return Status.FAILURE
         
         # Convert the inputs to 4x4 transformation matrices
