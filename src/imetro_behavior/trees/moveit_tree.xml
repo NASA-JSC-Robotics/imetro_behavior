@@ -40,8 +40,8 @@
     <Sequence name="Sequence">
       <CreatePoseStamped
         name="set_target_pose"
-        position_xyz="-1.68, 0.5745, 1.8"
-        orientation_xyzw="0.045, 0.95, 0.295, -0.02"
+        position_xyz="6.632, 0.880, 1.627"
+        orientation_xyzw="0.880, -0.032, -0.022, 0.473"
         frame="world"
         msg="{target_pose}"
       />
