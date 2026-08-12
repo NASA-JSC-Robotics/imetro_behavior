@@ -1,0 +1,28 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <YamlPoseToPoseStamped name="load_test_pose"
+        package_name="mc_python_behavior_demos"
+        yaml_file="waypoints/waypoints.yaml"
+        pose_name="test_pose"
+        msg="{test_pose}"
+      />
+      <YamlPoseToPoseStamped name="load_home_pose"
+        package_name="mc_python_behavior_demos"
+        yaml_file="waypoints/waypoints.yaml"
+        pose_name="pb_base_home"
+        msg="{home_pose}"
+      />
+      <NavigateToPoseBehavior name="nav_to_test_pose"
+        action_name="/phoebe/navigate_to_pose"
+        action_server_timeout="3.0"
+        goal_pose="{test_pose}"
+      />
+      <NavigateToPoseBehavior name="nav_to_home_pose"
+        action_name="/phoebe/navigate_to_pose"
+        action_server_timeout="3.0"
+        goal_pose="{home_pose}"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>
