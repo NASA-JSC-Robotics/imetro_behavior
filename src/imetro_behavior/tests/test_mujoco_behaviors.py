@@ -17,33 +17,41 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
+import pytest
+
 from rclpy.node import Node
 from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-
-from mujoco_ros2_control_msgs.srv import ResetWorld
-from imetro_behavior.mujoco_behaviors import ResetMujocoWorld
 
 
-def test_reset_mujoco_world_default_keyframe(ros_node: Node) -> None:
-    """An empty keyframe should produce a request with an empty string."""
-    behavior = ResetMujocoWorld(name="reset", service_name="/reset_world")
+@pytest.fixture()
+def mujoco_behaviors():
+    """The mujoco behaviors module, or a test skip if its dependencies are unavailable."""
+    return pytest.importorskip(
+        "imetro_behavior.mujoco_behaviors",
+        reason="requires mujoco_ros2_control_msgs",
+    )
+
+
+@pytest.fixture()
+def reset_behavior(mujoco_behaviors, ros_node: Node):
+    behavior = mujoco_behaviors.ResetMujocoWorld(name="reset", service_name="/reset_world")
     behavior.setup(node=ros_node)
     behavior.setup_ports()
+    return behavior
 
-    request = behavior.create_request()
-    assert isinstance(request, ResetWorld.Request)
+
+def test_reset_mujoco_world_default_keyframe(mujoco_behaviors, reset_behavior) -> None:
+    """An empty keyframe should produce a request with an empty string."""
+    request = reset_behavior.create_request()
+    assert isinstance(request, mujoco_behaviors.ResetWorld.Request)
     assert request.keyframe == ""
 
 
-def test_reset_mujoco_world_named_keyframe(ros_node: Node) -> None:
+def test_reset_mujoco_world_named_keyframe(reset_behavior) -> None:
     """A named keyframe should be forwarded to the request."""
-    behavior = ResetMujocoWorld(name="reset", service_name="/reset_world")
-    behavior.setup(node=ros_node)
-    behavior.setup_ports()
-
-    keyframe_key = behavior._get_blackboard_key("keyframe")
+    keyframe_key = reset_behavior._get_blackboard_key("keyframe")
     Blackboard.set(keyframe_key, "bench_open")
 
-    request = behavior.create_request()
+    request = reset_behavior.create_request()
     assert request.keyframe == "bench_open"
