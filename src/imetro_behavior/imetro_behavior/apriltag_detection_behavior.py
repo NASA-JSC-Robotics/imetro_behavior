@@ -1,4 +1,24 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2026, United States Government, as represented by the
+# Administrator of the National Aeronautics and Space Administration.
+#
+# All rights reserved.
+#
+# This software is licensed under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with the
+# License. You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
 import threading
+import time
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 from geometry_msgs.msg import PoseStamped
@@ -28,7 +48,7 @@ class DetectAprilTagLocal(BehaviourWithPorts):
     def setup(self, **kwargs):
         self.node = kwargs.get("node")
         self.bridge = CvBridge()
-        self.detector = Detector(families="tag36h11", nthreads=2, quad_decimate=2.0)
+        self.detector = Detector(families="tag36h11", nthreads=2, quad_decimate=3.0)
         
         self.lock = threading.Lock()
         self.thread = None
@@ -38,7 +58,7 @@ class DetectAprilTagLocal(BehaviourWithPorts):
         self.success = False
         
         # Retry tracking
-        self.max_attempts = 25
+        self.max_attempts = 10
         self.attempt_count = 0
 
     def initialise(self):
@@ -89,7 +109,10 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                 return Status.RUNNING
 
     def _run_detection(self, rgb_msg, camera_info, target_id, tag_size):
+        start_time = time.perf_counter()
         try:
+            detection_start = time.perf_counter()
+
             cv_img = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding="mono8")
             fx, fy, cx, cy = camera_info.k[0], camera_info.k[4], camera_info.k[2], camera_info.k[5]
             camera_params = (fx, fy, cx, cy)
@@ -100,6 +123,8 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                 camera_params=camera_params, 
                 tag_size=tag_size
             )
+
+            detection_time = time.perf_counter() - detection_start
 
             target_tag = next((t for t in tags if t.tag_id == target_id), None)
             if target_tag is not None:
@@ -115,7 +140,10 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                     f"x: {pose_msg.pose.position.x:.3f}, "
                     f"y: {pose_msg.pose.position.y:.3f}, "
                     f"z: {pose_msg.pose.position.z:.3f}"
-        )
+                 )
+                 self.node.get_logger().info(
+                    f"Apriltag detection took {detection_time:.4f} seconds!"
+                 )   
                 r = R.from_matrix(target_tag.pose_R)
                 q = r.as_quat()
                 pose_msg.pose.orientation.x = q[0]
@@ -135,6 +163,8 @@ class DetectAprilTagLocal(BehaviourWithPorts):
             with self.lock:
                 self.success = False
         finally:
+            total_time = time.perf_counter() - start_time
+            self.node.get_logger().info(f"Apriltag detection total process took {total_time:.4f} seconds!") 
             with self.lock:
                 self.is_running = False
                 self.has_finished = True
@@ -143,3 +173,5 @@ class DetectAprilTagLocal(BehaviourWithPorts):
         # In the case the behavior is interrupted or cancelled mid-execution
         with self.lock:
             self.is_running = False
+        if self.thread is not None and self.thread.is_alive():
+            self.thread.join(timeout=1.5)
