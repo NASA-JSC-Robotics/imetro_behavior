@@ -1,29 +1,24 @@
 import pytest
+import cv2
+
+from rclpy.node import Node
 from py_trees.common import Status
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
 
+
 from imetro_behavior.apriltag_detection_behavior import DetectAprilTagLocal
 
 
-class MockNode:
-    """Mock ROS node to handle logging during unit tests."""
-    class MockLogger:
-        def info(self, msg): pass
-        def error(self, msg): pass
-        def warn(self, msg): pass
-
-    def get_logger(self):
-        return self.MockLogger()
 
 
 @pytest.fixture
-def apriltag_behavior():
+def apriltag_behavior(ros_node: Node):
     """Fixture to initialize the DetectAprilTagLocal behavior and register its ports."""
     behavior = DetectAprilTagLocal(name="TestAprilTagBehavior")
     behavior.setup_ports()
-    behavior.setup(node=MockNode())
+    behavior.setup(node=ros_node)
     return behavior
 
 
@@ -83,14 +78,17 @@ def test_successful_detection(apriltag_behavior, monkeypatch):
     """Simulate a successful background thread run and ensure SUCCESS status and pose output."""
     apriltag_behavior.initialise()
 
-    mock_image = Image()
-    mock_image.header = Header(frame_id="camera_frame")
+    image = cv2.imread("/home/er4-user/ws/src/external/imetro_behavior/src/imetro_behavior/tests/image.png")
+    breakpoint()
+    img_msg = apriltag_behavior.bridge.cv2_to_imgmsg(image, encoding="bgr8")
+    # mock_image = Image()
+    # mock_image.header = Header(frame_id="camera_frame")
     mock_camera_info = CameraInfo()
     mock_camera_info.k = [500.0, 0.0, 320.0, 0.0, 500.0, 240.0, 0.0, 0.0, 1.0]
 
     # Mock get_input via monkeypatch to bypass blackboard entirely
     monkeypatch.setattr(apriltag_behavior, "get_input", lambda key, default=None: {
-        "rgb_image": mock_image,
+        "rgb_image": img_msg,
         "camera_info": mock_camera_info,
         "tag_id": 0,
         "tag_size": 0.073
@@ -101,11 +99,15 @@ def test_successful_detection(apriltag_behavior, monkeypatch):
         pose_t = [[0.5], [1.0], [1.5]]
         pose_R = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-    monkeypatch.setattr(apriltag_behavior.detector, "detect", lambda *args, **kwargs: [MockTag()])
-    monkeypatch.setattr(apriltag_behavior.bridge, "imgmsg_to_cv2", lambda *args, **kwargs: None)
+    # monkeypatch.setattr(apriltag_behavior.detector, "detect", lambda *args, **kwargs: [MockTag()])
+    # monkeypatch.setattr(apriltag_behavior.bridge, "imgmsg_to_cv2", lambda *args, **kwargs: None)
 
     # First tick triggers thread start
-    status1 = apriltag_behavior.update()
+    import threading
+    th = threading.Thread(target=apriltag_behavior.update)
+    th.start()
+    th.join()
+    # status1 = apriltag_behavior.update()
     assert status1 == Status.RUNNING
     assert apriltag_behavior.is_running is True
 

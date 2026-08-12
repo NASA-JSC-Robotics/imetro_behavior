@@ -100,31 +100,34 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                     return Status.RUNNING  # Keep running until image data arrives
 
                 self.is_running = True
-                self.thread = threading.Thread(
-                    target=self._run_detection, 
-                    args=(rgb_msg, camera_info, target_id, tag_size)
-                )
-                self.thread.daemon = True
-                self.thread.start()
+                self._run_detection(rgb_msg, camera_info, target_id, tag_size)
+                # self.thread = threading.Thread(
+                #     target=self._run_detection, 
+                #     args=(rgb_msg, camera_info, target_id, tag_size)
+                # )
+                # self.thread.daemon = True
+                # self.thread.start()
                 return Status.RUNNING
 
     def _run_detection(self, rgb_msg, camera_info, target_id, tag_size):
         start_time = time.perf_counter()
         try:
-            detection_start = time.perf_counter()
-
+            
+            image_det_start = time.perf_counter()
             cv_img = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding="mono8")
             fx, fy, cx, cy = camera_info.k[0], camera_info.k[4], camera_info.k[2], camera_info.k[5]
             camera_params = (fx, fy, cx, cy)
+            image_det_time = time.perf_counter() - image_det_start
 
+            detection_start = time.perf_counter()
             tags = self.detector.detect(
                 cv_img, 
                 estimate_tag_pose=True, 
                 camera_params=camera_params, 
                 tag_size=tag_size
             )
-
-            detection_time = time.perf_counter() - detection_start
+            detection_time = time.perf_counter() - detection_start 
+            
 
             target_tag = next((t for t in tags if t.tag_id == target_id), None)
             if target_tag is not None:
@@ -142,8 +145,10 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                     f"z: {pose_msg.pose.position.z:.3f}"
                  )
                  self.node.get_logger().info(
-                    f"Apriltag detection took {detection_time:.4f} seconds!"
-                 )   
+                    f"Image conversion took {image_det_time:.4f} seconds!"
+                 )
+                 self.node.get_logger().info(f"Apriltag detection took {detection_time:.4f} seconds!")    
+                 self.node.get_logger().info(f"The size of image {cv_img.shape}") 
                 r = R.from_matrix(target_tag.pose_R)
                 q = r.as_quat()
                 pose_msg.pose.orientation.x = q[0]
@@ -169,9 +174,9 @@ class DetectAprilTagLocal(BehaviourWithPorts):
                 self.is_running = False
                 self.has_finished = True
 
-    def terminate(self, new_status: Status):
-        # In the case the behavior is interrupted or cancelled mid-execution
-        with self.lock:
-            self.is_running = False
-        if self.thread is not None and self.thread.is_alive():
-            self.thread.join(timeout=1.5)
+    # def terminate(self, new_status: Status):
+    #     # In the case the behavior is interrupted or cancelled mid-execution
+    #     with self.lock:
+    #         self.is_running = False
+    #     if self.thread is not None and self.thread.is_alive():
+    #         self.thread.join(timeout=1.5)
