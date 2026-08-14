@@ -35,7 +35,6 @@ class DetectAprilTagLocal(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Return the input port declarations."""
         return {
             "rgb_image": PortInformation(data_type=Image, required=True),
             "camera_info": PortInformation(data_type=CameraInfo, required=True),
@@ -45,7 +44,6 @@ class DetectAprilTagLocal(BehaviourWithPorts):
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Return the output port declarations."""
         return {
             "tag_pose": PortInformation(data_type=PoseStamped, required=True),
         }
