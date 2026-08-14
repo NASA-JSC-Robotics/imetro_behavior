@@ -26,13 +26,13 @@ from py_trees.common import Status
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
 
-from imetro_behavior.apriltag_detection_behavior import DetectAprilTagLocal
+from imetro_behavior.apriltag_detection_behavior import DetectAprilTag
 
 
 @pytest.fixture()
 def apriltag_behavior(ros_node: Node):
-    """Fixture to initialize the DetectAprilTagLocal behavior and register its ports."""
-    behavior = DetectAprilTagLocal(name="TestAprilTagBehavior")
+    """Fixture to initialize the DetectAprilTag behavior and register its ports."""
+    behavior = DetectAprilTag(name="TestAprilTagBehavior")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
