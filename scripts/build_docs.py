@@ -25,7 +25,13 @@ from unittest.mock import MagicMock
 
 # Mock any modules that aren't available, many of these are pulled
 # in my color_tools, but mocking them still lets that module have documentation.
-mocks = ["cv2", "cv_bridge", "color_blob_centroid", "color_blob_centroid.bindings"]
+mocks = [
+    "cv2",
+    "cv_bridge",
+    "color_blob_centroid",
+    "color_blob_centroid.bindings",
+    "mujoco_ros2_control_msgs.srv",
+]
 for mod in mocks:
     sys.modules[mod] = MagicMock()
 

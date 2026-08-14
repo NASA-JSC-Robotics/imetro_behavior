@@ -19,6 +19,9 @@ imports:
   # https://github.com/NASA-JSC-Robotics/color_tools
   # - imetro_behavior.color_behaviors
 
+  # Additionally omitting until we add a pixi dependency on the mujoco drivers.
+  # - imetro_behavior.mujoco_behaviors
+
 # Paths for which to search for behavior tree XML files.
 tree_search_paths:
   - package: imetro_behavior
