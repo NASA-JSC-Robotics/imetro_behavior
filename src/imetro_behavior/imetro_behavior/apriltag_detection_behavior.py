@@ -18,7 +18,6 @@
 # under the License.
 
 import time
-from cv_bridge import CvBridge
 
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
@@ -28,9 +27,10 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
 from pupil_apriltags import Detector
 from scipy.spatial.transform import Rotation as R
+from cv_bridge import CvBridge
 
 
-class DetectAprilTagLocal(BehaviourWithPorts):
+class DetectAprilTag(BehaviourWithPorts):
     """Detects AprilTag based on RGB images and camera info, then returns the tag pose."""
 
     @classmethod
@@ -40,6 +40,7 @@ class DetectAprilTagLocal(BehaviourWithPorts):
             "camera_info": PortInformation(data_type=CameraInfo, required=True),
             "tag_id": PortInformation(data_type=int, required=True),
             "tag_size": PortInformation(data_type=float, required=True),
+            "tag_family": PortInformation(data_type=str, required=True),
         }
 
     @classmethod
@@ -55,7 +56,7 @@ class DetectAprilTagLocal(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
         self.bridge = CvBridge()
-        self.detector = Detector(families="tag36h11", nthreads=2, quad_decimate=5.0)
+        self.detector = None
 
     def update(self) -> Status:
         """Run AprilTag detection."""
@@ -63,9 +64,13 @@ class DetectAprilTagLocal(BehaviourWithPorts):
         camera_info = self.get_input("camera_info")
         target_id = self.get_input("tag_id")
         tag_size = self.get_input("tag_size")
+        tag_family = self.get_input("tag_family")
 
         if rgb_msg is None or camera_info is None:
-            return Status.RUNNING
+            return Status.FAILURE
+
+        if self.detector is None:
+            self.detector = Detector(families=tag_family, nthreads=2, quad_decimate=2.0)
 
         start_time = time.perf_counter()
 
@@ -80,9 +85,8 @@ class DetectAprilTagLocal(BehaviourWithPorts):
         detection_time = time.perf_counter() - detection_start
 
         target_tag = next((t for t in tags if t.tag_id == target_id), None)
+
         if target_tag is None:
-            total_time = time.perf_counter() - start_time
-            self.node.get_logger().info(f"Apriltag detection total process took {total_time:.4f} seconds!")
             return Status.FAILURE
 
         pose_msg = PoseStamped()
