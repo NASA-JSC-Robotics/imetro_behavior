@@ -38,3 +38,7 @@ ros-jazzy-moveit-msgs = "*"
 ros-jazzy-nav2-msgs = "*"
 ros-jazzy-control-msgs = "*"
 ros-jazzy-controller-manager-msgs = "*"
+
+[pypi-dependencies]
+opencv-python = ">=5.0.0.93, <6"
+pupil-apriltags = ">=1.0.4.post11, <2"
