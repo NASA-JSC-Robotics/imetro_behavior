@@ -39,6 +39,15 @@ ros-jazzy-nav2-msgs = "*"
 ros-jazzy-control-msgs = "*"
 ros-jazzy-controller-manager-msgs = "*"
 
+[feature.docs.dependencies]
+pdoc = ">=15,<16"
+
+[feature.docs.tasks]
+build-docs = { cmd = "python3 scripts/build_docs.py", depends-on = ["build"] }
+
+[environments]
+docs = { features = ["docs"], solve-group = "default" }
+
 [pypi-dependencies]
 opencv-python = ">=5.0.0.93, <6"
 pupil-apriltags = ">=1.0.4.post11, <2"

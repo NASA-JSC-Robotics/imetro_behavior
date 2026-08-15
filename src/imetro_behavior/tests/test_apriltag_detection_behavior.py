@@ -24,7 +24,6 @@ from rclpy.node import Node
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import PoseStamped
 from ament_index_python.packages import get_package_share_path
 
 from imetro_behavior.apriltag_detection_behavior import DetectAprilTag
@@ -53,6 +52,7 @@ def apriltag_behavior(ros_node: Node):
 
     return behavior
 
+
 def test_detect_apriltag_success(apriltag_behavior) -> None:
     """Runs the real detector on the actual image file and verifies successful pose extraction."""
     apriltag_behavior.tick_once()
@@ -72,6 +72,7 @@ def test_detect_apriltag_success(apriltag_behavior) -> None:
     assert pose.pose.orientation.y == pytest.approx(expected_orientation[1], abs=0.001)
     assert pose.pose.orientation.z == pytest.approx(expected_orientation[2], abs=0.001)
     assert pose.pose.orientation.w == pytest.approx(expected_orientation[3], abs=0.001)
+
 
 def test_detect_apriltag_failure(apriltag_behavior) -> None:
     """Simulates a failed detection by looking for a non-existent tag ID in the image."""
