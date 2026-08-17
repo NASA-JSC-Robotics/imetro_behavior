@@ -19,3 +19,10 @@ ament_add_pytest_test(test_moveit_behaviors test_moveit_behaviors.py)
 ament_add_pytest_test(test_nav_behaviors test_nav_behaviors.py)
 
 ament_add_pytest_test(test_ros_behaviors test_ros_behaviors.py)
+
+ament_add_pytest_test(test_apriltag_detection_behavior test_apriltag_detection_behavior.py)
+
+install(
+  DIRECTORY test_data/
+  DESTINATION share/${PROJECT_NAME}/tests/test_data
+)

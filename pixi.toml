@@ -23,6 +23,8 @@ clean = "rm -rf build/* install/* log/*"
 
 [dependencies]
 # Python dependencies
+libopencv = { version = ">=4.12.0,<5", build = "qt6*" }  # Ensure we aren't installing opencv headless
+py-opencv = { version = ">=4.12.0,<5", build = "qt6*" }
 pydot = ">=4.0.1,<5"
 pyqtwebengine = ">=5.15.11,<6"
 pyside6 = ">=6.10.2,<7"
@@ -34,10 +36,14 @@ scipy = ">=1.18.0,<2"
 # ROS dependencies
 colcon-common-extensions = "*"
 ros-jazzy-ros-base = "*"
+ros-jazzy-cv-bridge = "*"
 ros-jazzy-moveit-msgs = "*"
 ros-jazzy-nav2-msgs = "*"
 ros-jazzy-control-msgs = "*"
 ros-jazzy-controller-manager-msgs = "*"
+
+[pypi-dependencies]
+pupil-apriltags = ">=1.0.4.post11, <2"
 
 [feature.docs.dependencies]
 pdoc = ">=15,<16"
