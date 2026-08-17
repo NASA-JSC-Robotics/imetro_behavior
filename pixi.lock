@@ -98,6 +98,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/libattr-2.5.2-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libavif16-1.4.2-h6d93d65_2.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libblas-3.11.0-8_h4a7cf45_openblas.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libboost-1.90.0-hd24cca6_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libboost-python-1.90.0-py312hf890105_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlicommon-1.2.0-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlidec-1.2.0-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlienc-1.2.0-hb03c661_1.conda
@@ -150,6 +152,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/libopenblas-0.3.33-pthreads_h94d23a6_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopencv-4.13.0-qt6_h91fa782_612.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopengl-1.7.0-ha4b6fd6_3.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libopengl-devel-1.7.0-ha4b6fd6_3.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-2026.2.1-h1f0fae8_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-auto-batch-plugin-2026.2.1-h7e124b3_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-auto-plugin-2026.2.1-h7e124b3_0.conda
@@ -424,6 +427,7 @@ environments:
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-console-bridge-vendor-1.7.1-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-control-msgs-5.9.0-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-controller-manager-msgs-4.45.1-np2py312h2ed9cc7_18.conda
+      - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cv-bridge-4.1.0-np2py312h3b5449b_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cyclonedds-0.10.5-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-diagnostic-msgs-5.3.7-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-domain-coordinator-0.12.0-np2py312h2ed9cc7_18.conda
@@ -657,6 +661,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libattr-2.5.2-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libavif16-1.4.2-h72ccb82_2.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libblas-3.11.0-8_haddc8a3_openblas.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-1.90.0-h5651608_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-python-1.90.0-py312he84d598_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlicommon-1.2.0-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlidec-1.2.0-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlienc-1.2.0-he30d5cf_1.conda
@@ -709,6 +715,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenblas-0.3.33-pthreads_h9d3fd7e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopencv-4.13.0-qt6_h582de8e_612.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopengl-1.7.0-hd24410f_3.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libopengl-devel-1.7.0-hd24410f_3.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-2026.2.1-h9a8427e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-arm-cpu-plugin-2026.2.1-h9a8427e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-auto-batch-plugin-2026.2.1-he6b9e7b_0.conda
@@ -975,6 +982,7 @@ environments:
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-console-bridge-vendor-1.7.1-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-control-msgs-5.9.0-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-controller-manager-msgs-4.45.1-np2py312h61f2ce4_18.conda
+      - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cv-bridge-4.1.0-np2py312h3c25c5b_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cyclonedds-0.10.5-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-diagnostic-msgs-5.3.7-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-domain-coordinator-0.12.0-np2py312h61f2ce4_18.conda
@@ -1227,6 +1235,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/libattr-2.5.2-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libavif16-1.4.2-h6d93d65_2.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libblas-3.11.0-8_h4a7cf45_openblas.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libboost-1.90.0-hd24cca6_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libboost-python-1.90.0-py312hf890105_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlicommon-1.2.0-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlidec-1.2.0-hb03c661_1.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libbrotlienc-1.2.0-hb03c661_1.conda
@@ -1279,6 +1289,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/libopenblas-0.3.33-pthreads_h94d23a6_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopencv-4.13.0-qt6_h91fa782_612.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopengl-1.7.0-ha4b6fd6_3.conda
+      - conda: https://prefix.dev/conda-forge/linux-64/libopengl-devel-1.7.0-ha4b6fd6_3.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-2026.2.1-h1f0fae8_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-auto-batch-plugin-2026.2.1-h7e124b3_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-auto-plugin-2026.2.1-h7e124b3_0.conda
@@ -1557,6 +1568,7 @@ environments:
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-console-bridge-vendor-1.7.1-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-control-msgs-5.9.0-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-controller-manager-msgs-4.45.1-np2py312h2ed9cc7_18.conda
+      - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cv-bridge-4.1.0-np2py312h3b5449b_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cyclonedds-0.10.5-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-diagnostic-msgs-5.3.7-np2py312h2ed9cc7_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-domain-coordinator-0.12.0-np2py312h2ed9cc7_18.conda
@@ -1790,6 +1802,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libattr-2.5.2-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libavif16-1.4.2-h72ccb82_2.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libblas-3.11.0-8_haddc8a3_openblas.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-1.90.0-h5651608_1.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-python-1.90.0-py312he84d598_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlicommon-1.2.0-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlidec-1.2.0-he30d5cf_1.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlienc-1.2.0-he30d5cf_1.conda
@@ -1842,6 +1856,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenblas-0.3.33-pthreads_h9d3fd7e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopencv-4.13.0-qt6_h582de8e_612.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopengl-1.7.0-hd24410f_3.conda
+      - conda: https://prefix.dev/conda-forge/linux-aarch64/libopengl-devel-1.7.0-hd24410f_3.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-2026.2.1-h9a8427e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-arm-cpu-plugin-2026.2.1-h9a8427e_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-auto-batch-plugin-2026.2.1-he6b9e7b_0.conda
@@ -2112,6 +2127,7 @@ environments:
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-console-bridge-vendor-1.7.1-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-control-msgs-5.9.0-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-controller-manager-msgs-4.45.1-np2py312h61f2ce4_18.conda
+      - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cv-bridge-4.1.0-np2py312h3c25c5b_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cyclonedds-0.10.5-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-diagnostic-msgs-5.3.7-np2py312h61f2ce4_18.conda
       - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-domain-coordinator-0.12.0-np2py312h61f2ce4_18.conda
@@ -3660,6 +3676,44 @@ packages:
     - libblas >=3.11.0,<4.0a0
   size: 18804
   timestamp: 1779859100675
+- conda: https://prefix.dev/conda-forge/linux-64/libboost-1.90.0-hd24cca6_1.conda
+  sha256: fef9f2977ac341fd0fd7802bccffff0f220e4896f6fef29040428071d0aa863b
+  md5: 4dfa9b413062a24e09938fb6f91af821
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - bzip2 >=1.0.8,<2.0a0
+  - icu >=78.1,<79.0a0
+  - libgcc >=14
+  - liblzma >=5.8.1,<6.0a0
+  - libstdcxx >=14
+  - libzlib >=1.3.1,<2.0a0
+  - zstd >=1.5.7,<1.6.0a0
+  constrains:
+  - boost-cpp <0.0a0
+  license: BSL-1.0
+  purls: []
+  run_exports: {}
+  size: 3229874
+  timestamp: 1766347309472
+- conda: https://prefix.dev/conda-forge/linux-64/libboost-python-1.90.0-py312hf890105_1.conda
+  sha256: 7c8041d2a5fbccfa5c52e6f77f7b3c548898697532376205ded53f85918df25b
+  md5: 202fd7a92c2c9ad48eb6ecf4c60a66f2
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libboost 1.90.0 hd24cca6_1
+  - libgcc >=14
+  - libstdcxx >=14
+  - numpy >=1.23,<3
+  - python >=3.12,<3.13.0a0
+  - python_abi 3.12.* *_cp312
+  constrains:
+  - boost <0.0a0
+  - py-boost <0.0a0
+  license: BSL-1.0
+  purls: []
+  run_exports: {}
+  size: 128668
+  timestamp: 1766347727104
 - conda: https://prefix.dev/conda-forge/linux-64/libbrotlicommon-1.2.0-hb03c661_1.conda
   sha256: 318f36bd49ca8ad85e6478bd8506c88d82454cc008c1ac1c6bf00a3c42fa610e
   md5: 72c8fd1af66bd67bf580645b426513ed
@@ -4501,6 +4555,19 @@ packages:
   run_exports: {}
   size: 51767
   timestamp: 1779728204026
+- conda: https://prefix.dev/conda-forge/linux-64/libopengl-devel-1.7.0-ha4b6fd6_3.conda
+  sha256: 6958088c10e21bae95a3db5ff170b3e32a8b439736c1add7c037c312d4bd0b87
+  md5: 50c6d76c6c5ec179ad463837f0f12a17
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libopengl 1.7.0 ha4b6fd6_3
+  license: LicenseRef-libglvnd
+  purls: []
+  run_exports:
+    weak:
+    - libopengl >=1.7.0,<2.0a0
+  size: 16667
+  timestamp: 1779728214747
 - conda: https://prefix.dev/conda-forge/linux-64/libopenvino-2026.2.1-h1f0fae8_0.conda
   sha256: 359ebf5f33d781b82fa20f7e37ae1428ae164eab71a1083d56c45a4eea6a59d4
   md5: ec442fe25ba489c4891760284a653ad5
@@ -8145,6 +8212,43 @@ packages:
     - libblas >=3.11.0,<4.0a0
   size: 18843
   timestamp: 1779859042591
+- conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-1.90.0-h5651608_1.conda
+  sha256: b076757411388f0ed5553fd20617c6d5cf5788ea1d2c91d58a40f9b91e920931
+  md5: 35fb4ad225f1c729f4ef5c79a82627e5
+  depends:
+  - bzip2 >=1.0.8,<2.0a0
+  - icu >=78.1,<79.0a0
+  - libgcc >=14
+  - liblzma >=5.8.1,<6.0a0
+  - libstdcxx >=14
+  - libzlib >=1.3.1,<2.0a0
+  - zstd >=1.5.7,<1.6.0a0
+  constrains:
+  - boost-cpp <0.0a0
+  license: BSL-1.0
+  purls: []
+  run_exports: {}
+  size: 3565062
+  timestamp: 1766346917364
+- conda: https://prefix.dev/conda-forge/linux-aarch64/libboost-python-1.90.0-py312he84d598_1.conda
+  sha256: 070f7433bf7de17b237d02405a6bbacd329e9f75eaab70db920673406a19c1fe
+  md5: 59cbc5d6b89d125906bbdfa30a801622
+  depends:
+  - libboost 1.90.0 h5651608_1
+  - libgcc >=14
+  - libstdcxx >=14
+  - numpy >=1.23,<3
+  - python >=3.12,<3.13.0a0
+  - python >=3.12,<3.13.0a0 *_cpython
+  - python_abi 3.12.* *_cp312
+  constrains:
+  - py-boost <0.0a0
+  - boost <0.0a0
+  license: BSL-1.0
+  purls: []
+  run_exports: {}
+  size: 123797
+  timestamp: 1766347459928
 - conda: https://prefix.dev/conda-forge/linux-aarch64/libbrotlicommon-1.2.0-he30d5cf_1.conda
   sha256: 5fa8c163c8d776503aa68cdaf798ff9440c76a0a1c3ea84e0c43dbf1ece8af4d
   md5: 8ec1d03f3000108899d1799d9964f281
@@ -8935,6 +9039,18 @@ packages:
   run_exports: {}
   size: 58759
   timestamp: 1779728245599
+- conda: https://prefix.dev/conda-forge/linux-aarch64/libopengl-devel-1.7.0-hd24410f_3.conda
+  sha256: 780f39df714f59c34163584b245f6ee919a8cf9fb35f120110a558ecece1c2a3
+  md5: f57d0cb2bf84c82cfeaacd251d917c64
+  depends:
+  - libopengl 1.7.0 hd24410f_3
+  license: LicenseRef-libglvnd
+  purls: []
+  run_exports:
+    weak:
+    - libopengl >=1.7.0,<2.0a0
+  size: 16727
+  timestamp: 1779728254657
 - conda: https://prefix.dev/conda-forge/linux-aarch64/libopenvino-2026.2.1-h9a8427e_0.conda
   sha256: 0a4e6ba7782fa821fcfd03ca04292402fd6c555f9af9cf9c56520da6c7a338f9
   md5: aa90776256abdfb7ae4715f2e40c4d3f
@@ -13348,6 +13464,39 @@ packages:
   run_exports: {}
   size: 586337
   timestamp: 1782301832385
+- conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cv-bridge-4.1.0-np2py312h3b5449b_18.conda
+  sha256: cedcdc0eee47448ca2dcff72a6b35dcc2c31df64cc98b5fd32991fe34c3f6817
+  md5: 1d7807bebff96d4b558f9fd534d04bd7
+  depends:
+  - libboost-python
+  - libgl-devel
+  - libopencv
+  - libopengl-devel
+  - numpy
+  - py-opencv
+  - python
+  - ros-jazzy-ament-index-python
+  - ros-jazzy-rclcpp
+  - ros-jazzy-rcpputils
+  - ros-jazzy-ros-workspace
+  - ros-jazzy-sensor-msgs
+  - ros2-distro-mutex 0.15.* jazzy_*
+  - __glibc >=2.17,<3.0.a0
+  - libstdcxx >=14
+  - libgcc >=14
+  - libopengl >=1.7.0,<2.0a0
+  - py-opencv >=4.13.0,<5.0a0
+  - libgl >=1.7.0,<2.0a0
+  - libboost-python >=1.90.0,<1.91.0a0
+  - python_abi 3.12.* *_cp312
+  - numpy >=1.25,<3
+  - ros2-distro-mutex >=0.15.0,<0.16.0a0
+  - libopencv >=4.13.0,<4.13.1.0a0
+  - libboost >=1.90.0,<1.91.0a0
+  license: Apache-2.0 OR BSD-3-Clause
+  run_exports: {}
+  size: 209103
+  timestamp: 1782303385614
 - conda: https://prefix.dev/robostack-jazzy/linux-64/ros-jazzy-cyclonedds-0.10.5-np2py312h2ed9cc7_18.conda
   sha256: ba2f8052bee6d0ca0ad8572aaac3f41cbb7f94a176c1199431a78bc1500732ed
   md5: 1fe27ade473215cec0daff946ede6702
@@ -17981,6 +18130,38 @@ packages:
   run_exports: {}
   size: 595341
   timestamp: 1782302035664
+- conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cv-bridge-4.1.0-np2py312h3c25c5b_18.conda
+  sha256: 372f9a75052fecb9d0042e9b97c6fe86fbf31fce0479f629049d5a39f3b1e9e0
+  md5: 1db0b51f8e26b54293df6fb70bfa6576
+  depends:
+  - libboost-python
+  - libgl-devel
+  - libopencv
+  - libopengl-devel
+  - numpy
+  - py-opencv
+  - python
+  - ros-jazzy-ament-index-python
+  - ros-jazzy-rclcpp
+  - ros-jazzy-rcpputils
+  - ros-jazzy-ros-workspace
+  - ros-jazzy-sensor-msgs
+  - ros2-distro-mutex 0.15.* jazzy_*
+  - libstdcxx >=14
+  - libgcc >=14
+  - libopencv >=4.13.0,<4.13.1.0a0
+  - py-opencv >=4.13.0,<5.0a0
+  - libgl >=1.7.0,<2.0a0
+  - numpy >=1.25,<3
+  - libboost-python >=1.90.0,<1.91.0a0
+  - libboost >=1.90.0,<1.91.0a0
+  - libopengl >=1.7.0,<2.0a0
+  - python_abi 3.12.* *_cp312
+  - ros2-distro-mutex >=0.15.0,<0.16.0a0
+  license: Apache-2.0 OR BSD-3-Clause
+  run_exports: {}
+  size: 213936
+  timestamp: 1782303318276
 - conda: https://prefix.dev/robostack-jazzy/linux-aarch64/ros-jazzy-cyclonedds-0.10.5-np2py312h61f2ce4_18.conda
   sha256: cac1904b5a416dcf632ab6464eed2d33081a63f6f9cb7d042d6fafb4ba592441
   md5: f2ae54273a977aff0200300fab5221c1
