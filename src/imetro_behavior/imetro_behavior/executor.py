@@ -35,6 +35,7 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.composites import Sequence
 from py_trees.parsers.behaviour_tree_xml import parse_behaviour_tree_xml
+from py_trees.ports import NoDataAvailable
 from py_trees_ros.trees import BehaviourTree
 
 from imetro_behavior_msgs.action import ExecuteBehavior
@@ -99,14 +100,17 @@ class BehaviorTreeExecutor:
         for module_to_import in config.get("imports", []):
             import_module(module_to_import)
 
-        # Set the search paths
+        # Set the search paths, including all the subfolders below each specified path.
         self._search_paths = []
         for path_config in config.get("tree_search_paths", []):
             package = path_config.get("package")
             path = path_config.get("path")
             if package is None or path is None:
                 raise RuntimeError("Search paths must specify 'package' and a 'path' fields.")
-            self._search_paths.append((get_package_share_path(package) / path).as_posix())
+
+            full_path = get_package_share_path(package) / path
+            self._search_paths.append(full_path.as_posix())
+            self._search_paths.extend([p.as_posix() for p in full_path.rglob("*") if p.is_dir()])
 
     @property
     def current_behavior(self) -> str | None:
@@ -279,7 +283,7 @@ class BehaviorTreeServer:
         result = ExecuteBehavior.Result()
         try:
             final_status = self._executor.run_tree(goal_handle.request.tree_file_name)
-        except RuntimeError as e:
+        except (NoDataAvailable, RuntimeError) as e:
             result.message = str(e)
             self._logger.error(result.message)
             goal_handle.abort()

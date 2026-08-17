@@ -19,13 +19,12 @@
 
 import copy
 import yaml
-from pathlib import Path
 
 import numpy as np
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_path
 from rclpy.node import Node
 from rclpy.time import Time
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import RigidTransform, Rotation as R
 
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
@@ -162,6 +161,124 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class TwistAboutPose(BehaviourWithPorts):
+    """Twist one PoseStamped about another PoseStamped by specified amount of radians."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Input ports for required poses to rotate and rotational configuration.
+        Note: the target_pose and rotation_pose MUST share the same lookup reference frame.
+        Example: (ee_T_world & rotation_T_world) or (ee_T_baselink & rotation_T_baselink)"""
+        return {
+            "rotation_pose": PortInformation(
+                data_type=PoseStamped, required=True, description="PoseStamped to rotate about"
+            ),
+            "target_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="PoseStamped that will be rotated, usually the EndEffector",
+            ),
+            "rotation_amount": PortInformation(
+                data_type=float, required=True, description="Amount of rotation in radians"
+            ),
+            "rotation_axis": PortInformation(
+                data_type=list[float],
+                required=True,
+                description="Expects axis vector to rotate about, relative to the rotation frame. "
+                "axis-angle representation: [0.0, 0.0, 1.0] for Z for example",
+            ),
+            "keep_start_orientation": PortInformation(
+                data_type=bool, required=True, description="Keep orientation of target_pose static throughout rotation"
+            ),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Returns output_pose, a pose rotated about the given rotation pose and parented to reference frame."""
+        return {
+            "output_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="Rotated pose, with a parent that shares the reference frame of the given input poses",
+            )
+        }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    def update(self) -> Status:
+        """Twist about the rotation frame."""
+        rotation_posestamp = self.get_input("rotation_pose")
+        target_posestamp = self.get_input("target_pose")
+        rotation_amount = self.get_input("rotation_amount")
+        rotation_axis = self.get_input("rotation_axis")
+        keep_start_orientation = self.get_input("keep_start_orientation")
+
+        if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
+            self.node.get_logger().error("Error: given input poses do not share the same reference frame.")
+            return Status.FAILURE
+
+        # Convert the inputs to 4x4 transformation matrices
+        rotation_orientation = R.from_quat(
+            [
+                rotation_posestamp.pose.orientation.x,
+                rotation_posestamp.pose.orientation.y,
+                rotation_posestamp.pose.orientation.z,
+                rotation_posestamp.pose.orientation.w,
+            ]
+        )
+        rotation_translation = np.array(
+            [rotation_posestamp.pose.position.x, rotation_posestamp.pose.position.y, rotation_posestamp.pose.position.z]
+        )
+        rotation_T_reference = RigidTransform.from_components(rotation_translation, rotation_orientation)
+        target_orientation = R.from_quat(
+            [
+                target_posestamp.pose.orientation.x,
+                target_posestamp.pose.orientation.y,
+                target_posestamp.pose.orientation.z,
+                target_posestamp.pose.orientation.w,
+            ]
+        )
+        target_translation = np.array(
+            [target_posestamp.pose.position.x, target_posestamp.pose.position.y, target_posestamp.pose.position.z]
+        )
+        target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
+
+        target_T_rotation = rotation_T_reference.inv() * target_T_reference
+
+        # Rotate the EE about the rotation frame by the given axis and angle in radians
+        twist_vector = rotation_amount * np.array(rotation_axis)
+        twist = R.from_rotvec(twist_vector)
+        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
+
+        twistedtarget_T_rotation = twist_matrix * target_T_rotation
+
+        # Lastly we want to take the twisted point and put in respect to reference frame
+        twistedtarget_T_reference = rotation_T_reference * twistedtarget_T_rotation
+        final_pose = twistedtarget_T_reference.translation
+        final_rotation = twistedtarget_T_reference.rotation.as_quat()
+
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header = rotation_posestamp.header
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
+        if keep_start_orientation:
+            output_pose.pose.orientation = target_posestamp.pose.orientation
+        else:
+            output_pose.pose.orientation.x = final_rotation[0]
+            output_pose.pose.orientation.y = final_rotation[1]
+            output_pose.pose.orientation.z = final_rotation[2]
+            output_pose.pose.orientation.w = final_rotation[3]
+
+        self._set_output("output_pose", output_pose)
+        return Status.SUCCESS
+
+
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
 
@@ -219,9 +336,9 @@ class OffsetPoseStamped(BehaviourWithPorts):
 
 
 class YamlPoseToPoseStamped(BehaviourWithPorts):
-    """Load a Pose object from a YAML and output a PoseStamped ROS message
+    """Load a Pose object from a YAML file and output a PoseStamped ROS message.
 
-    Valid yaml configuration for a pose:
+    Valid YAML configuration for a pose:
 
     pose_name:
         frame_id: ""
@@ -258,9 +375,9 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Load the YAML, create the message, and set it as an output port."""
+        """Load the YAML file, create the message, and set it as an output port."""
 
-        yaml_path = Path(get_package_share_directory(self.get_input("package_name"))) / self.get_input("yaml_file")
+        yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
             self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
             return Status.FAILURE
@@ -338,6 +455,109 @@ class LookupTransform(BehaviourWithPorts):
             return Status.FAILURE
 
         self._set_output("target_T_source", target_T_source)
+        return Status.SUCCESS
+
+
+class TransformStampedToPoseStamped(BehaviourWithPorts):
+    """Convert a TransformStamped ROS message to a PoseStamped ROS message."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        return {
+            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+            "child_frame_id": PortInformation(data_type=str, required=True),
+        }
+
+    def update(self) -> Status:
+        """Extract the transform's translation and rotation into a PoseStamped message."""
+        t_stamped = self.get_input("transform_stamped")
+
+        pose_stamped = PoseStamped()
+        pose_stamped.header = t_stamped.header
+        pose_stamped.pose.position.x = t_stamped.transform.translation.x
+        pose_stamped.pose.position.y = t_stamped.transform.translation.y
+        pose_stamped.pose.position.z = t_stamped.transform.translation.z
+        pose_stamped.pose.orientation = t_stamped.transform.rotation
+
+        self._set_output("pose_stamped", pose_stamped)
+        self._set_output("child_frame_id", t_stamped.child_frame_id)
+        return Status.SUCCESS
+
+
+class PoseStampedToTransformStamped(BehaviourWithPorts):
+    """Convert a PoseStamped ROS message to a TransformStamped ROS message."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+            "child_frame_id": PortInformation(data_type=str, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        return {
+            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+        }
+
+    def update(self) -> Status:
+        """Extract the pose's position and orientation into a TransformStamped message."""
+        pose_stamped = self.get_input("pose_stamped")
+        child_frame_id = self.get_input("child_frame_id")
+
+        t_stamped = TransformStamped()
+        t_stamped.header = pose_stamped.header
+        t_stamped.child_frame_id = child_frame_id
+        t_stamped.transform.translation.x = pose_stamped.pose.position.x
+        t_stamped.transform.translation.y = pose_stamped.pose.position.y
+        t_stamped.transform.translation.z = pose_stamped.pose.position.z
+        t_stamped.transform.rotation = pose_stamped.pose.orientation
+
+        self._set_output("transform_stamped", t_stamped)
+        return Status.SUCCESS
+
+
+class DecomposePoseStamped(BehaviourWithPorts):
+    """
+    Decomposes a ROS PoseStamped message into frame_id, xyz translation, and xyzw orientation.
+
+    Works well with OffsetPoseStamped.
+    """
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        return {
+            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        return {
+            "frame_id": PortInformation(data_type=str, required=False),
+            "translation_xyz": PortInformation(data_type=list[float], required=False),
+            "orientation_xyzw": PortInformation(data_type=list[float], required=False),
+        }
+
+    def update(self) -> Status:
+        """Extract the pose's position, orientation, and frame_id and return as list[float] and str"""
+        pose_stamped = self.get_input("pose_stamped")
+        frame_id = pose_stamped.header.frame_id
+        translation_xyz = [pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z]
+        orientation_xyzw = [
+            pose_stamped.pose.orientation.x,
+            pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z,
+            pose_stamped.pose.orientation.w,
+        ]
+        self._set_output("frame_id", frame_id)
+        self._set_output("translation_xyz", translation_xyz)
+        self._set_output("orientation_xyzw", orientation_xyzw)
         return Status.SUCCESS
 
 

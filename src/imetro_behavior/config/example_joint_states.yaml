@@ -1,0 +1,17 @@
+# Example joint states YAML file.
+
+clr_home:
+  joint_names:
+    - clr_shoulder_pan_joint
+    - clr_shoulder_lift_joint
+    - clr_elbow_joint
+    - clr_wrist_1_joint
+    - clr_wrist_2_joint
+    - clr_wrist_3_joint
+  positions:
+    - 3.2
+    - -2.4
+    - -1.78
+    - -0.47
+    - -1.62
+    - -1.62

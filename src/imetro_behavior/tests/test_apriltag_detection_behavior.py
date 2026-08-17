@@ -61,8 +61,8 @@ def test_detect_apriltag_success(apriltag_behavior) -> None:
 
     pose = apriltag_behavior.get_last_output("tag_pose")
 
-    expected_position = (0.033153, -0.013826, 0.949516)
-    expected_orientation = (0.077419, -0.051671, 0.006123, 0.995640)
+    expected_position = (0.033153, -0.013826, 0.949516)  # xyz
+    expected_orientation = (0.077419, -0.051671, 0.006123, 0.995640)  # xyzw
 
     assert pose.pose.position.x == pytest.approx(expected_position[0], abs=0.001)
     assert pose.pose.position.y == pytest.approx(expected_position[1], abs=0.001)

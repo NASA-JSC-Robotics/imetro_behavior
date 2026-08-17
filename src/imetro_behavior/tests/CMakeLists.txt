@@ -12,6 +12,8 @@ ament_add_pytest_test(test_executor test_executor.py)
 
 ament_add_pytest_test(test_geometry_behaviors test_geometry_behaviors.py)
 
+ament_add_pytest_test(test_joint_behaviors test_joint_behaviors.py)
+
 ament_add_pytest_test(test_moveit_behaviors test_moveit_behaviors.py)
 
 ament_add_pytest_test(test_nav_behaviors test_nav_behaviors.py)

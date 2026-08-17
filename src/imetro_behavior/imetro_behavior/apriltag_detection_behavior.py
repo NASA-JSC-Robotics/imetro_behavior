@@ -67,6 +67,7 @@ class DetectAprilTag(BehaviourWithPorts):
         tag_family = self.get_input("tag_family")
 
         if rgb_msg is None or camera_info is None:
+            self.node.get_logger().error("No RGB image or camera info message found. Cannot detect AprilTags.")
             return Status.FAILURE
 
         if self.detector is None:
@@ -87,6 +88,9 @@ class DetectAprilTag(BehaviourWithPorts):
         target_tag = next((t for t in tags if t.tag_id == target_id), None)
 
         if target_tag is None:
+            self.node.get_logger().error(
+                f"No AprilTags detected with tag family {tag_family} and target ID {target_id}."
+            )
             return Status.FAILURE
 
         pose_msg = PoseStamped()

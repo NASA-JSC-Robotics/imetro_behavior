@@ -36,6 +36,10 @@ from imetro_behavior.geometry_behaviors import (
     PublishTransform,
     TransformPose,
     YamlPoseToPoseStamped,
+    PoseStampedToTransformStamped,
+    TransformStampedToPoseStamped,
+    TwistAboutPose,
+    DecomposePoseStamped,
 )
 
 
@@ -230,8 +234,8 @@ def test_offset_pose_stamped_no_offsets() -> None:
 def yaml_pose_behavior(ros_node: Node, tmp_path: Path, mocker) -> YamlPoseToPoseStamped:
     """A YamlPoseToPoseStamped behavior whose package share directory resolves to a temporary path."""
     mocker.patch(
-        "imetro_behavior.geometry_behaviors.get_package_share_directory",
-        return_value=str(tmp_path),
+        "imetro_behavior.geometry_behaviors.get_package_share_path",
+        return_value=tmp_path,
     )
     (tmp_path / "poses.yaml").write_text(
         """
@@ -325,3 +329,144 @@ def test_publish_transform(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
+
+def test_transform_stamped_to_pose_stamped() -> None:
+    behavior = TransformStampedToPoseStamped(name="tf_to_pose")
+    behavior.setup_ports()
+
+    t_msg = TransformStamped()
+    t_msg.header.frame_id = "map"
+    t_msg.child_frame_id = "base"
+    t_msg.transform.translation.x = 2.0
+    t_msg.transform.translation.y = 3.0
+    t_msg.transform.translation.z = 4.0
+    t_msg.transform.rotation.w = 1.0
+
+    Blackboard.set(behavior._get_blackboard_key("transform_stamped"), t_msg)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    pose_msg = behavior.get_last_output("pose_stamped")
+    assert pose_msg.header.frame_id == "map"
+    assert pose_msg.pose.position.x == 2.0
+    assert pose_msg.pose.position.y == 3.0
+    assert pose_msg.pose.position.z == 4.0
+    assert pose_msg.pose.orientation.w == 1.0
+
+    child_frame = behavior.get_last_output("child_frame_id")
+    assert child_frame == "base"
+
+
+def test_pose_stamped_to_transform_stamped() -> None:
+    behavior = PoseStampedToTransformStamped(name="pose_to_tf")
+    behavior.setup_ports()
+
+    p_msg = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="odom")
+
+    Blackboard.set(behavior._get_blackboard_key("pose_stamped"), p_msg)
+    Blackboard.set(behavior._get_blackboard_key("child_frame_id"), "base_footprint")
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    t_msg = behavior.get_last_output("transform_stamped")
+    assert t_msg.header.frame_id == "odom"
+    assert t_msg.child_frame_id == "base_footprint"
+    assert t_msg.transform.translation.x == 1.0
+    assert t_msg.transform.translation.y == 2.0
+    assert t_msg.transform.translation.z == 3.0
+    assert t_msg.transform.rotation.w == 1.0
+
+
+def test_twist_about_pose() -> None:
+    """Tests basic functionality of twist by rotating about a center circle 90 degrees"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
+    assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.orientation.z == pytest.approx(0.7071, abs=1e-5)
+    assert msg.pose.orientation.w == pytest.approx(0.7071, abs=1e-5)
+
+
+def test_twist_about_pose_keep_start_orientation() -> None:
+    """Tests the same as above, however with keep orientation flag set to True"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), True)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+
+    assert msg.header.frame_id == "world"
+    assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.position.y == pytest.approx(1.0, abs=1e-5)
+    assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.orientation.x == 0.0
+    assert msg.pose.orientation.y == 0.0
+    assert msg.pose.orientation.z == 0.0
+    assert msg.pose.orientation.w == 1.0
+
+
+def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
+    """Tests for mismatched reference frames between two input poses"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="grasp_frame")
+
+    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+
+def test_decompose_pose_stamped() -> None:
+    behavior = DecomposePoseStamped(name="decompose_pose_stamped")
+    behavior.setup_ports()
+
+    p_msg = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="odom")
+
+    Blackboard.set(behavior._get_blackboard_key("pose_stamped"), p_msg)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+    frame_id_msg = behavior.get_last_output("frame_id")
+    translation_msg = behavior.get_last_output("translation_xyz")
+    orientation_msg = behavior.get_last_output("orientation_xyzw")
+    assert frame_id_msg == "odom"
+    assert translation_msg == [1.0, 2.0, 3.0]
+    assert orientation_msg == [0.0, 0.0, 0.0, 1.0]

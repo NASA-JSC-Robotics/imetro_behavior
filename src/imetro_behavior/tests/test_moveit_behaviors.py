@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 
 from rclpy.node import Node
-from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
+from geometry_msgs.msg import PoseStamped, TransformStamped
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import AllowedCollisionEntry, MoveItErrorCodes, PlanningScene, RobotTrajectory
 from moveit_msgs.srv import ApplyPlanningScene, GetCartesianPath, GetMotionPlan, GetPlanningScene
@@ -268,7 +268,7 @@ def test_plan_cartesian_create_request(ros_node: Node) -> None:
     request = behavior.create_request()
     assert request.group_name == "arm"
     # A single PoseStamped waypoint is packaged behind an empty starting pose.
-    assert request.waypoints == [Pose(), waypoint.pose]
+    assert request.waypoints == [waypoint.pose]
     assert request.max_step == 0.01
     assert request.jump_threshold == 1.25
     assert request.avoid_collisions

@@ -106,6 +106,8 @@ class PlanToJointState(RosServiceClientBase):
             "tolerance": PortInformation(data_type=float, required=True),
             "max_velocity_scaling": PortInformation(data_type=float, required=False),
             "max_acceleration_scaling": PortInformation(data_type=float, required=False),
+            "num_planning_attempts": PortInformation(data_type=int, required=False),
+            "allowed_planning_time": PortInformation(data_type=float, required=False),
         }
 
     @classmethod
@@ -141,6 +143,8 @@ class PlanToJointState(RosServiceClientBase):
         request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
         request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 1.0)
         request.motion_plan_request.goal_constraints = [goal_constraints]
+        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts", 5)
+        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time", 1.0)
         return request
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
@@ -179,6 +183,8 @@ class PlanToPose(RosServiceClientBase):
             "orientation_tolerance": PortInformation(data_type=list[float], required=True),
             "max_velocity_scaling": PortInformation(data_type=float, required=False),
             "max_acceleration_scaling": PortInformation(data_type=float, required=False),
+            "num_planning_attempts": PortInformation(data_type=int, required=False),
+            "allowed_planning_time": PortInformation(data_type=float, required=False),
         }
 
     @classmethod
@@ -229,6 +235,8 @@ class PlanToPose(RosServiceClientBase):
         request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
         request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 1.0)
         request.motion_plan_request.goal_constraints = [goal_constraints]
+        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts", 5)
+        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time", 1.0)
         return request
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
@@ -405,7 +413,7 @@ class PlanCartesian(RosServiceClientBase):
 
         waypoints = self.get_input("waypoints")
         if isinstance(waypoints, PoseStamped):
-            request.waypoints = [Pose(), waypoints.pose]
+            request.waypoints = [waypoints.pose]
         else:  # let's assume it's a list
             request.waypoints = waypoints
 
