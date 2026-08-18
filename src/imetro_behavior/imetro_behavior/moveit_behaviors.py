@@ -21,10 +21,11 @@ import copy
 from typing import Any
 
 from py_trees.common import Access, Status
-from py_trees.ports import PortInformation
+from py_trees.ports import BehaviourWithPorts, PortInformation
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from rclpy.node import Node
 
 from rclpy.time import Time
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
@@ -38,15 +39,18 @@ from moveit_msgs.msg import (
     OrientationConstraint,
     RobotTrajectory,
     PlanningScene,
+    CollisionObject,
     AllowedCollisionEntry,
 )
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
-
 from shape_msgs.msg import SolidPrimitive
+from std_msgs.msg import String, Header
 
 from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
+
+import xml.etree.ElementTree as ET
 
 
 # Handy dictionary for reporting failures.
@@ -735,3 +739,156 @@ class SetPlanningScene(RosServiceClientBase):
             self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
 
+
+class PlanningSceneFromRobotDescription(BehaviourWithPorts):
+    """Lookup transform between two frames from the tf2_ros server.
+
+    Returns the transform required to convert from the source frame, to the target frame.
+    Namely, `target_T_source`.
+    """
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "planning_scene": PortInformation(data_type=PlanningScene, required=True),
+            "robot_description": PortInformation(data_type=String, required=True),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {
+            "modified_planning_scene": PortInformation(data_type=PlanningScene, required=True),
+        }
+
+    def setup(self, **kwargs):
+        """Get access to the TF buffer."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    def update(self) -> Status:
+        """Look up the transform in TF and transform the frame."""
+        planning_scene = self.get_input("planning_scene")
+        robot_description = self.get_input("robot_description").data
+        try:
+          planning_scene.world.collision_objects = self.parse_xml(robot_description)
+          
+        except Exception as e:
+            self.node.get_logger().error(f"TF lookup failed: {e}")
+            return Status.FAILURE
+
+        self._set_output("modified_planning_scene", planning_scene)
+        return Status.SUCCESS
+
+    def box_to_collision_object(self, header, pose, size, xyz, rpy) -> CollisionObject:
+      co = CollisionObject()
+      co.header = header
+      co.pose = pose
+      
+      sp = SolidPrimitive()
+      sp.type = SolidPrimitive.BOX
+      sp.dimensions = list(size)
+
+      co.primitives.append(sp)
+      
+      pp = Pose()
+      pp.position.x = xyz[0]
+      pp.position.y = xyz[1]
+      pp.position.z = xyz[2]
+      
+      # print(type(rpy))
+      rotation = R.from_euler('xyz', rpy)
+      quat = rotation.as_quat()
+      pp.orientation.x = quat[0]
+      pp.orientation.y = quat[1]
+      pp.orientation.z = quat[2]
+      pp.orientation.w = quat[3]
+      
+      co.primitive_poses.append(pp)
+      
+      return co
+
+    def get_local_transform(self, description_root, child_name) -> tuple[Header, Pose]:
+      parent_name = None
+      xyz = [0.0, 0.0, 0.0]
+      rpy = [0.0, 0.0, 0.0]
+      
+      for joint in description_root.findall("joint"):
+        joint_child_name = joint.find("child").get("link")
+        if joint_child_name != child_name:
+          continue
+        else:
+          parent_name = joint.find("parent").get("link")
+          origin = joint.find("origin")
+          if origin is not None: 
+            if origin.get("xyz"):
+              xyz = [float(x) for x in  origin.get("xyz").split()]
+            if origin.get("rpy"):
+              rpy = [float(x) for x in  origin.get("rpy").split()]
+          break
+
+      pose  = Pose()
+      
+      pose.position.x = xyz[0]
+      pose.position.y = xyz[1]
+      pose.position.z = xyz[2]
+      
+      rotation = R.from_euler('xyz', rpy)
+      quat = rotation.as_quat()
+      pose.orientation.x = quat[0]
+      pose.orientation.y = quat[1]
+      pose.orientation.z = quat[2]
+      pose.orientation.w = quat[3]
+      
+      header = Header()
+      header.frame_id = parent_name
+      
+      return header, pose
+
+    def parse_xml(self, robot_description) -> list[CollisionObject]:
+      
+      collision_objects = []
+      
+      root = ET.fromstring(robot_description)
+      
+      for link in root.findall("link"):
+        link_name = link.get("name")
+        collision = link.find("collision")
+        
+        if collision is not None: 
+          
+          xyz = [0.0, 0.0, 0.0]
+          rpy = [0.0, 0.0, 0.0]
+          
+          origin = collision.find("origin")
+          if origin is not None: 
+            if origin.get("xyz"):
+              xyz = [float(x) for x in  origin.get("xyz").split()]
+            if origin.get("rpy"):
+              rpy = [float(x) for x in  origin.get("rpy").split()]
+
+          geometry = collision.find("geometry")
+          if geometry is not None: 
+            for child in geometry:
+              match child.tag:
+                case "box":
+                  box_size = child.get("size")
+                  box_size = [float(x) for x in box_size.split()]
+                  
+                  header, pose = self.get_local_transform(root, link_name)
+                  collision_object = self.box_to_collision_object(header, pose, box_size, xyz, rpy)
+                  collision_object.id = link_name
+
+                  collision_objects.append(collision_object)
+                  
+                case "mesh":
+                  # Not Implemented
+                  filename = child.get("filename")
+                  # print(filename)
+                  
+                case _:
+                  pass
+      
+      return collision_objects
