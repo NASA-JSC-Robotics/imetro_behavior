@@ -289,6 +289,40 @@ class RequestPlanningScene(RosServiceClientBase):
             return Status.FAILURE
 
 
+class ApplyPlanningScene(RosServiceClientBase):
+    """
+    Get planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=ApplyPlanningScene, **kwargs)
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {"planning_scene": PortInformation(data_type=PlanningScene)}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def create_request(self) -> ApplyPlanningScene.Request:
+        """Create a PlanningScene service request."""
+        request = ApplyPlanningScene.Request()
+        request.scene = self.get_input("planning_scene")
+        return request
+
+    def process_response(self, response: ApplyPlanningScene.Response) -> Status:
+        """Process the ApplyPlanningScene service response."""
+        if response.success:
+            self.node.get_logger().info("Successfully modified the planning scene!")
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
+            return Status.FAILURE
+
+
 class ModifyCollisions(RosServiceClientBase):
     """
     Modifies the Allowed Collision Matrix to allow certain links of the robot to collide with other objects/links.
