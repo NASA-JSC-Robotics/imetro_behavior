@@ -20,6 +20,8 @@
 import copy
 from typing import Any
 
+import xml.etree.ElementTree as ET
+
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 
@@ -50,7 +52,6 @@ from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
-import xml.etree.ElementTree as ET
 
 # Handy dictionary for reporting failures.
 # Painstakingly copied from https://github.com/moveit/moveit_msgs/blob/ros2/msg/MoveItErrorCodes.msg
