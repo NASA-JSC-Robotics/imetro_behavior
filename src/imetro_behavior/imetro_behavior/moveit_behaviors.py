@@ -52,7 +52,6 @@ from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
 import xml.etree.ElementTree as ET
 
-
 # Handy dictionary for reporting failures.
 # Painstakingly copied from https://github.com/moveit/moveit_msgs/blob/ros2/msg/MoveItErrorCodes.msg
 MOVEIT_ERROR_CODE_DICT = {
@@ -743,7 +742,8 @@ class SetPlanningScene(RosServiceClientBase):
 
 class PlanningSceneFromRobotDescription(BehaviourWithPorts):
     """
-    Parse the robot_description string, extract all of the collision from the links, convert them collision objects, and insert into the planning scene.
+    Parse the robot_description string, extract all of the collision from the links,
+    convert them collision objects, and insert into the planning scene.
     Input ports:
         planning_scene: Planning message to append collision objects to.
         robot_description: std_msgs/msg/String that contains a URDF.
@@ -809,7 +809,9 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return solid_primitive
 
     def load_mesh_to_message(self, file_name: str) -> Mesh:
-        import trimesh, re, os
+        import trimesh
+        import re
+        import os
         from ament_index_python.packages import get_package_share_directory
 
         pattern = r"package://(.*?)?/"

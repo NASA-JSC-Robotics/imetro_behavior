@@ -106,7 +106,7 @@ class RosSubscriberBase(BehaviourWithPorts):
             self.subscriber_timeout is not None
             and self.node.get_clock().now() - self.start_time > self.subscriber_timeout
         ):
-            self.node.get_logger().error(f"[{self.qualified_name}] Timed out waiting for topic {self.topic_name}.")
+            self.node.get_logger().error(f"[{self.qualified_name}] Timed out waiting on topic {self.topic_name}.")
             return Status.FAILURE
 
         return Status.RUNNING

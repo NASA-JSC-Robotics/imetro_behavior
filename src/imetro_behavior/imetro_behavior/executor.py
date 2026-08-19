@@ -40,7 +40,6 @@ from py_trees_ros.trees import BehaviourTree
 
 from imetro_behavior_msgs.action import ExecuteBehavior
 
-
 DEFAULT_CONFIG = get_package_share_path("imetro_behavior") / "config" / "default_config.yaml"
 
 
