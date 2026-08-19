@@ -101,6 +101,8 @@ class RosSubscriberBase(BehaviourWithPorts):
         if self.latest_msg is not None:
             self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
             self._set_output("message", self.latest_msg)
+
+            self.latest_msg = None
             return Status.SUCCESS
 
         # If no message has arrived yet, keep waiting until timeout.
