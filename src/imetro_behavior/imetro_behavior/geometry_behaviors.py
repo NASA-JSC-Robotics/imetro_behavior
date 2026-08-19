@@ -283,12 +283,12 @@ class GetRotationOfPoses(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Input ports for required poses to check rotation between.
-        The rotation will be relative to the reference pose.
+        """Input ports for required poses to check rotation between, target_T_base.
+        The final output rotation will be relative to the base pose.
         Note: both poses must share the same parent frame."""
         return {
-            "reference_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="reference frame for which the output rpy."
+            "base_pose": PortInformation(
+                data_type=PoseStamped, required=True, description="reference pose for which the output rpy."
             ),
             "target_pose": PortInformation(
                 data_type=PoseStamped,
@@ -299,12 +299,12 @@ class GetRotationOfPoses(BehaviourWithPorts):
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Returns output_pose, a pose rotated about the given rotation pose and parented to reference frame."""
+        """Returns rotation of target_T_base."""
         return {
             "rotation_amount": PortInformation(
                 data_type=list[float],
                 required=True,
-                description="Roll, Pitch, and Yaw of the rotation from reference to target.",
+                description="Roll, Pitch, and Yaw of the rotation target_T_base.",
             )
         }
 
@@ -315,30 +315,27 @@ class GetRotationOfPoses(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Twist about the rotation frame."""
-        rotation_posestamp = self.get_input("rotation_pose")
+        """Get the pose from reference to target, return orientation in RPY."""
+        base_posestamp = self.get_input("base_pose")
         target_posestamp = self.get_input("target_pose")
-        rotation_amount = self.get_input("rotation_amount")
-        rotation_axis = self.get_input("rotation_axis")
-        keep_start_orientation = self.get_input("keep_start_orientation")
 
-        if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
+        if base_posestamp.header.frame_id != target_posestamp.header.frame_id:
             self.node.get_logger().error("Error: given input poses do not share the same reference frame.")
             return Status.FAILURE
 
         # Convert the inputs to 4x4 transformation matrices
-        rotation_orientation = R.from_quat(
+        base_orientation = R.from_quat(
             [
-                rotation_posestamp.pose.orientation.x,
-                rotation_posestamp.pose.orientation.y,
-                rotation_posestamp.pose.orientation.z,
-                rotation_posestamp.pose.orientation.w,
+                base_posestamp.pose.orientation.x,
+                base_posestamp.pose.orientation.y,
+                base_posestamp.pose.orientation.z,
+                base_posestamp.pose.orientation.w,
             ]
         )
-        rotation_translation = np.array(
-            [rotation_posestamp.pose.position.x, rotation_posestamp.pose.position.y, rotation_posestamp.pose.position.z]
+        base_translation = np.array(
+            [base_posestamp.pose.position.x, base_posestamp.pose.position.y, base_posestamp.pose.position.z]
         )
-        rotation_T_reference = RigidTransform.from_components(rotation_translation, rotation_orientation)
+        base_T_reference = RigidTransform.from_components(base_translation, base_orientation)
         target_orientation = R.from_quat(
             [
                 target_posestamp.pose.orientation.x,
@@ -352,7 +349,7 @@ class GetRotationOfPoses(BehaviourWithPorts):
         )
         target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
-        target_T_rotation = rotation_T_reference.inv() * target_T_reference
+        target_T_rotation = base_T_reference.inv() * target_T_reference
 
         # Rotate the EE about the rotation frame by the given axis and angle in radians
         twist_vector = rotation_amount * np.array(rotation_axis)
@@ -362,7 +359,7 @@ class GetRotationOfPoses(BehaviourWithPorts):
         twistedtarget_T_rotation = twist_matrix * target_T_rotation
 
         # Lastly we want to take the twisted point and put in respect to reference frame
-        twistedtarget_T_reference = rotation_T_reference * twistedtarget_T_rotation
+        twistedtarget_T_reference = base_T_reference * twistedtarget_T_rotation
         final_pose = twistedtarget_T_reference.translation
         final_rotation = twistedtarget_T_reference.rotation.as_quat()
 
