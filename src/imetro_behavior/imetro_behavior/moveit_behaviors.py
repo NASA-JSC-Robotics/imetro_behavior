@@ -773,8 +773,8 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         planning_scene = self.get_input("planning_scene")
         robot_description = self.get_input("robot_description").data
         try:
-          planning_scene.world.collision_objects = self.parse_xml(robot_description)
-          
+            planning_scene.world.collision_objects = self.parse_xml(robot_description)
+
         except Exception as e:
             self.node.get_logger().error(f"TF lookup failed: {e}")
             return Status.FAILURE
@@ -782,112 +782,223 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         self._set_output("modified_planning_scene", planning_scene)
         return Status.SUCCESS
 
-    def box_to_collision_object(self, header, pose, size, xyz, rpy) -> CollisionObject:
-      collision_object = CollisionObject()
-      collision_object.header = header
-      collision_object.pose = pose
-      
-      solid_primitive = SolidPrimitive()
-      solid_primitive.type = SolidPrimitive.BOX
-      solid_primitive.dimensions = list(size)
+    def box_to_solid_primitive(self, size: list[float]) -> SolidPrimitive:
+        solid_primitive = SolidPrimitive()
+        solid_primitive.type = SolidPrimitive.BOX
+        solid_primitive.dimensions = list(size)
 
-      collision_object.primitives.append(solid_primitive)
-      
-      primitve_pose = Pose()
-      primitve_pose.position.x = xyz[0]
-      primitve_pose.position.y = xyz[1]
-      primitve_pose.position.z = xyz[2]
-      
-      rotation = R.from_euler('xyz', rpy)
-      quat = rotation.as_quat()
-      primitve_pose.orientation.x = quat[0]
-      primitve_pose.orientation.y = quat[1]
-      primitve_pose.orientation.z = quat[2]
-      primitve_pose.orientation.w = quat[3]
-      
-      collision_object.primitive_poses.append(primitve_pose)
-      
-      return collision_object
+        return solid_primitive
+
+    def cylinder_to_solid_primitive(self, cylinder_radius: float, cylinder_length: float) -> SolidPrimitive:
+        solid_primitive = SolidPrimitive()
+        solid_primitive.type = SolidPrimitive.CYLINDER
+        solid_primitive.dimensions = list([cylinder_radius, cylinder_length])
+
+        return solid_primitive
+
+    def sphere_to_solid_primitive(self, sphere_radius: float) -> SolidPrimitive:
+        solid_primitive = SolidPrimitive()
+        solid_primitive.type = SolidPrimitive.SPHERE
+        solid_primitive.dimensions = [sphere_radius]
+
+        return solid_primitive
+
+    def load_mesh_to_message(self, file_name: str) -> Mesh:
+        import trimesh, re, os
+        from ament_index_python.packages import get_package_share_directory
+
+        pattern = r"package://(.*?)?/"
+        match = re.search(pattern, file_name)
+
+        if not match:
+            return
+
+        package_name = match.group(1).strip()
+        package_dir = get_package_share_directory(package_name)
+
+        file_path = os.path.join(package_dir, "/".join(file_name.split("/")[3:]))
+
+        # Load the .stl or .obj file using trimesh
+        scene_or_mesh = trimesh.load(file_path)
+
+        # # Handle scene objects (if obj contains multiple meshes)
+        if isinstance(scene_or_mesh, trimesh.Scene):
+            mesh = scene_or_mesh.dump(concatenate=True)
+        else:
+            mesh = scene_or_mesh
+
+        mesh_msg = Mesh()
+
+        # Populate vertices
+        for v in mesh.vertices:
+            pt = Point()
+            pt.x = float(v[0])
+            pt.y = float(v[1])
+            pt.z = float(v[2])
+            mesh_msg.vertices.append(pt)
+
+        # Populate triangle faces
+        for f in mesh.faces:
+            tri = MeshTriangle()
+            tri.vertex_indices = [int(f[0]), int(f[1]), int(f[2])]
+            mesh_msg.triangles.append(tri)
+
+        return mesh_msg
+
+    def collision_primitve_to_collision_object(
+        self, header: Header, pose: Pose, solid_primitive: SolidPrimitive, xyz: list[float], rpy: list[float]
+    ) -> CollisionObject:
+        collision_object = CollisionObject()
+        collision_object.header = header
+        collision_object.pose = pose
+
+        collision_object.primitives.append(solid_primitive)
+
+        primitive_pose = Pose()
+        primitive_pose.position.x = xyz[0]
+        primitive_pose.position.y = xyz[1]
+        primitive_pose.position.z = xyz[2]
+
+        rotation = R.from_euler("xyz", rpy)
+        quat = rotation.as_quat()
+        primitive_pose.orientation.x = quat[0]
+        primitive_pose.orientation.y = quat[1]
+        primitive_pose.orientation.z = quat[2]
+        primitive_pose.orientation.w = quat[3]
+
+        collision_object.primitive_poses.append(primitive_pose)
+
+        return collision_object
+
+    def mesh_to_collision_object(
+        self, header: Header, pose: Pose, mesh: Mesh, xyz: list[float], rpy: list[float]
+    ) -> CollisionObject:
+        collision_object = CollisionObject()
+        collision_object.header = header
+        collision_object.pose = pose
+
+        collision_object.meshes.append(mesh)
+
+        mesh_pose = Pose()
+        mesh_pose.position.x = xyz[0]
+        mesh_pose.position.y = xyz[1]
+        mesh_pose.position.z = xyz[2]
+
+        rotation = R.from_euler("xyz", rpy)
+        quat = rotation.as_quat()
+        mesh_pose.orientation.x = quat[0]
+        mesh_pose.orientation.y = quat[1]
+        mesh_pose.orientation.z = quat[2]
+        mesh_pose.orientation.w = quat[3]
+
+        collision_object.mesh_poses.append(mesh_pose)
+
+        return collision_object
 
     def get_local_pose(self, description_root, child_name) -> tuple[Header, Pose]:
-      parent_name = None
-      xyz = [0.0, 0.0, 0.0]
-      rpy = [0.0, 0.0, 0.0]
-      
-      for joint in description_root.findall("joint"):
-        joint_child_name = joint.find("child").get("link")
-        if joint_child_name != child_name:
-          continue
-        else:
-          parent_name = joint.find("parent").get("link")
-          origin = joint.find("origin")
-          if origin is not None: 
-            if origin.get("xyz"):
-              xyz = [float(x) for x in  origin.get("xyz").split()]
-            if origin.get("rpy"):
-              rpy = [float(x) for x in  origin.get("rpy").split()]
-          break
+        parent_name = None
+        xyz = [0.0, 0.0, 0.0]
+        rpy = [0.0, 0.0, 0.0]
 
-      pose  = Pose()
-      
-      pose.position.x = xyz[0]
-      pose.position.y = xyz[1]
-      pose.position.z = xyz[2]
-      
-      rotation = R.from_euler('xyz', rpy)
-      quat = rotation.as_quat()
-      pose.orientation.x = quat[0]
-      pose.orientation.y = quat[1]
-      pose.orientation.z = quat[2]
-      pose.orientation.w = quat[3]
-      
-      header = Header()
-      header.frame_id = parent_name
-      
-      return header, pose
+        for joint in description_root.findall("joint"):
+            joint_child_name = joint.find("child").get("link")
+            if joint_child_name != child_name:
+                continue
+            else:
+                parent_name = joint.find("parent").get("link")
+                origin = joint.find("origin")
+                if origin is not None:
+                    if origin.get("xyz"):
+                        xyz = [float(x) for x in origin.get("xyz").split()]
+                    if origin.get("rpy"):
+                        rpy = [float(x) for x in origin.get("rpy").split()]
+                break
+
+        pose = Pose()
+
+        pose.position.x = xyz[0]
+        pose.position.y = xyz[1]
+        pose.position.z = xyz[2]
+
+        rotation = R.from_euler("xyz", rpy)
+        quat = rotation.as_quat()
+        pose.orientation.x = quat[0]
+        pose.orientation.y = quat[1]
+        pose.orientation.z = quat[2]
+        pose.orientation.w = quat[3]
+
+        header = Header()
+        header.frame_id = parent_name
+
+        return header, pose
 
     def parse_xml(self, robot_description) -> list[CollisionObject]:
-      
-      collision_objects = []
-      
-      root = ET.fromstring(robot_description)
-      
-      for link in root.findall("link"):
-        link_name = link.get("name")
-        collision = link.find("collision")
-        
-        if collision is not None: 
-          
-          xyz = [0.0, 0.0, 0.0]
-          rpy = [0.0, 0.0, 0.0]
-          
-          origin = collision.find("origin")
-          if origin is not None: 
-            if origin.get("xyz"):
-              xyz = [float(x) for x in  origin.get("xyz").split()]
-            if origin.get("rpy"):
-              rpy = [float(x) for x in  origin.get("rpy").split()]
 
-          geometry = collision.find("geometry")
-          if geometry is not None: 
-            for child in geometry:
-              match child.tag:
-                case "box":
-                  box_size = child.get("size")
-                  box_size = [float(x) for x in box_size.split()]
-                  
-                  header, pose = self.get_local_pose(root, link_name)
-                  collision_object = self.box_to_collision_object(header, pose, box_size, xyz, rpy)
-                  collision_object.id = link_name
+        collision_objects = []
 
-                  collision_objects.append(collision_object)
-                  
-                case "mesh":
-                  # Not Implemented
-                  filename = child.get("filename")
-                  # print(filename)
-                  
-                case _:
-                  pass
-      
-      return collision_objects
+        root = ET.fromstring(robot_description)
+
+        for link in root.findall("link"):
+            link_name = link.get("name")
+            collision = link.find("collision")
+
+            if collision is not None:
+
+                xyz = [0.0, 0.0, 0.0]
+                rpy = [0.0, 0.0, 0.0]
+
+                origin = collision.find("origin")
+                if origin is not None:
+                    if origin.get("xyz"):
+                        xyz = [float(x) for x in origin.get("xyz").split()]
+                    if origin.get("rpy"):
+                        rpy = [float(x) for x in origin.get("rpy").split()]
+
+                geometry = collision.find("geometry")
+                if geometry is not None:
+                    header, pose = self.get_local_pose(root, link_name)
+                    for child in geometry:
+                        collision_object = None
+                        match child.tag:
+                            case "box":
+                                box_size = child.get("size")
+                                box_size = [float(x) for x in box_size.split()]
+                                solid_primitive = self.box_to_solid_primitive(box_size)
+                                collision_object = self.collision_primitve_to_collision_object(
+                                    header, pose, solid_primitive, xyz, rpy
+                                )
+
+                            case "cylinder":
+                                cylinder_radius = float(child.get("radius"))
+                                cylinder_length = float(child.get("length"))
+                                solid_primitive = self.cylinder_to_solid_primitive(cylinder_radius, cylinder_length)
+                                collision_object = self.collision_primitve_to_collision_object(
+                                    header, pose, solid_primitive, xyz, rpy
+                                )
+
+                            case "sphere":
+                                sphere_radius = child.get("radius")
+                                solid_primitive = self.sphere_to_solid_primitive(sphere_radius)
+                                collision_object = self.collision_primitve_to_collision_object(
+                                    header, pose, solid_primitive, xyz, rpy
+                                )
+
+                            case "mesh":
+                                self.get_logger().warning(
+                                    "Parsing meshes from URDF into shape_msgs/msg/Mesh is experimental!"
+                                )
+
+                                filename = child.get("filename")
+                                mesh = self.load_mesh_to_message(filename)
+                                collision_object = self.mesh_to_collision_object(header, pose, mesh, xyz, rpy)
+
+                            case _:
+                                self.get_logger().warning(
+                                    f"Collision object tag { child.tag } is not recognized. Skipping the object."
+                                )
+
+                        if collision_object is not None:
+                            collision_object.id = link_name
+                            collision_objects.append(collision_object)
+
+        return collision_objects
