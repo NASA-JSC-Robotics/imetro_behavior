@@ -61,7 +61,7 @@ class RosSubscriberBase(BehaviourWithPorts):
             subscriber_timeout: Timeout, in seconds, to wait to receive a message from the topic.
                 If None, waits indefinitely.
             qos_profile: String name for the quality of service profile for the subscriber.
-                The available options can be found here https://github.com/ros2/rclpy/blob/jazzy/rclpy/rclpy/qos.py#L483.
+                The options can be found here https://github.com/ros2/rclpy/blob/jazzy/rclpy/rclpy/qos.py#L483.
             kwargs: Additional keyword arguments to pass through to ports.
         """
         super().__init__(name, **kwargs)
