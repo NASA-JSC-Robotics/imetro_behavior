@@ -91,14 +91,11 @@ class RosSubscriberBase(BehaviourWithPorts):
 
     def update(self):
         """
-        Kick off a new service request and then check whether the service has completed or timed out.
+        Monitor latest_msg variable until it is set or the timer runs out.
         """
         if self.latest_msg is not None:
             self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
             self._set_output("message", self.latest_msg)
-            # Clear cache so we don't process the exact same frame on the next tick.
-            self.latest_msg = None
-
             return Status.SUCCESS
 
         # If no message has arrived yet, keep waiting until timeout.
@@ -113,10 +110,11 @@ class RosSubscriberBase(BehaviourWithPorts):
 
     def terminate(self, new_status: Status) -> None:
         """
-        Cleanup up the subscribers if switching to INVALID status.
+        Cleanup up the subscribers and the latest message if switching to INVALID status.
         """
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_subscription(self.subscription)
+        self.latest_msg = None
 
 
 class GetStringTopic(RosSubscriberBase):
