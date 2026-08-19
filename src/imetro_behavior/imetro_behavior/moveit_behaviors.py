@@ -708,7 +708,8 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
 
 class SetPlanningScene(RosServiceClientBase):
     """
-    Set planning scene of the robot.
+    Use MoveIt apply_planning_scene service to change the planning scene.
+    Useful if you have and intermediate step of changing the planning scene message.
     """
 
     def __init__(self, name: str, **kwargs: Any):
@@ -741,7 +742,15 @@ class SetPlanningScene(RosServiceClientBase):
 
 
 class PlanningSceneFromRobotDescription(BehaviourWithPorts):
-    """ """
+    """
+    Parse the robot_description string, extract all of the collision from the links, convert them collision objects, and insert into the planning scene.
+    Input ports:
+        planning_scene: Planning message to append collision objects to.
+        robot_description: std_msgs/msg/String that contains a URDF.
+
+    Returns:
+        modified_planning_scene: Planning scene with inserted collision objects.
+    """
 
     @classmethod
     def input_ports(cls) -> dict:
@@ -772,7 +781,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
             planning_scene.world.collision_objects = self.parse_xml(robot_description)
 
         except Exception as e:
-            self.node.get_logger().error(f"TF lookup failed: {e}")
+            self.node.get_logger().error(f"Parsing robot description has failed with : {e}")
             return Status.FAILURE
 
         self._set_output("modified_planning_scene", planning_scene)

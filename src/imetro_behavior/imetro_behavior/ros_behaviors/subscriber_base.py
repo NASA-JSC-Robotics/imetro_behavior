@@ -37,9 +37,7 @@ QOS_LATCHING = QoSProfile(
 
 class RosSubscriberBase(BehaviourWithPorts):
     """
-    Base class for behaviors that rely on ROS service clients.
-
-    Modified from https://github.com/splintered-reality/py_trees_ros/blob/devel/py_trees_ros/service_clients.py
+    Base class for behaviors that subscribe to a single topic.
     """
 
     def __init__(
@@ -49,41 +47,43 @@ class RosSubscriberBase(BehaviourWithPorts):
         *,
         topic_name: str,
         subscriber_timeout: float = 3.0,
+        qos_profile: QoSProfile = None,
         **kwargs: Any,
     ):
         """
-        Constructs a ROS Service Client base behavior.
+        Constructs a ROS subscriber.
 
         Args:
             name: The name of the behavior (required by PyTrees)
-            service_type: The ROS interface type of the service.
-            service_name: The name of the ROS service to send a request to.
-            service_server_timeout: Timeout, in seconds, to wait for the service server to be available.
+            topic_type: The ROS interface type of the topic.
+            topic_name: The name of the ROS topic to send a request to.
+            subscriber_timeout: Timeout, in seconds, to wait to receive a message from the topic.
                 If None, waits indefinitely.
-            service_timeout: Timeout, in seconds, to wait for the service to complete.
-                If None, waits indefinitely.
+            qos_profile: Quality of Service profile for the subscriber.
             kwargs: Additional keyword arguments to pass through to ports.
         """
         super().__init__(name, **kwargs)
         self.topic_type = topic_type
         self.topic_name = topic_name
         self.subscriber_timeout = Duration(seconds=subscriber_timeout) if subscriber_timeout else None
-
+        self.qos_profile = qos_profile if qos_profile else 1
         self.latest_msg = None
 
     def setup(self, **kwargs):
         """
-        Sets up the service client.
+        Get the node from the blackboard.
         """
         self.node = kwargs.get("node")
         if not isinstance(self.node, Node):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
-    def initialise(self, qos: QoSProfile = QOS_LATCHING):
+    def initialise(self):
         """
         Reset the internal variables.
         """
-        self.subscription = self.node.create_subscription(self.topic_type, self.topic_name, self.callback, qos)
+        self.subscription = self.node.create_subscription(
+            self.topic_type, self.topic_name, self.callback, self.qos_profile
+        )
         self.start_time = self.node.get_clock().now()
 
     def callback(self, msg) -> None:
@@ -94,15 +94,14 @@ class RosSubscriberBase(BehaviourWithPorts):
         Kick off a new service request and then check whether the service has completed or timed out.
         """
         if self.latest_msg is not None:
-            self.node.get_logger().info(f"[{self.qualified_name}] Got topic message!")
-
+            self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
             self._set_output("message", self.latest_msg)
             # Clear cache so we don't process the exact same frame on the next tick.
             self.latest_msg = None
 
             return Status.SUCCESS
 
-        # If no synchronized frame has arrived yet, keep waiting until timeout.
+        # If no message has arrived yet, keep waiting until timeout.
         if (
             self.subscriber_timeout is not None
             and self.node.get_clock().now() - self.start_time > self.subscriber_timeout
@@ -114,7 +113,7 @@ class RosSubscriberBase(BehaviourWithPorts):
 
     def terminate(self, new_status: Status) -> None:
         """
-        If running and the current service call has not already completed, cancel it.
+        Cleanup up the subscribers if switching to INVALID status.
         """
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_subscription(self.subscription)
@@ -122,13 +121,12 @@ class RosSubscriberBase(BehaviourWithPorts):
 
 class GetStringTopic(RosSubscriberBase):
     """
-    Sends a trigger request to a ROS service server.
-
+    Subscribes to a string topic.
     This is a standard enough behavior that we keep it as part of the core library.
     """
 
     def __init__(self, name: str, **kwargs: Any):
-        super().__init__(name, topic_type=String, **kwargs)
+        super().__init__(name, topic_type=String, qos_profile=QOS_LATCHING, **kwargs)
 
     @classmethod
     def input_ports(cls) -> dict:
