@@ -349,35 +349,10 @@ class GetRotationOfPoses(BehaviourWithPorts):
         )
         target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
-        target_T_rotation = base_T_reference.inv() * target_T_reference
-
-        # Rotate the EE about the rotation frame by the given axis and angle in radians
-        twist_vector = rotation_amount * np.array(rotation_axis)
-        twist = R.from_rotvec(twist_vector)
-        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
-
-        twistedtarget_T_rotation = twist_matrix * target_T_rotation
-
-        # Lastly we want to take the twisted point and put in respect to reference frame
-        twistedtarget_T_reference = base_T_reference * twistedtarget_T_rotation
-        final_pose = twistedtarget_T_reference.translation
-        final_rotation = twistedtarget_T_reference.rotation.as_quat()
-
-        # Output final message
-        output_pose = PoseStamped()
-        output_pose.header = rotation_posestamp.header
-        output_pose.pose.position.x = final_pose[0]
-        output_pose.pose.position.y = final_pose[1]
-        output_pose.pose.position.z = final_pose[2]
-        if keep_start_orientation:
-            output_pose.pose.orientation = target_posestamp.pose.orientation
-        else:
-            output_pose.pose.orientation.x = final_rotation[0]
-            output_pose.pose.orientation.y = final_rotation[1]
-            output_pose.pose.orientation.z = final_rotation[2]
-            output_pose.pose.orientation.w = final_rotation[3]
-
-        self._set_output("output_pose", output_pose)
+        target_T_base = base_T_reference.inv() * target_T_reference
+        roll, pitch, yaw = target_T_base.rotation.as_euler('xyz', degrees=False)
+        
+        self._set_output("rotation_amount", [roll,pitch,yaw])
         return Status.SUCCESS
 
 
