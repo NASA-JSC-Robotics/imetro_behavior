@@ -783,32 +783,31 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return Status.SUCCESS
 
     def box_to_collision_object(self, header, pose, size, xyz, rpy) -> CollisionObject:
-      co = CollisionObject()
-      co.header = header
-      co.pose = pose
+      collision_object = CollisionObject()
+      collision_object.header = header
+      collision_object.pose = pose
       
-      sp = SolidPrimitive()
-      sp.type = SolidPrimitive.BOX
-      sp.dimensions = list(size)
+      solid_primitive = SolidPrimitive()
+      solid_primitive.type = SolidPrimitive.BOX
+      solid_primitive.dimensions = list(size)
 
-      co.primitives.append(sp)
+      collision_object.primitives.append(solid_primitive)
       
-      pp = Pose()
-      pp.position.x = xyz[0]
-      pp.position.y = xyz[1]
-      pp.position.z = xyz[2]
+      primitve_pose = Pose()
+      primitve_pose.position.x = xyz[0]
+      primitve_pose.position.y = xyz[1]
+      primitve_pose.position.z = xyz[2]
       
-      # print(type(rpy))
       rotation = R.from_euler('xyz', rpy)
       quat = rotation.as_quat()
-      pp.orientation.x = quat[0]
-      pp.orientation.y = quat[1]
-      pp.orientation.z = quat[2]
-      pp.orientation.w = quat[3]
+      primitve_pose.orientation.x = quat[0]
+      primitve_pose.orientation.y = quat[1]
+      primitve_pose.orientation.z = quat[2]
+      primitve_pose.orientation.w = quat[3]
       
-      co.primitive_poses.append(pp)
+      collision_object.primitive_poses.append(primitve_pose)
       
-      return co
+      return collision_object
 
     def get_local_transform(self, description_root, child_name) -> tuple[Header, Pose]:
       parent_name = None
