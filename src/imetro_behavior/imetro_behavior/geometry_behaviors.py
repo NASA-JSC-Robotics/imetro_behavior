@@ -374,6 +374,58 @@ class GetRelativePoseStamped(BehaviourWithPorts):
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
+class GetRollPitchYaw(BehaviourWithPorts):
+    """Returns roll, pitch, and yaw of a given PoseStamped in radians."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Input posestamped to be broken down into euler components"""
+        return {
+            "input_pose": PortInformation(
+                data_type=PoseStamped, required=True, description="PoseStamped to be decomposed into roll, pitch, and yaw."
+            ),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Returns roll, pitch, and yaw of posestamped in radians relative to its parent frame."""
+        return {
+            "roll": PortInformation(
+                data_type=float,
+                required=True,
+                description="Roll relative to parent frame.",
+            ),
+            "pitch": PortInformation(
+                data_type=float,
+                required=True,
+                description="Pitch relative to parent frame.",
+            ),
+            "yaw": PortInformation(
+                data_type=float,
+                required=True,
+                description="Yaw relative to parent frame.",
+            )
+        }
+
+    def update(self) -> Status:
+        """Get the pose from base to target."""
+        input_pose = self.get_input("input_pose")
+
+        input_orientation = R.from_quat(
+            [
+                input_pose.pose.orientation.x,
+                input_pose.pose.orientation.y,
+                input_pose.pose.orientation.z,
+                input_pose.pose.orientation.w,
+            ]
+        )
+        roll, pitch, yaw = input_orientation.as_euler('xyz', degrees=False)
+
+        self._set_output("roll", roll)
+        self._set_output("pitch", pitch)
+        self._set_output("yaw", yaw)
+        return Status.SUCCESS
+
 
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
