@@ -827,8 +827,10 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
 
         # Load the .stl or .obj file using trimesh
         scene_or_mesh = trimesh.load(file_path)
-
-        # # Handle scene objects (if obj contains multiple meshes)
+        # Attempt to guess the units and convey that to the operator.
+        units = trimesh.units.units_from_metadata(scene_or_mesh, True)
+        self.node.get_logger().warning(f"Loaded mesh is assumed to be in [{units}].")
+        # Handle scene objects (if obj contains multiple meshes)
         if isinstance(scene_or_mesh, trimesh.Scene):
             mesh = scene_or_mesh.dump(concatenate=True)
         else:
