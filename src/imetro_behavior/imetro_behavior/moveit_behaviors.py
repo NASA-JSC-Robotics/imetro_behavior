@@ -52,7 +52,6 @@ from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
-
 # Handy dictionary for reporting failures.
 # Painstakingly copied from https://github.com/moveit/moveit_msgs/blob/ros2/msg/MoveItErrorCodes.msg
 MOVEIT_ERROR_CODE_DICT = {
