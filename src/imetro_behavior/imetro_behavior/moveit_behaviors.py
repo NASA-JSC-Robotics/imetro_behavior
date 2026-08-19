@@ -1001,7 +1001,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
 
                             case _:
                                 self.get_logger().warning(
-                                    f"Collision object tag { child.tag } is not recognized. Skipping the object."
+                                    f"Collision object tag {child.tag} is not recognized. Skipping the object."
                                 )
 
                         if collision_object is not None:
