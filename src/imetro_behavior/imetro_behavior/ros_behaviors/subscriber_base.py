@@ -28,11 +28,11 @@ from py_trees.ports import BehaviourWithPorts, PortInformation
 from std_msgs.msg import String
 
 QOS_LATCHING = QoSProfile(
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL
-        )
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.TRANSIENT_LOCAL,
+)
 
 
 class RosSubscriberBase(BehaviourWithPorts):
@@ -79,19 +79,15 @@ class RosSubscriberBase(BehaviourWithPorts):
         if not isinstance(self.node, Node):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
-    def initialise(self, qos: QoSProfile = QOS_LATCHING ):
+    def initialise(self, qos: QoSProfile = QOS_LATCHING):
         """
         Reset the internal variables.
         """
-        self.subscription = self.node.create_subscription(
-            self.topic_type,
-            self.topic_name,
-            self.callback,
-            qos)
+        self.subscription = self.node.create_subscription(self.topic_type, self.topic_name, self.callback, qos)
         self.start_time = self.node.get_clock().now()
 
     def callback(self, msg) -> None:
-      self.latest_msg = msg
+        self.latest_msg = msg
 
     def update(self):
         """
@@ -99,45 +95,49 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         if self.latest_msg is not None:
             self.node.get_logger().info(f"[{self.qualified_name}] Got topic message!")
-            
+
             self._set_output("message", self.latest_msg)
             # Clear cache so we don't process the exact same frame on the next tick.
             self.latest_msg = None
-        
+
             return Status.SUCCESS
-        
+
         # If no synchronized frame has arrived yet, keep waiting until timeout.
-        if self.subscriber_timeout is not None and self.node.get_clock().now() - self.start_time > self.subscriber_timeout:
+        if (
+            self.subscriber_timeout is not None
+            and self.node.get_clock().now() - self.start_time > self.subscriber_timeout
+        ):
             self.node.get_logger().error(f"[{self.qualified_name}] Timed out waiting for topic {self.topic_name}.")
             return Status.FAILURE
-        
+
         return Status.RUNNING
-        
+
     def terminate(self, new_status: Status) -> None:
         """
         If running and the current service call has not already completed, cancel it.
         """
         if self.status == Status.RUNNING and new_status == Status.INVALID:
-          self.node.destroy_subscription(self.subscription)
-          
+            self.node.destroy_subscription(self.subscription)
+
+
 class GetStringTopic(RosSubscriberBase):
-  """
-  Sends a trigger request to a ROS service server.
+    """
+    Sends a trigger request to a ROS service server.
 
-  This is a standard enough behavior that we keep it as part of the core library.
-  """
+    This is a standard enough behavior that we keep it as part of the core library.
+    """
 
-  def __init__(self, name: str, **kwargs: Any):
-      super().__init__(name, topic_type=String, **kwargs)
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, topic_type=String, **kwargs)
 
-  @classmethod
-  def input_ports(cls) -> dict:
-      """Return the input port declarations."""
-      return {}
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {}
 
-  @classmethod
-  def output_ports(cls) -> dict:
-      """Return the output port declarations."""
-      return {
-        "message": PortInformation(data_type=String, required=True),
-      }
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {
+            "message": PortInformation(data_type=String, required=True),
+        }

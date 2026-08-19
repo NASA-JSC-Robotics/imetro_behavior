@@ -43,7 +43,7 @@ from moveit_msgs.msg import (
     AllowedCollisionEntry,
 )
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
-from shape_msgs.msg import SolidPrimitive
+from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
 from std_msgs.msg import String, Header
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -708,7 +708,7 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
 
 class SetPlanningScene(RosServiceClientBase):
     """
-    Set planning scene of the robot. Useful for modifying the Allowed Collision Matrix.
+    Set planning scene of the robot.
     """
 
     def __init__(self, name: str, **kwargs: Any):
@@ -741,11 +741,7 @@ class SetPlanningScene(RosServiceClientBase):
 
 
 class PlanningSceneFromRobotDescription(BehaviourWithPorts):
-    """Lookup transform between two frames from the tf2_ros server.
-
-    Returns the transform required to convert from the source frame, to the target frame.
-    Namely, `target_T_source`.
-    """
+    """ """
 
     @classmethod
     def input_ports(cls) -> dict:
