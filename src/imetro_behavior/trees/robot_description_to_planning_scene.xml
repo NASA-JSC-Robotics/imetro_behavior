@@ -5,6 +5,7 @@
       <GetStringTopic
         name="get robot description"
         topic_name="/mockup/robot_description"
+        qos_profile="best_available"
         message="{robot_description}"
       />
 

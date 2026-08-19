@@ -17,6 +17,7 @@
 
 from typing import Any, Type
 
+from rclpy.qos import QoSPresetProfiles
 from rclpy.duration import Duration
 from rclpy.node import Node
 
@@ -47,7 +48,7 @@ class RosSubscriberBase(BehaviourWithPorts):
         *,
         topic_name: str,
         subscriber_timeout: float = 3.0,
-        qos_profile: QoSProfile = None,
+        qos_profile: str = "default",
         **kwargs: Any,
     ):
         """
@@ -59,14 +60,18 @@ class RosSubscriberBase(BehaviourWithPorts):
             topic_name: The name of the ROS topic to send a request to.
             subscriber_timeout: Timeout, in seconds, to wait to receive a message from the topic.
                 If None, waits indefinitely.
-            qos_profile: Quality of Service profile for the subscriber.
+            qos_profile: String name for the quality of service profile for the subscriber.
+                The available options can be found here https://github.com/ros2/rclpy/blob/jazzy/rclpy/rclpy/qos.py#L483.
             kwargs: Additional keyword arguments to pass through to ports.
         """
         super().__init__(name, **kwargs)
         self.topic_type = topic_type
         self.topic_name = topic_name
         self.subscriber_timeout = Duration(seconds=subscriber_timeout) if subscriber_timeout else None
-        self.qos_profile = qos_profile if qos_profile else 1
+        if qos_profile not in QoSPresetProfiles.short_keys() or qos_profile.lower() == "unknown":
+            raise KeyError(f"QoSProfile [ {qos_profile} ] is not available!")
+        self.qos_profile = QoSPresetProfiles.get_from_short_key(qos_profile)
+
         self.latest_msg = None
 
     def setup(self, **kwargs):
@@ -124,7 +129,7 @@ class GetStringTopic(RosSubscriberBase):
     """
 
     def __init__(self, name: str, **kwargs: Any):
-        super().__init__(name, topic_type=String, qos_profile=QOS_LATCHING, **kwargs)
+        super().__init__(name, topic_type=String, **kwargs)
 
     @classmethod
     def input_ports(cls) -> dict:
