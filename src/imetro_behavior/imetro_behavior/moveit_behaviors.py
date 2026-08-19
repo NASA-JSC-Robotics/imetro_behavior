@@ -809,7 +809,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
       
       return collision_object
 
-    def get_local_transform(self, description_root, child_name) -> tuple[Header, Pose]:
+    def get_local_pose(self, description_root, child_name) -> tuple[Header, Pose]:
       parent_name = None
       xyz = [0.0, 0.0, 0.0]
       rpy = [0.0, 0.0, 0.0]
@@ -876,7 +876,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                   box_size = child.get("size")
                   box_size = [float(x) for x in box_size.split()]
                   
-                  header, pose = self.get_local_transform(root, link_name)
+                  header, pose = self.get_local_pose(root, link_name)
                   collision_object = self.box_to_collision_object(header, pose, box_size, xyz, rpy)
                   collision_object.id = link_name
 
