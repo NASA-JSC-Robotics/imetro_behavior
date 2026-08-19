@@ -278,33 +278,38 @@ class TwistAboutPose(BehaviourWithPorts):
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
-class GetRotationOfPoses(BehaviourWithPorts):
-    """Returns the Roll, Pitch, and Yaw from one pose orientation to another."""
+class GetRelativePoseStamped(BehaviourWithPorts):
+    """Returns a PoseStamped from one Pose to another, given they share a common parent frame.
+    Especially useful for Apriltags relative poses which expire from the TF tree quickly."""
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Input ports for required poses to check rotation between, target_T_base.
-        The final output rotation will be relative to the base pose.
+        """Input ports for target_T_base.
         Note: both poses must share the same parent frame."""
         return {
             "base_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="reference pose for which the output rpy."
+                data_type=PoseStamped, required=True, description="reference/start pose."
+            ),
+            "base_frame_name": PortInformation(
+                data_type=str,
+                required=True,
+                description="frame name of the reference/start pose. Used as parent for output PoseStamped"
             ),
             "target_pose": PortInformation(
                 data_type=PoseStamped,
                 required=True,
-                description="PoseStamped that will have its rotation checked.",
+                description="end/tip pose.",
             ),
         }
 
     @classmethod
     def output_ports(cls) -> dict:
-        """Returns rotation of target_T_base."""
+        """Returns relative PoseStamped target_T_base, with the base as the parent frame."""
         return {
-            "rotation_amount": PortInformation(
-                data_type=list[float],
+            "output_pose": PortInformation(
+                data_type=PoseStamped,
                 required=True,
-                description="Roll, Pitch, and Yaw of the rotation target_T_base.",
+                description="Relative pose target_T_base.",
             )
         }
 
@@ -315,8 +320,9 @@ class GetRotationOfPoses(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Get the pose from reference to target, return orientation in RPY."""
+        """Get the pose from base to target."""
         base_posestamp = self.get_input("base_pose")
+        base_frame_name = self.get_input("base_frame_name")
         target_posestamp = self.get_input("target_pose")
 
         if base_posestamp.header.frame_id != target_posestamp.header.frame_id:
@@ -350,9 +356,22 @@ class GetRotationOfPoses(BehaviourWithPorts):
         target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
         target_T_base = base_T_reference.inv() * target_T_reference
-        roll, pitch, yaw = target_T_base.rotation.as_euler('xyz', degrees=False)
-        
-        self._set_output("rotation_amount", [roll,pitch,yaw])
+
+        final_pose = target_T_base.translation
+        final_rotation = target_T_base.rotation.as_quat()
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header = base_posestamp.header
+        output_pose.header.frame_id = base_frame_name
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
+        output_pose.pose.orientation.x = final_rotation[0]
+        output_pose.pose.orientation.y = final_rotation[1]
+        output_pose.pose.orientation.z = final_rotation[2]
+        output_pose.pose.orientation.w = final_rotation[3]
+
+        self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
 
