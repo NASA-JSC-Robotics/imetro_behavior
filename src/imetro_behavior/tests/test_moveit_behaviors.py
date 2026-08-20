@@ -40,6 +40,7 @@ from imetro_behavior.moveit_behaviors import (
     PlanToPose,
     RequestPlanningScene,
     RequestTrajectoryApproval,
+    PlanningSceneFromRobotDescription,
 )
 
 
@@ -400,3 +401,113 @@ def test_execute_trajectory(ros_node: Node) -> None:
 
     result.error_code.val = MoveItErrorCodes.CONTROL_FAILED
     assert behavior.process_result(result) == Status.FAILURE
+
+
+from std_msgs.msg import String
+
+@pytest.fixture()
+def planning_scene_from_robot_description_behavior(ros_node: Node) -> PlanningSceneFromRobotDescription:
+    # buffer = Buffer()
+    # tform = TransformStamped()
+    # tform.header.frame_id = "world"
+    # tform.child_frame_id = "tool"
+    # tform.transform.translation.x = 1.0
+    # tform.transform.rotation.w = 1.0
+    # buffer.set_transform_static(tform, "test_authority")
+    # Blackboard.set("/ros/tf_buffer", buffer)
+
+    test_urdf = r"""
+    <?xml version="1.0"?>
+      <robot name="test_robot">
+        <link name="box_link">
+          <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <box size="0.1 0.2 0.3"/>
+            </geometry>
+          </visual>
+          <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <box size="0.1 0.2 0.3"/>
+            </geometry>
+          </collision>
+        </link>
+
+        <link name="cylinder_link">
+          <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <cylinder raidus="0.1" length="0.2"/>
+            </geometry>
+          </visual>
+          <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <cylinder raidus="0.1" length="0.2"/>
+            </geometry>
+          </collision>
+        </link>
+
+
+        <link name="sphere_link">
+          <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <sphere raidus="0.1"/>
+            </geometry>
+          </visual>
+          <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <sphere raidus="0.1"/>
+            </geometry>
+          </collision>
+        </link>
+
+        <joint name="box_to_cylinder_joint" type="revolute">
+          <parent link="box_link"/>
+          <child link="cylinder_link"/>
+          <origin xyz="0.1 0.2 0.3" rpy="0 0 0"/>
+          <axis xyz="1 0 0"/>
+        </joint>
+
+        <joint name="cylinder_to_sphere_joint" type="revolute">
+          <parent link="cylinder_link"/>
+          <child link="sphere_link"/>
+          <origin xyz="0.1 0.2 0.3" rpy="0 0 0"/>
+          <axis xyz="1 0 0"/>
+        </joint>
+      </robot>
+    """
+
+    behavior = PlanningSceneFromRobotDescription(name="parsing_planning_scene_test")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    planning_scene = PlanningScene()
+    robot_description_string = String(data=test_urdf)
+
+    set_input(behavior, "planning_scene", planning_scene)
+    set_input(behavior, "robot_description", robot_description_string)
+    return behavior
+
+
+
+def test_planning_scene_from_robot_description_behavior(planning_scene_from_robot_description_behavior: PlanningSceneFromRobotDescription) -> None:
+
+    assert planning_scene_from_robot_description_behavior.update() == Status.SUCCESS
+
+
+    # final_pose, center_point = arc_behavior.rotate_about_frame()
+
+    # # Rotating the tool at (1, 0, 0) by 90 degrees about +Z through the origin lands at (0, 1, 0).
+    # assert final_pose.position.x == pytest.approx(0.0, abs=1e-9)
+    # assert final_pose.position.y == pytest.approx(1.0)
+    # assert final_pose.position.z == pytest.approx(0.0, abs=1e-9)
+    # # keep_start_orientation retains the identity orientation.
+    # assert final_pose.orientation.w == pytest.approx(1.0)
+
+    # assert center_point.x == pytest.approx(0.0, abs=1e-9)
+    # assert center_point.y == pytest.approx(0.0, abs=1e-9)
+    # assert center_point.z == pytest.approx(0.0, abs=1e-9)
