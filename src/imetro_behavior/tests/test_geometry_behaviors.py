@@ -432,7 +432,32 @@ def test_twist_about_pose_keep_start_orientation() -> None:
     assert msg.pose.orientation.w == 1.0
 
 
-def test_get_relative_mismatch_frame(ros_node: Node) -> None:
+def test_get_relative_pose(ros_node: Node) -> None:
+    """Tests a relative pose from base to target"""
+    behavior = GetRelativePoseStamped(name="twist_about_pose")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    base_pose = make_pose([-1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("base_pose"), base_pose)
+    Blackboard.set(behavior._get_blackboard_key("base_frame_name"), "rotation_frame")
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    msg = behavior.get_last_output("output_pose")
+    assert msg.pose.position.x == pytest.approx(2.0, abs=1e-5)
+    assert msg.pose.position.y == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
+    assert msg.pose.orientation.x == 0.0
+    assert msg.pose.orientation.y == 0.0
+    assert msg.pose.orientation.z == 0.0
+    assert msg.pose.orientation.w == 1.0
+
+
+def test_get_relative_pose_mismatch_frame(ros_node: Node) -> None:
     """Tests for mismatched reference frames between two input poses"""
     behavior = GetRelativePoseStamped(name="twist_about_pose")
     behavior.setup_ports()
