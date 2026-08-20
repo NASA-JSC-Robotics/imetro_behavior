@@ -434,7 +434,7 @@ def test_twist_about_pose_keep_start_orientation() -> None:
 
 def test_get_relative_pose(ros_node: Node) -> None:
     """Tests a relative pose from base to target"""
-    behavior = GetRelativePoseStamped(name="twist_about_pose")
+    behavior = GetRelativePoseStamped(name="get_relative_pose")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -459,7 +459,7 @@ def test_get_relative_pose(ros_node: Node) -> None:
 
 def test_get_relative_pose_mismatch_frame(ros_node: Node) -> None:
     """Tests for mismatched reference frames between two input poses"""
-    behavior = GetRelativePoseStamped(name="twist_about_pose")
+    behavior = GetRelativePoseStamped(name="get_relative_pose")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -472,6 +472,48 @@ def test_get_relative_pose_mismatch_frame(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+
+
+def test_get_rpy(ros_node: Node) -> None:
+    """Tests for roll pitch yaw of with no rotation"""
+    behavior = GetRollPitchYaw(name="twist_about_pose")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    input_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    roll = behavior.get_last_output("roll")
+    pitch = behavior.get_last_output("pitch")
+    yaw = behavior.get_last_output("yaw")
+
+    assert roll == pytest.approx(0.0, abs=1e-5)
+    assert pitch == pytest.approx(0.0, abs=1e-5)
+    assert yaw == pytest.approx(0.0, abs=1e-5)
+
+
+def test_get_rpy_90z(ros_node: Node) -> None:
+    """Tests for roll pitch yaw of with a 90 degree rotation about z"""
+    behavior = GetRollPitchYaw(name="twist_about_pose")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    input_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.7071068, 0.7071068], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    roll = behavior.get_last_output("roll")
+    pitch = behavior.get_last_output("pitch")
+    yaw = behavior.get_last_output("yaw")
+
+    assert roll == pytest.approx(0.0, abs=1e-5)
+    assert pitch == pytest.approx(0.0, abs=1e-5)
+    assert yaw == pytest.approx(1.57079, abs=1e-5)
 
 
 def test_decompose_pose_stamped() -> None:
