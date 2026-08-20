@@ -39,6 +39,8 @@ from imetro_behavior.geometry_behaviors import (
     PoseStampedToTransformStamped,
     TransformStampedToPoseStamped,
     TwistAboutPose,
+    GetRelativePoseStamped,
+    GetRollPitchYaw,
     DecomposePoseStamped,
 )
 
@@ -385,10 +387,8 @@ def test_twist_about_pose() -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
 
-    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
     target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
 
-    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
     Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
     Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
     Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
@@ -411,10 +411,8 @@ def test_twist_about_pose_keep_start_orientation() -> None:
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
 
-    rotation_pose = make_pose([0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
     target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
 
-    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
     Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
     Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
     Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
@@ -434,20 +432,18 @@ def test_twist_about_pose_keep_start_orientation() -> None:
     assert msg.pose.orientation.w == 1.0
 
 
-def test_twist_about_pose_reference_frame(ros_node: Node) -> None:
+def test_get_relative_mismatch_frame(ros_node: Node) -> None:
     """Tests for mismatched reference frames between two input poses"""
-    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior = GetRelativePoseStamped(name="twist_about_pose")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
-    rotation_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    base_pose = make_pose([1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
     target_pose = make_pose([0.0, 2.0, 4.0], [0.0, 0.0, 0.0, 1.0], frame_id="grasp_frame")
 
-    Blackboard.set(behavior._get_blackboard_key("rotation_pose"), rotation_pose)
+    Blackboard.set(behavior._get_blackboard_key("base_pose"), base_pose)
+    Blackboard.set(behavior._get_blackboard_key("base_frame_name"), "rotation_frame")
     Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
-    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
-    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 0.523599)
-    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
