@@ -757,7 +757,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         """Return the input port declarations."""
         return {
             "planning_scene": PortInformation(data_type=PlanningScene, required=True),
-            "robot_description": PortInformation(data_type=String, required=True),
+            "robot_description": PortInformation(data_type=str, required=True),
         }
 
     @classmethod
@@ -776,7 +776,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""
         planning_scene = self.get_input("planning_scene")
-        robot_description = self.get_input("robot_description").data
+        robot_description = self.get_input("robot_description")
         try:
             planning_scene.world.collision_objects = self.parse_xml(robot_description)
 

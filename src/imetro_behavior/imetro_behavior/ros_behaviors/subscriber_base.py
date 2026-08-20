@@ -91,10 +91,13 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         if self.latest_msg is not None:
             self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
-            self._set_output("message", self.latest_msg)
-
+            msg = self.latest_msg
             self.latest_msg = None
-            return Status.SUCCESS
+            try:
+                return self.process_msg(msg)
+            except Exception as e:
+                self.node.get_logger().error(f"Failed to process message: {e}")
+                return Status.FAILURE
 
         # If no message has arrived yet, keep waiting until timeout.
         if (
@@ -113,6 +116,15 @@ class RosSubscriberBase(BehaviourWithPorts):
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_subscription(self.subscription)
         self.latest_msg = None
+
+    def process_msg(self, message: Any) -> Status:
+        """
+        Abstract method for processing a ROS action result.
+
+        This receives the topic message directly, and is only called after
+        the base class has already checked that topic has been recieved.
+        """
+        raise NotImplementedError("Must implement process_msg() method.")
 
 
 class GetStringTopic(RosSubscriberBase):
@@ -133,5 +145,13 @@ class GetStringTopic(RosSubscriberBase):
     def output_ports(cls) -> dict:
         """Return the output port declarations."""
         return {
-            "message": PortInformation(data_type=String, required=True),
+            "message": PortInformation(data_type=str, required=True),
         }
+        
+    def process_msg(self, message: String) -> Status:
+        try:
+          self._set_output("message", message.data)
+          return Status.SUCCESS      
+        except KeyError as e:
+          self.node.get_logger().error(f"[{self.qualified_name}] could not get data field from msg.")
+          return Status.FAILURE
