@@ -439,7 +439,7 @@ def test_get_relative_pose(ros_node: Node) -> None:
     behavior.setup(node=ros_node)
 
     base_pose = make_pose([-1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
-    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.7071068, 0.7071068], frame_id="world")
 
     Blackboard.set(behavior._get_blackboard_key("base_pose"), base_pose)
     Blackboard.set(behavior._get_blackboard_key("base_frame_name"), "rotation_frame")
@@ -453,8 +453,8 @@ def test_get_relative_pose(ros_node: Node) -> None:
     assert msg.pose.position.z == pytest.approx(0.0, abs=1e-5)
     assert msg.pose.orientation.x == 0.0
     assert msg.pose.orientation.y == 0.0
-    assert msg.pose.orientation.z == 0.0
-    assert msg.pose.orientation.w == 1.0
+    assert msg.pose.orientation.z == pytest.approx(0.7071068, abs=1e-5)
+    assert msg.pose.orientation.w == pytest.approx(0.7071068, abs=1e-5)
 
 
 def test_get_relative_pose_mismatch_frame(ros_node: Node) -> None:
