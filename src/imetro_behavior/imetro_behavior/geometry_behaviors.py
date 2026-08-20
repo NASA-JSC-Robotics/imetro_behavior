@@ -246,6 +246,7 @@ class TwistAboutPose(BehaviourWithPorts):
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
+
 class GetRelativePoseStamped(BehaviourWithPorts):
     """Returns a PoseStamped from one Pose to another, given they share a common parent frame.
     Especially useful for Apriltags relative poses which expire from the TF tree quickly."""
@@ -254,13 +255,11 @@ class GetRelativePoseStamped(BehaviourWithPorts):
     def input_ports(cls) -> dict:
         """Input ports for target_T_base."""
         return {
-            "base_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="reference/start pose."
-            ),
+            "base_pose": PortInformation(data_type=PoseStamped, required=True, description="reference/start pose."),
             "base_frame_name": PortInformation(
                 data_type=str,
                 required=True,
-                description="frame name of the reference/start pose. Used as parent for output PoseStamped"
+                description="frame name of the reference/start pose. Used as parent for output PoseStamped",
             ),
             "target_pose": PortInformation(
                 data_type=PoseStamped,
@@ -341,6 +340,7 @@ class GetRelativePoseStamped(BehaviourWithPorts):
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
+
 class GetRollPitchYaw(BehaviourWithPorts):
     """Returns roll, pitch, and yaw of a given PoseStamped in radians."""
 
@@ -349,10 +349,12 @@ class GetRollPitchYaw(BehaviourWithPorts):
         """Input posestamped to be broken down into euler components"""
         return {
             "input_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="PoseStamped to be decomposed into roll, pitch, and yaw."
+                data_type=PoseStamped,
+                required=True,
+                description="PoseStamped to be decomposed into roll, pitch, and yaw.",
             ),
         }
-    
+
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
         self.node = kwargs.get("node")
@@ -377,7 +379,7 @@ class GetRollPitchYaw(BehaviourWithPorts):
                 data_type=float,
                 required=True,
                 description="Yaw relative to parent frame.",
-            )
+            ),
         }
 
     def update(self) -> Status:
@@ -392,13 +394,9 @@ class GetRollPitchYaw(BehaviourWithPorts):
                 input_pose.pose.orientation.w,
             ]
         )
-        roll, pitch, yaw = input_orientation.as_euler('xyz', degrees=False)
+        roll, pitch, yaw = input_orientation.as_euler("xyz", degrees=False)
 
-        self.node.get_logger().debug(
-            f"Roll: {roll}, "
-            f"Pitch: {pitch}, "
-            f"Yaw: {yaw}"
-        )
+        self.node.get_logger().debug(f"Roll: {roll}, " f"Pitch: {pitch}, " f"Yaw: {yaw}")
         self._set_output("roll", roll)
         self._set_output("pitch", pitch)
         self._set_output("yaw", yaw)
