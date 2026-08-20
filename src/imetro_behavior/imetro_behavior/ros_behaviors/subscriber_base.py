@@ -122,7 +122,7 @@ class RosSubscriberBase(BehaviourWithPorts):
         Abstract method for processing a ROS action result.
 
         This receives the topic message directly, and is only called after
-        the base class has already checked that topic has been recieved.
+        the base class has already checked that topic has been received.
         """
         raise NotImplementedError("Must implement process_msg() method.")
 
@@ -147,11 +147,11 @@ class GetStringTopic(RosSubscriberBase):
         return {
             "message": PortInformation(data_type=str, required=True),
         }
-        
+
     def process_msg(self, message: String) -> Status:
         try:
-          self._set_output("message", message.data)
-          return Status.SUCCESS      
-        except KeyError as e:
-          self.node.get_logger().error(f"[{self.qualified_name}] could not get data field from msg.")
-          return Status.FAILURE
+            self._set_output("message", message.data)
+            return Status.SUCCESS
+        except KeyError:
+            self.node.get_logger().error(f"[{self.qualified_name}] could not get data field from msg.")
+            return Status.FAILURE

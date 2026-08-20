@@ -46,7 +46,7 @@ from moveit_msgs.msg import (
 )
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
 from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
-from std_msgs.msg import String, Header
+from std_msgs.msg import Header
 
 from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
