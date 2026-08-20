@@ -21,19 +21,10 @@ from rclpy.qos import QoSPresetProfiles
 from rclpy.duration import Duration
 from rclpy.node import Node
 
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 
 from std_msgs.msg import String
-
-QOS_LATCHING = QoSProfile(
-    history=HistoryPolicy.KEEP_LAST,
-    depth=1,
-    reliability=ReliabilityPolicy.RELIABLE,
-    durability=DurabilityPolicy.TRANSIENT_LOCAL,
-)
 
 
 class RosSubscriberBase(BehaviourWithPorts):
