@@ -237,8 +237,7 @@ def yaml_pose_behavior(ros_node: Node, tmp_path: Path, mocker) -> YamlPoseToPose
         "imetro_behavior.geometry_behaviors.get_package_share_path",
         return_value=tmp_path,
     )
-    (tmp_path / "poses.yaml").write_text(
-        """
+    (tmp_path / "poses.yaml").write_text("""
 grasp_pose:
     frame_id: "world"
     pose:
@@ -251,8 +250,7 @@ grasp_pose:
             y: 0.0
             z: 0.0
             w: 1.0
-"""
-    )
+""")
 
     behavior = YamlPoseToPoseStamped(name="yaml_pose")
     behavior.setup(node=ros_node)

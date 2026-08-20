@@ -21,6 +21,7 @@ import numpy as np
 import pytest
 
 from rclpy.node import Node
+from ament_index_python.packages import get_package_share_path
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import AllowedCollisionEntry, MoveItErrorCodes, PlanningScene, RobotTrajectory
@@ -29,6 +30,7 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from shape_msgs.msg import SolidPrimitive
 from tf2_ros import Buffer
+
 
 from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.moveit_behaviors import (
@@ -40,6 +42,7 @@ from imetro_behavior.moveit_behaviors import (
     PlanToPose,
     RequestPlanningScene,
     RequestTrajectoryApproval,
+    PlanningSceneFromRobotDescription,
 )
 
 
@@ -400,3 +403,58 @@ def test_execute_trajectory(ros_node: Node) -> None:
 
     result.error_code.val = MoveItErrorCodes.CONTROL_FAILED
     assert behavior.process_result(result) == Status.FAILURE
+
+
+@pytest.fixture()
+def planning_scene_from_robot_description_behavior(ros_node: Node) -> PlanningSceneFromRobotDescription:
+
+    test_urdf_path = get_package_share_path("imetro_behavior") / "tests" / "test_data" / "test.urdf"
+
+    with open(test_urdf_path) as file:
+        test_urdf = file.read()
+
+    behavior = PlanningSceneFromRobotDescription(name="parsing_planning_scene_test")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    planning_scene = PlanningScene()
+
+    set_input(behavior, "planning_scene", planning_scene)
+    set_input(behavior, "robot_description", test_urdf)
+    return behavior
+
+
+def test_planning_scene_from_robot_description_behavior(
+    planning_scene_from_robot_description_behavior: PlanningSceneFromRobotDescription,
+) -> None:
+
+    assert planning_scene_from_robot_description_behavior.update() == Status.SUCCESS
+
+    modified_planning_scene = planning_scene_from_robot_description_behavior.get_last_output("modified_planning_scene")
+
+    assert isinstance(modified_planning_scene, PlanningScene)
+    assert len(modified_planning_scene.world.collision_objects) == 3
+
+    box_collision_object = modified_planning_scene.world.collision_objects[0]
+    assert len(box_collision_object.primitives) == 1
+    box_primitive = box_collision_object.primitives[0]
+    assert box_primitive.type == SolidPrimitive.BOX
+    assert len(box_primitive.dimensions) == 3
+    assert box_primitive.dimensions[0] == pytest.approx(0.1, abs=1e-9)
+    assert box_primitive.dimensions[1] == pytest.approx(0.2, abs=1e-9)
+    assert box_primitive.dimensions[2] == pytest.approx(0.3, abs=1e-9)
+
+    cylinder_collision_object = modified_planning_scene.world.collision_objects[1]
+    assert len(cylinder_collision_object.primitives) == 1
+    cylinder_primitive = cylinder_collision_object.primitives[0]
+    assert cylinder_primitive.type == SolidPrimitive.CYLINDER
+    assert len(cylinder_primitive.dimensions) == 2
+    assert cylinder_primitive.dimensions[0] == pytest.approx(0.4, abs=1e-9)
+    assert cylinder_primitive.dimensions[1] == pytest.approx(0.5, abs=1e-9)
+
+    sphere_collision_object = modified_planning_scene.world.collision_objects[2]
+    assert len(sphere_collision_object.primitives) == 1
+    sphere_primitive = sphere_collision_object.primitives[0]
+    assert sphere_primitive.type == SolidPrimitive.SPHERE
+    assert len(sphere_primitive.dimensions) == 1
+    assert sphere_primitive.dimensions[0] == pytest.approx(0.6, abs=1e-9)

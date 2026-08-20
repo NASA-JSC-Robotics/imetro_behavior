@@ -18,3 +18,4 @@
 from .action_client import *  # noqa: F401,F403
 from .perception import *  # noqa: F401,F403
 from .service_client import *  # noqa: F401,F403
+from .subscriber_base import *  # noqa: F401,F403

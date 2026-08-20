@@ -34,8 +34,7 @@ def yaml_joint_behavior(ros_node: Node, tmp_path: Path, mocker) -> JointNamesAnd
         "imetro_behavior.joint_behaviors.get_package_share_path",
         return_value=tmp_path,
     )
-    (tmp_path / "joint_states.yaml").write_text(
-        """
+    (tmp_path / "joint_states.yaml").write_text("""
 home:
     joint_names:
         - joint_1
@@ -45,8 +44,7 @@ home:
         - 0.1
         - 0.2
         - 0.3
-"""
-    )
+""")
 
     behavior = JointNamesAndPositionsFromYaml(name="joint_names_and_positions_from_yaml")
     behavior.setup(node=ros_node)

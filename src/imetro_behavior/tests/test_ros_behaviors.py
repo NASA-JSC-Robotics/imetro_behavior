@@ -26,11 +26,13 @@ from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 from std_srvs.srv import Trigger
+from std_msgs.msg import String
 from py_trees.common import Status
 
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
 from imetro_behavior.ros_behaviors.service_client import CallTriggerService
+from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
 
 
 class TrackingActionBehavior(RosActionClientBase):
@@ -142,3 +144,27 @@ def test_get_synced_data_waiting_and_timeout(sync_behavior: GetSyncedImagePointC
 
     sync_behavior.start_time = node.get_clock().now() - Duration(seconds=2.0)
     assert sync_behavior.update() == Status.FAILURE
+
+
+@pytest.fixture()
+def get_string_topic_behavior(ros_node: Node) -> GetStringTopic:
+    behavior = GetStringTopic(
+        name="get_string_topic", topic_name="/string_topic", subscriber_timeout=1.0, qos_profile="default"
+    )
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+    return behavior
+
+
+def test_get_string_topic_behavior(get_string_topic_behavior: GetStringTopic) -> None:
+    data = "string_payload"
+
+    get_string_topic_behavior.latest_msg = String(data=data)
+
+    assert get_string_topic_behavior.update() == Status.SUCCESS
+
+    result = get_string_topic_behavior.get_last_output("message")
+    assert isinstance(result, str)
+    assert result == data
+    # Cached message should be cleared
+    assert get_string_topic_behavior.latest_msg is None

@@ -1,0 +1,32 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+
+      <GetStringTopic
+        name="get robot description"
+        topic_name="/mockup/robot_description"
+        qos_profile="best_available"
+        message="{robot_description}"
+      />
+
+      <RequestPlanningScene
+        name="get planning scene"
+        service_name="/phoebe/get_planning_scene"
+        planning_scene="{planning_scene}" />
+
+      <PlanningSceneFromRobotDescription
+        name="planning scene from description"
+        planning_scene="{planning_scene}"
+        robot_description="{robot_description}"
+        modified_planning_scene="{modified_planning_scene}"
+      />
+
+      <SetPlanningScene
+        name="set planning scene"
+        service_name="/phoebe/apply_planning_scene"
+        planning_scene="{modified_planning_scene}"
+      />
+
+    </Sequence>
+  </BehaviorTree>
+</root>

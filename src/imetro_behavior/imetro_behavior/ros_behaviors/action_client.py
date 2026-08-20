@@ -27,7 +27,6 @@ from rclpy.task import Future
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
 
-
 GOAL_STATUS_DICT = {
     GoalStatus.STATUS_UNKNOWN: "UNKNOWN",
     GoalStatus.STATUS_ACCEPTED: "ACCEPTED",
