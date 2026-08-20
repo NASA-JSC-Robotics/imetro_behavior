@@ -252,8 +252,7 @@ class GetRelativePoseStamped(BehaviourWithPorts):
 
     @classmethod
     def input_ports(cls) -> dict:
-        """Input ports for target_T_base.
-        Note: both poses must share the same parent frame."""
+        """Input ports for target_T_base."""
         return {
             "base_pose": PortInformation(
                 data_type=PoseStamped, required=True, description="reference/start pose."
@@ -395,7 +394,7 @@ class GetRollPitchYaw(BehaviourWithPorts):
         )
         roll, pitch, yaw = input_orientation.as_euler('xyz', degrees=False)
 
-        self.node.get_logger().info(
+        self.node.get_logger().debug(
             f"Roll: {roll}, "
             f"Pitch: {pitch}, "
             f"Yaw: {yaw}"
