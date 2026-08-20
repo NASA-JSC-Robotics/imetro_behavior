@@ -6,6 +6,7 @@ params:
 
 # Behavior tree node import locations.
 imports:
+  - imetro_behavior.apriltag_detection_behavior
   - imetro_behavior.basic_behaviors
   - imetro_behavior.control_behaviors
   - imetro_behavior.decorators

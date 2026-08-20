@@ -162,21 +162,17 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
 
 
 class TwistAboutPose(BehaviourWithPorts):
-    """Twist one PoseStamped about another PoseStamped by specified amount of radians."""
+    """Twist a PoseStamped about a given axis of its parent frame by specified amount of radians."""
 
     @classmethod
     def input_ports(cls) -> dict:
         """Input ports for required poses to rotate and rotational configuration.
-        Note: the target_pose and rotation_pose MUST share the same lookup reference frame.
-        Example: (ee_T_world & rotation_T_world) or (ee_T_baselink & rotation_T_baselink)"""
+        Commonly used in conjunction with the GetRelativePoseStamped behavior to rotate one frame about another."""
         return {
-            "rotation_pose": PortInformation(
-                data_type=PoseStamped, required=True, description="PoseStamped to rotate about"
-            ),
             "target_pose": PortInformation(
                 data_type=PoseStamped,
                 required=True,
-                description="PoseStamped that will be rotated, usually the EndEffector",
+                description="PoseStamped that will be rotated about its parent, target_T_rotation",
             ),
             "rotation_amount": PortInformation(
                 data_type=float, required=True, description="Amount of rotation in radians"
@@ -203,6 +199,86 @@ class TwistAboutPose(BehaviourWithPorts):
             )
         }
 
+    def update(self) -> Status:
+        """Twist about the rotation frame."""
+        target_posestamp = self.get_input("target_pose")
+        rotation_amount = self.get_input("rotation_amount")
+        rotation_axis = self.get_input("rotation_axis")
+        keep_start_orientation = self.get_input("keep_start_orientation")
+
+        target_orientation = R.from_quat(
+            [
+                target_posestamp.pose.orientation.x,
+                target_posestamp.pose.orientation.y,
+                target_posestamp.pose.orientation.z,
+                target_posestamp.pose.orientation.w,
+            ]
+        )
+        target_translation = np.array(
+            [target_posestamp.pose.position.x, target_posestamp.pose.position.y, target_posestamp.pose.position.z]
+        )
+        target_T_rotation = RigidTransform.from_components(target_translation, target_orientation)
+
+        # Rotate the EE about the rotation frame by the given axis and angle in radians
+        twist_vector = rotation_amount * np.array(rotation_axis)
+        twist = R.from_rotvec(twist_vector)
+        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
+
+        twistedtarget_T_rotation = twist_matrix * target_T_rotation
+
+        final_pose = twistedtarget_T_rotation.translation
+        final_rotation = twistedtarget_T_rotation.rotation.as_quat()
+
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header = target_posestamp.header
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
+        if keep_start_orientation:
+            output_pose.pose.orientation = target_posestamp.pose.orientation
+        else:
+            output_pose.pose.orientation.x = final_rotation[0]
+            output_pose.pose.orientation.y = final_rotation[1]
+            output_pose.pose.orientation.z = final_rotation[2]
+            output_pose.pose.orientation.w = final_rotation[3]
+
+        self._set_output("output_pose", output_pose)
+        return Status.SUCCESS
+
+
+class GetRelativePoseStamped(BehaviourWithPorts):
+    """Returns a PoseStamped from one Pose to another, given they share a common parent frame.
+    Especially useful for Apriltags relative poses which expire from the TF tree quickly."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Input ports for target_T_base."""
+        return {
+            "base_pose": PortInformation(data_type=PoseStamped, required=True, description="reference/start pose."),
+            "base_frame_name": PortInformation(
+                data_type=str,
+                required=True,
+                description="frame name of the reference/start pose. Used as parent for output PoseStamped",
+            ),
+            "target_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="end/tip pose.",
+            ),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Returns relative PoseStamped target_T_base, with the base as the parent frame."""
+        return {
+            "output_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="Relative pose target_T_base.",
+            )
+        }
+
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
         self.node = kwargs.get("node")
@@ -210,30 +286,28 @@ class TwistAboutPose(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Twist about the rotation frame."""
-        rotation_posestamp = self.get_input("rotation_pose")
+        """Get the pose from base to target."""
+        base_posestamp = self.get_input("base_pose")
+        base_frame_name = self.get_input("base_frame_name")
         target_posestamp = self.get_input("target_pose")
-        rotation_amount = self.get_input("rotation_amount")
-        rotation_axis = self.get_input("rotation_axis")
-        keep_start_orientation = self.get_input("keep_start_orientation")
 
-        if rotation_posestamp.header.frame_id != target_posestamp.header.frame_id:
+        if base_posestamp.header.frame_id != target_posestamp.header.frame_id:
             self.node.get_logger().error("Error: given input poses do not share the same reference frame.")
             return Status.FAILURE
 
         # Convert the inputs to 4x4 transformation matrices
-        rotation_orientation = R.from_quat(
+        base_orientation = R.from_quat(
             [
-                rotation_posestamp.pose.orientation.x,
-                rotation_posestamp.pose.orientation.y,
-                rotation_posestamp.pose.orientation.z,
-                rotation_posestamp.pose.orientation.w,
+                base_posestamp.pose.orientation.x,
+                base_posestamp.pose.orientation.y,
+                base_posestamp.pose.orientation.z,
+                base_posestamp.pose.orientation.w,
             ]
         )
-        rotation_translation = np.array(
-            [rotation_posestamp.pose.position.x, rotation_posestamp.pose.position.y, rotation_posestamp.pose.position.z]
+        base_translation = np.array(
+            [base_posestamp.pose.position.x, base_posestamp.pose.position.y, base_posestamp.pose.position.z]
         )
-        rotation_T_reference = RigidTransform.from_components(rotation_translation, rotation_orientation)
+        base_T_reference = RigidTransform.from_components(base_translation, base_orientation)
         target_orientation = R.from_quat(
             [
                 target_posestamp.pose.orientation.x,
@@ -247,35 +321,85 @@ class TwistAboutPose(BehaviourWithPorts):
         )
         target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
-        target_T_rotation = rotation_T_reference.inv() * target_T_reference
+        target_T_base = base_T_reference.inv() * target_T_reference
 
-        # Rotate the EE about the rotation frame by the given axis and angle in radians
-        twist_vector = rotation_amount * np.array(rotation_axis)
-        twist = R.from_rotvec(twist_vector)
-        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
-
-        twistedtarget_T_rotation = twist_matrix * target_T_rotation
-
-        # Lastly we want to take the twisted point and put in respect to reference frame
-        twistedtarget_T_reference = rotation_T_reference * twistedtarget_T_rotation
-        final_pose = twistedtarget_T_reference.translation
-        final_rotation = twistedtarget_T_reference.rotation.as_quat()
-
+        final_pose = target_T_base.translation
+        final_rotation = target_T_base.rotation.as_quat()
         # Output final message
         output_pose = PoseStamped()
-        output_pose.header = rotation_posestamp.header
+        output_pose.header = base_posestamp.header
+        output_pose.header.frame_id = base_frame_name
         output_pose.pose.position.x = final_pose[0]
         output_pose.pose.position.y = final_pose[1]
         output_pose.pose.position.z = final_pose[2]
-        if keep_start_orientation:
-            output_pose.pose.orientation = target_posestamp.pose.orientation
-        else:
-            output_pose.pose.orientation.x = final_rotation[0]
-            output_pose.pose.orientation.y = final_rotation[1]
-            output_pose.pose.orientation.z = final_rotation[2]
-            output_pose.pose.orientation.w = final_rotation[3]
+        output_pose.pose.orientation.x = final_rotation[0]
+        output_pose.pose.orientation.y = final_rotation[1]
+        output_pose.pose.orientation.z = final_rotation[2]
+        output_pose.pose.orientation.w = final_rotation[3]
 
         self._set_output("output_pose", output_pose)
+        return Status.SUCCESS
+
+
+class GetRollPitchYaw(BehaviourWithPorts):
+    """Returns roll, pitch, and yaw of a given PoseStamped in radians."""
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Input posestamped to be broken down into euler components"""
+        return {
+            "input_pose": PortInformation(
+                data_type=PoseStamped,
+                required=True,
+                description="PoseStamped to be decomposed into roll, pitch, and yaw.",
+            ),
+        }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Returns roll, pitch, and yaw of posestamped in radians relative to its parent frame."""
+        return {
+            "roll": PortInformation(
+                data_type=float,
+                required=True,
+                description="Roll relative to parent frame.",
+            ),
+            "pitch": PortInformation(
+                data_type=float,
+                required=True,
+                description="Pitch relative to parent frame.",
+            ),
+            "yaw": PortInformation(
+                data_type=float,
+                required=True,
+                description="Yaw relative to parent frame.",
+            ),
+        }
+
+    def update(self) -> Status:
+        """Get the pose from base to target."""
+        input_pose = self.get_input("input_pose")
+
+        input_orientation = R.from_quat(
+            [
+                input_pose.pose.orientation.x,
+                input_pose.pose.orientation.y,
+                input_pose.pose.orientation.z,
+                input_pose.pose.orientation.w,
+            ]
+        )
+        roll, pitch, yaw = input_orientation.as_euler("xyz", degrees=False)
+
+        self.node.get_logger().debug(f"Roll: {roll}, " f"Pitch: {pitch}, " f"Yaw: {yaw}")
+        self._set_output("roll", roll)
+        self._set_output("pitch", pitch)
+        self._set_output("yaw", yaw)
         return Status.SUCCESS
 
 
