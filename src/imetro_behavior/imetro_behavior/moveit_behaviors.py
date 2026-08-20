@@ -923,6 +923,9 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                         rpy = [float(x) for x in origin.get("rpy").split()]
                 break
 
+        if parent_name is None:
+            raise KeyError(f"Did not find parent frame name for link [ {child_name} ]")
+
         pose = Pose()
 
         pose.position.x = xyz[0]
@@ -986,7 +989,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 )
 
                             case "sphere":
-                                sphere_radius = child.get("radius")
+                                sphere_radius = float(child.get("radius"))
                                 solid_primitive = self.sphere_to_solid_primitive(sphere_radius)
                                 collision_object = self.collision_primitve_to_collision_object(
                                     header, pose, solid_primitive, xyz, rpy
