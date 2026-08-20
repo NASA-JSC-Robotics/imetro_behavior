@@ -353,6 +353,12 @@ class GetRollPitchYaw(BehaviourWithPorts):
                 data_type=PoseStamped, required=True, description="PoseStamped to be decomposed into roll, pitch, and yaw."
             ),
         }
+    
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     @classmethod
     def output_ports(cls) -> dict:
@@ -389,6 +395,11 @@ class GetRollPitchYaw(BehaviourWithPorts):
         )
         roll, pitch, yaw = input_orientation.as_euler('xyz', degrees=False)
 
+        self.node.get_logger().info(
+            f"Roll: {roll}, "
+            f"Pitch: {pitch}, "
+            f"Yaw: {yaw}"
+        )
         self._set_output("roll", roll)
         self._set_output("pitch", pitch)
         self._set_output("yaw", yaw)
