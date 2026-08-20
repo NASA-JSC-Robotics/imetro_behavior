@@ -167,7 +167,7 @@ class TwistAboutPose(BehaviourWithPorts):
     @classmethod
     def input_ports(cls) -> dict:
         """Input ports for required poses to rotate and rotational configuration.
-        Commonly used in conjuction with the GetRelativePoseStamped behavior to rotate one frame about another."""
+        Commonly used in conjunction with the GetRelativePoseStamped behavior to rotate one frame about another."""
         return {
             "target_pose": PortInformation(
                 data_type=PoseStamped,
