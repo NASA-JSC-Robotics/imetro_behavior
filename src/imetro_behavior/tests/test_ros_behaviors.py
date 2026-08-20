@@ -157,10 +157,14 @@ def get_string_topic_behavior(ros_node: Node) -> GetStringTopic:
 
 
 def test_get_string_topic_behavior(get_string_topic_behavior: GetStringTopic) -> None:
-    get_string_topic_behavior.latest_msg = String(data="string_data")
+    data = "string_payload"
+
+    get_string_topic_behavior.latest_msg = String(data=data)
 
     assert get_string_topic_behavior.update() == Status.SUCCESS
 
-    assert isinstance(get_string_topic_behavior.get_last_output("message"), String)
+    result = get_string_topic_behavior.get_last_output("message")
+    assert isinstance(result, str)
+    assert result == data
     # Cached message should be cleared
     assert get_string_topic_behavior.latest_msg is None

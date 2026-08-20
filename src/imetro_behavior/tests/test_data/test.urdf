@@ -21,13 +21,13 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <cylinder radius="0.1" length="0.2" />
+        <cylinder radius="0.4" length="0.5" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <cylinder radius="0.1" length="0.2" />
+        <cylinder radius="0.4" length="0.5" />
       </geometry>
     </collision>
   </link>
@@ -36,13 +36,13 @@
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <sphere radius="0.1" />
+        <sphere radius="0.6" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <geometry>
-        <sphere radius="0.1" />
+        <sphere radius="0.6" />
       </geometry>
     </collision>
   </link>

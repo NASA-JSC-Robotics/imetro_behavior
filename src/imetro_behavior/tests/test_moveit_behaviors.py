@@ -30,7 +30,6 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from shape_msgs.msg import SolidPrimitive
 from tf2_ros import Buffer
-from std_msgs.msg import String
 
 
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -419,10 +418,9 @@ def planning_scene_from_robot_description_behavior(ros_node: Node) -> PlanningSc
     behavior.setup(node=ros_node)
 
     planning_scene = PlanningScene()
-    robot_description_string = String(data=test_urdf)
 
     set_input(behavior, "planning_scene", planning_scene)
-    set_input(behavior, "robot_description", robot_description_string)
+    set_input(behavior, "robot_description", test_urdf)
     return behavior
 
 
@@ -431,6 +429,32 @@ def test_planning_scene_from_robot_description_behavior(
 ) -> None:
 
     assert planning_scene_from_robot_description_behavior.update() == Status.SUCCESS
-    assert isinstance(
-        planning_scene_from_robot_description_behavior.get_last_output("modified_planning_scene"), PlanningScene
-    )
+
+    modified_planning_scene = planning_scene_from_robot_description_behavior.get_last_output("modified_planning_scene")
+
+    assert isinstance(modified_planning_scene, PlanningScene)
+    assert len(modified_planning_scene.world.collision_objects) == 3
+
+    box_collision_object = modified_planning_scene.world.collision_objects[0]
+    assert len(box_collision_object.primitives) == 1
+    box_primitive = box_collision_object.primitives[0]
+    assert box_primitive.type == SolidPrimitive.BOX
+    assert len(box_primitive.dimensions) == 3
+    assert box_primitive.dimensions[0] == pytest.approx(0.1, abs=1e-9)
+    assert box_primitive.dimensions[1] == pytest.approx(0.2, abs=1e-9)
+    assert box_primitive.dimensions[2] == pytest.approx(0.3, abs=1e-9)
+
+    cylinder_collision_object = modified_planning_scene.world.collision_objects[1]
+    assert len(cylinder_collision_object.primitives) == 1
+    cylinder_primitive = cylinder_collision_object.primitives[0]
+    assert cylinder_primitive.type == SolidPrimitive.CYLINDER
+    assert len(cylinder_primitive.dimensions) == 2
+    assert cylinder_primitive.dimensions[0] == pytest.approx(0.4, abs=1e-9)
+    assert cylinder_primitive.dimensions[1] == pytest.approx(0.5, abs=1e-9)
+
+    sphere_collision_object = modified_planning_scene.world.collision_objects[2]
+    assert len(sphere_collision_object.primitives) == 1
+    sphere_primitive = sphere_collision_object.primitives[0]
+    assert sphere_primitive.type == SolidPrimitive.SPHERE
+    assert len(sphere_primitive.dimensions) == 1
+    assert sphere_primitive.dimensions[0] == pytest.approx(0.6, abs=1e-9)
