@@ -996,7 +996,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 )
 
                             case "mesh":
-                                self.get_logger().warning(
+                                self.node.get_logger().warning(
                                     "Parsing meshes from URDF into shape_msgs/msg/Mesh is experimental!"
                                 )
 
@@ -1005,7 +1005,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 collision_object = self.mesh_to_collision_object(header, pose, mesh, xyz, rpy)
 
                             case _:
-                                self.get_logger().warning(
+                                self.node.get_logger().warning(
                                     f"Collision object tag {child.tag} is not recognized. Skipping the object."
                                 )
 
