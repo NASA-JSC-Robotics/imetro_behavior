@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot name="test_robot">
+  <link name="world" />
+
+  <link name="box_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.1 0.2 0.3" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <box size="0.1 0.2 0.3" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="cylinder_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <cylinder radius="0.1" length="0.2" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <cylinder radius="0.1" length="0.2" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="sphere_link">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <sphere radius="0.1" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <geometry>
+        <sphere radius="0.1" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="world_to_box_joint" type="fixed">
+    <parent link="world" />
+    <child link="box_link" />
+  </joint>
+
+  <joint name="box_to_cylinder_joint" type="continuous">
+    <parent link="box_link" />
+    <child link="cylinder_link" />
+    <origin xyz="0.1 0.2 0.3" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+
+  <joint name="cylinder_to_sphere_joint" type="continuous">
+    <parent link="cylinder_link" />
+    <child link="sphere_link" />
+    <origin xyz="0.1 0.2 0.3" rpy="0.0 0.0 0.0" />
+    <axis xyz="1.0 0.0 0.0" />
+  </joint>
+</robot>
