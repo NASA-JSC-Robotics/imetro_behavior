@@ -39,6 +39,7 @@ def apriltag_behavior(ros_node: Node):
     # Load actual test image from test data folder and convert it to a ROS Image message
     image_path = get_package_share_path("imetro_behavior") / "tests" / "test_data" / "test_apriltag_image.png"
     cv_image = cv2.imread(str(image_path))
+    assert cv_image is not None, f"Failed to load test image at {image_path}"
     img_msg = behavior.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8") if cv_image is not None else Image()
 
     # Provide camera calibration matching the image context so pose math succeeds
