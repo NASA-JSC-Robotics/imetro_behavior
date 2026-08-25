@@ -123,6 +123,11 @@ class TimeoutPort(PortsMixin, Decorator):
         """Return the output port declarations."""
         return {}
 
+    def initialise(self) -> None:
+        """Reset the feedback message and finish time on behaviour entry."""
+        self.finish_time = time.monotonic() + self.get_input("duration")
+        self.feedback_message = ""
+
     def update(self) -> Status:
         """
         Fail on timeout, or block / reflect the child's result accordingly.
@@ -137,8 +142,6 @@ class TimeoutPort(PortsMixin, Decorator):
 
         current_time = time.monotonic()
 
-        if self.finish_time is None:
-            self.finish_time = current_time + self.get_input("duration")
 
         if self.decorated.status == common.Status.RUNNING and current_time > self.finish_time:
             self.feedback_message = "timed out"
