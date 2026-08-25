@@ -718,7 +718,7 @@ class PublishTransform(BehaviourWithPorts):
 
 class PublishTwist(BehaviourWithPorts):
     """
-    Takes in `linear` and `angular` and converts them geometry_msgs/msg/Twist.
+    Takes in `linear` and `angular` velocities and converts them geometry_msgs/msg/Twist.
     Creates std_msgs/msg/Header from `frame_id` input and current ROS 2 timestamp.
     Combines both into geometry_msgs/msg/TwistStamped and publishes onto the `topic_name`.
     """
@@ -739,8 +739,8 @@ class PublishTwist(BehaviourWithPorts):
     def input_ports(cls) -> dict:
         """Return the input port declarations."""
         return {
-            "linear": PortInformation(data_type=list[float], required=True),
-            "angular": PortInformation(data_type=list[float], required=True),
+            "linear_velocity": PortInformation(data_type=list[float], required=True),
+            "angular_velocity": PortInformation(data_type=list[float], required=True),
             "frame_id": PortInformation(data_type=str, required=False),
         }
 
@@ -764,8 +764,8 @@ class PublishTwist(BehaviourWithPorts):
 
             self.twist_stamped = TwistStamped()
 
-            linear = self.get_input("linear", [0.0, 0.0, 0.0])
-            angular = self.get_input("angular", [0.0, 0.0, 0.0])
+            linear = self.get_input("linear_velocity", [0.0, 0.0, 0.0])
+            angular = self.get_input("angular_velocity", [0.0, 0.0, 0.0])
 
             self.twist_stamped.twist.linear.x = linear[0]
             self.twist_stamped.twist.linear.y = linear[1]
