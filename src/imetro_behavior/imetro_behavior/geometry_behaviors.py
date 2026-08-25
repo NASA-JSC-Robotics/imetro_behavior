@@ -780,6 +780,6 @@ class PublishTwist(BehaviourWithPorts):
         return Status.SUCCESS
 
     def terminate(self, new_status: Status) -> Status:
-      """Cleanup the publisher"""
-      if self.status == Status.RUNNING and new_status == Status.INVALID:
-        self.publisher.destroy()
+        """Cleanup the publisher"""
+        if self.status == Status.RUNNING and new_status == Status.INVALID:
+            self.publisher.destroy()
