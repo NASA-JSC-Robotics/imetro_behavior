@@ -22,7 +22,6 @@ from collections.abc import Iterator
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from py_trees.decorators import Decorator
-from py_trees import common
 from py_trees.ports import PortInformation, PortsMixin
 
 
@@ -142,13 +141,13 @@ class TimeoutPort(PortsMixin, Decorator):
 
         current_time = time.monotonic()
 
-        if self.decorated.status == common.Status.RUNNING and current_time > self.finish_time:
+        if self.decorated.status == Status.RUNNING and current_time > self.finish_time:
             self.feedback_message = "timed out"
             self.logger.debug(f"{self.__class__.__name__}.update() {self.feedback_message}")
             # invalidate the decorated (i.e. cancel it), could also put this logic in a terminate() method
-            self.decorated.stop(common.Status.INVALID)
-            return common.Status.FAILURE
-        if self.decorated.status == common.Status.RUNNING:
+            self.decorated.stop(Status.INVALID)
+            return Status.FAILURE
+        if self.decorated.status == Status.RUNNING:
             self.feedback_message = f"time still ticking ... [remaining: {self.finish_time - current_time}s]"
         else:
             self.feedback_message = "child finished before timeout triggered"
