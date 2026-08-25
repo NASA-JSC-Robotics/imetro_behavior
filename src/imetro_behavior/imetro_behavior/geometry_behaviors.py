@@ -717,7 +717,9 @@ class PublishTransform(BehaviourWithPorts):
 
 class PublishTwist(BehaviourWithPorts):
     """
-    
+    Takes in `linear` and `angular` and converts them geometry_msgs/msg/Twist.
+    Creates std_msgs/msg/Header from `frame_id` input and current ROS 2 timestamp.
+    Combines both into geometry_msgs/msg/TwistStamped and publishes onto the `topic_name`.   
     """
     def __init__(
         self,
@@ -744,13 +746,13 @@ class PublishTwist(BehaviourWithPorts):
         return {}
 
     def setup(self, **kwargs):
-        """Setup transform broadcaster."""
+        """Get the ROS node from the blackboard."""
         self.node = kwargs.get("node")
         if not isinstance(self.node, Node):
           raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
         
     def update(self) -> Status:
-        """Publish the transform frame."""
+        """Assemble and publish twist stamped message."""
         if self.publisher is None:
           self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
                 
