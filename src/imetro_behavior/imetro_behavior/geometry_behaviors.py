@@ -17,6 +17,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 import copy
 import yaml
 
@@ -714,15 +716,26 @@ class PublishTransform(BehaviourWithPorts):
         return Status.SUCCESS
 
 class PublishTwist(BehaviourWithPorts):
-  
-    publisher = None
-    twist_stamped = None
     """Sends an action goal to Nav2 to navigate to a pose."""
+    def __init__(
+        self,
+        name: str,
+        *,
+        topic_name: str,
+        **kwargs: Any,
+    ) -> None:
+      """
+      
+      """
+      super().__init__(name, **kwargs)
+      self.topic_name = topic_name
+      self.publisher = None
+      self.twist_stamped = None
+
     @classmethod
     def input_ports(cls) -> dict:
         """Return the input port declarations."""
-        return {"topic": PortInformation(data_type=str, required=True),
-                "linear": PortInformation(data_type=list[float], required=True),
+        return {"linear": PortInformation(data_type=list[float], required=True),
                 "angular": PortInformation(data_type=list[float], required=True),
                 "frame_id": PortInformation(data_type=str, required=False)}
 
@@ -740,8 +753,7 @@ class PublishTwist(BehaviourWithPorts):
     def update(self) -> Status:
         """Publish the transform frame."""
         if self.publisher is None:
-          topic_name = "/" + self.get_input("topic")
-          self.publisher = self.node.create_publisher(TwistStamped, topic_name, 1)
+          self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
                 
         if self.twist_stamped is None:
           
