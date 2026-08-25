@@ -749,6 +749,25 @@ class PublishTwist(BehaviourWithPorts):
         """Return the output port declarations."""
         return {}
 
+    def initialise(self) -> None:
+        """Create TwistStamped message publisher, assemble twist message."""
+        self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
+        self.twist_stamped = TwistStamped()
+
+        linear = self.get_input("linear_velocity", [0.0, 0.0, 0.0])
+        angular = self.get_input("angular_velocity", [0.0, 0.0, 0.0])
+
+        self.twist_stamped.twist.linear.x = linear[0]
+        self.twist_stamped.twist.linear.y = linear[1]
+        self.twist_stamped.twist.linear.z = linear[2]
+
+        self.twist_stamped.twist.angular.x = angular[0]
+        self.twist_stamped.twist.angular.y = angular[1]
+        self.twist_stamped.twist.angular.z = angular[2]
+
+        self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
+        self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
+
     def setup(self, **kwargs):
         """Get the ROS node from the blackboard."""
         self.node = kwargs.get("node")
@@ -756,27 +775,6 @@ class PublishTwist(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
-        """Assemble and publish twist stamped message."""
-        if self.publisher is None:
-            self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
-
-        if self.twist_stamped is None:
-
-            self.twist_stamped = TwistStamped()
-
-            linear = self.get_input("linear_velocity", [0.0, 0.0, 0.0])
-            angular = self.get_input("angular_velocity", [0.0, 0.0, 0.0])
-
-            self.twist_stamped.twist.linear.x = linear[0]
-            self.twist_stamped.twist.linear.y = linear[1]
-            self.twist_stamped.twist.linear.z = linear[2]
-
-            self.twist_stamped.twist.angular.x = angular[0]
-            self.twist_stamped.twist.angular.y = angular[1]
-            self.twist_stamped.twist.angular.z = angular[2]
-
-            self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
-            self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
-
+        """Publish twist stamped message."""
         self.publisher.publish(self.twist_stamped)
         return Status.SUCCESS
