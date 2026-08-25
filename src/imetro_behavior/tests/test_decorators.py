@@ -90,11 +90,12 @@ def test_success_if_variable_is_false_ticks_child() -> None:
     assert decorator.status == Status.FAILURE
     assert child.status == Status.FAILURE
 
+
 def test_timeout() -> None:
     running = py_trees.behaviours.Running(name="Running")
     timeout = TimeoutPort(name="Timeout", child=running)
     timeout.setup_ports()
-    
+
     Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
 
     print(py_trees.display.unicode_tree(timeout))
@@ -127,7 +128,7 @@ def test_timeout() -> None:
     )
     timeout = TimeoutPort(name="Timeout", child=count)
     timeout.setup_ports()
-    
+
     Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
 
     print(py_trees.display.unicode_tree(timeout))
@@ -152,7 +153,7 @@ def test_timeout() -> None:
     failure = py_trees.behaviours.Failure(name="Failure")
     timeout = TimeoutPort(name="Timeout", child=failure)
     timeout.setup_ports()
-    
+
     Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
 
     print(py_trees.display.unicode_tree(timeout))
@@ -173,7 +174,7 @@ def test_timeout() -> None:
     )
     timeout = TimeoutPort(name="Timeout", child=count)
     timeout.setup_ports()
-        
+
     Blackboard.set(timeout._get_blackboard_key("duration"), 0.1)
     print(py_trees.display.unicode_tree(timeout))
 

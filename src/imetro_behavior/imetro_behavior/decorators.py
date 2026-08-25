@@ -142,7 +142,6 @@ class TimeoutPort(PortsMixin, Decorator):
 
         current_time = time.monotonic()
 
-
         if self.decorated.status == common.Status.RUNNING and current_time > self.finish_time:
             self.feedback_message = "timed out"
             self.logger.debug(f"{self.__class__.__name__}.update() {self.feedback_message}")
