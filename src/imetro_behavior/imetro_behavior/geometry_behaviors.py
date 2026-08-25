@@ -778,3 +778,8 @@ class PublishTwist(BehaviourWithPorts):
         """Publish twist stamped message."""
         self.publisher.publish(self.twist_stamped)
         return Status.SUCCESS
+
+    def terminate(self, new_status: Status) -> Status:
+      """Cleanup the publisher"""
+      if self.status == Status.RUNNING and new_status == Status.INVALID:
+        self.publisher.destroy()
