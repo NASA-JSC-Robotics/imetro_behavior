@@ -715,12 +715,14 @@ class PublishTransform(BehaviourWithPorts):
         self.tf_broadcaster.sendTransform(transform_stamped)
         return Status.SUCCESS
 
+
 class PublishTwist(BehaviourWithPorts):
     """
     Takes in `linear` and `angular` and converts them geometry_msgs/msg/Twist.
     Creates std_msgs/msg/Header from `frame_id` input and current ROS 2 timestamp.
-    Combines both into geometry_msgs/msg/TwistStamped and publishes onto the `topic_name`.   
+    Combines both into geometry_msgs/msg/TwistStamped and publishes onto the `topic_name`.
     """
+
     def __init__(
         self,
         name: str,
@@ -728,17 +730,19 @@ class PublishTwist(BehaviourWithPorts):
         topic_name: str,
         **kwargs: Any,
     ) -> None:
-      super().__init__(name, **kwargs)
-      self.topic_name = topic_name
-      self.publisher = None
-      self.twist_stamped = None
+        super().__init__(name, **kwargs)
+        self.topic_name = topic_name
+        self.publisher = None
+        self.twist_stamped = None
 
     @classmethod
     def input_ports(cls) -> dict:
         """Return the input port declarations."""
-        return {"linear": PortInformation(data_type=list[float], required=True),
-                "angular": PortInformation(data_type=list[float], required=True),
-                "frame_id": PortInformation(data_type=str, required=False)}
+        return {
+            "linear": PortInformation(data_type=list[float], required=True),
+            "angular": PortInformation(data_type=list[float], required=True),
+            "frame_id": PortInformation(data_type=str, required=False),
+        }
 
     @classmethod
     def output_ports(cls) -> dict:
@@ -749,30 +753,30 @@ class PublishTwist(BehaviourWithPorts):
         """Get the ROS node from the blackboard."""
         self.node = kwargs.get("node")
         if not isinstance(self.node, Node):
-          raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-        
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
     def update(self) -> Status:
         """Assemble and publish twist stamped message."""
         if self.publisher is None:
-          self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
-                
+            self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
+
         if self.twist_stamped is None:
-          
-          self.twist_stamped = TwistStamped()
-          
-          linear = self.get_input("linear", [0.0, 0.0, 0.0])
-          angular = self.get_input("angular", [0.0, 0.0, 0.0])
-          
-          self.twist_stamped.twist.linear.x = linear[0]
-          self.twist_stamped.twist.linear.y = linear[1]
-          self.twist_stamped.twist.linear.z = linear[2]
-          
-          self.twist_stamped.twist.angular.x = angular[0]
-          self.twist_stamped.twist.angular.y = angular[1]
-          self.twist_stamped.twist.angular.z = angular[2]
-          
-          self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
-          self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
+
+            self.twist_stamped = TwistStamped()
+
+            linear = self.get_input("linear", [0.0, 0.0, 0.0])
+            angular = self.get_input("angular", [0.0, 0.0, 0.0])
+
+            self.twist_stamped.twist.linear.x = linear[0]
+            self.twist_stamped.twist.linear.y = linear[1]
+            self.twist_stamped.twist.linear.z = linear[2]
+
+            self.twist_stamped.twist.angular.x = angular[0]
+            self.twist_stamped.twist.angular.y = angular[1]
+            self.twist_stamped.twist.angular.z = angular[2]
+
+            self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
+            self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
 
         self.publisher.publish(self.twist_stamped)
         return Status.SUCCESS

@@ -93,13 +93,14 @@ class SuccessIfVariableIsFalse(PortsMixin, Decorator):
         """Reflect the child's status, since it is only ticked when the variable is true."""
         return self.decorated.status
 
+
 class TimeoutPort(PortsMixin, Decorator):
     """
-    Reimplimentation of the Timeout behavior from the py_trees library
+    Reimplementation of the Timeout behavior from the py_trees library
     [Link](https://py-trees.readthedocs.io/en/devel/modules.html#py_trees.decorators.Timeout) for reference.
-    
+
     NOTE: This behavior is supposed to be temporary.
-    
+
     Executes a child/subtree with a timeout.
 
     A decorator that applies a timeout pattern to an existing behaviour.
@@ -110,8 +111,8 @@ class TimeoutPort(PortsMixin, Decorator):
     as that of its encapsulated behaviour.
     """
 
-    finish_time: float = None 
-    
+    finish_time: float = None
+
     @classmethod
     def input_ports(cls) -> dict:
         """Return the input port declarations."""
@@ -136,8 +137,8 @@ class TimeoutPort(PortsMixin, Decorator):
 
         current_time = time.monotonic()
 
-        if self.finish_time is None: 
-          self.finish_time = current_time + self.get_input("duration")
+        if self.finish_time is None:
+            self.finish_time = current_time + self.get_input("duration")
 
         if self.decorated.status == common.Status.RUNNING and current_time > self.finish_time:
             self.feedback_message = "timed out"
