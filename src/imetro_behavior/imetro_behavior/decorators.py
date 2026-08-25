@@ -16,12 +16,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
+import time
 from collections.abc import Iterator
 
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from py_trees.decorators import Decorator
+from py_trees import common
 from py_trees.ports import PortInformation, PortsMixin
 
 
@@ -90,4 +91,57 @@ class SuccessIfVariableIsFalse(PortsMixin, Decorator):
 
     def update(self) -> Status:
         """Reflect the child's status, since it is only ticked when the variable is true."""
+        return self.decorated.status
+
+class TimeoutPort(PortsMixin, Decorator):
+    """
+    Executes a child/subtree with a timeout.
+
+    A decorator that applies a timeout pattern to an existing behaviour.
+    If the timeout is reached, the encapsulated behaviour's
+    :meth:`~py_trees.behaviour.Behaviour.stop` method is called with
+    status :data:`~py_trees.common.Status.FAILURE` otherwise it will
+    simply directly tick and return with the same status
+    as that of its encapsulated behaviour.
+    """
+
+    finish_time: float = None 
+    
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {"duration": PortInformation(data_type=float, required=True)}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def update(self) -> Status:
+        """
+        Fail on timeout, or block / reflect the child's result accordingly.
+
+        Terminate the child and return
+        :data:`~py_trees.common.Status.FAILURE`
+        if the timeout is exceeded.
+
+        Returns:
+            the behaviour's new status :class:`~py_trees.common.Status`
+        """
+
+        current_time = time.monotonic()
+
+        if self.finish_time is None: 
+          self.finish_time = current_time + self.get_input("duration")
+
+        if self.decorated.status == common.Status.RUNNING and current_time > self.finish_time:
+            self.feedback_message = "timed out"
+            self.logger.debug(f"{self.__class__.__name__}.update() {self.feedback_message}")
+            # invalidate the decorated (i.e. cancel it), could also put this logic in a terminate() method
+            self.decorated.stop(common.Status.INVALID)
+            return common.Status.FAILURE
+        if self.decorated.status == common.Status.RUNNING:
+            self.feedback_message = f"time still ticking ... [remaining: {self.finish_time - current_time}s]"
+        else:
+            self.feedback_message = "child finished before timeout triggered"
         return self.decorated.status

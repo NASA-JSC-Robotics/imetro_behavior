@@ -716,7 +716,9 @@ class PublishTransform(BehaviourWithPorts):
         return Status.SUCCESS
 
 class PublishTwist(BehaviourWithPorts):
-    """Sends an action goal to Nav2 to navigate to a pose."""
+    """
+    
+    """
     def __init__(
         self,
         name: str,
@@ -724,9 +726,6 @@ class PublishTwist(BehaviourWithPorts):
         topic_name: str,
         **kwargs: Any,
     ) -> None:
-      """
-      
-      """
       super().__init__(name, **kwargs)
       self.topic_name = topic_name
       self.publisher = None
