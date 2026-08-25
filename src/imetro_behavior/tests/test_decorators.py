@@ -91,7 +91,7 @@ def test_success_if_variable_is_false_ticks_child() -> None:
     assert child.status == Status.FAILURE
 
 
-def test_timeout() -> None:
+def test_timeout_reinitialization() -> None:
     running = py_trees.behaviours.Running(name="Running")
 
     timeout = TimeoutPort(name="Timeout", child=running)
@@ -112,6 +112,8 @@ def test_timeout() -> None:
         assert timeout.status == Status.FAILURE
         assert running.status == Status.INVALID
 
+
+def test_timeout_passthrough_success() -> None:
     # test that it passes on success
     count = py_trees.behaviours.StatusQueue(
         name="Queue",
@@ -124,13 +126,15 @@ def test_timeout() -> None:
     Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
 
     timeout.tick_once()
-    assert timeout.status == Status.RUNNING
     assert count.status == Status.RUNNING
+    assert timeout.status == Status.RUNNING
 
     timeout.tick_once()
-    assert timeout.status == Status.SUCCESS
     assert count.status == Status.SUCCESS
+    assert timeout.status == Status.SUCCESS
 
+
+def test_timeout_passthrough_failure() -> None:
     # test that it passes on failure
     failure = py_trees.behaviours.Failure(name="Failure")
 
@@ -140,9 +144,11 @@ def test_timeout() -> None:
 
     timeout.tick_once()
 
-    assert timeout.status == Status.FAILURE
     assert failure.status == Status.FAILURE
+    assert timeout.status == Status.FAILURE
 
+
+def test_timeout_status_passthrough_order() -> None:
     # test that it succeeds if child succeeds on last tick
     count = py_trees.behaviours.StatusQueue(
         name="Queue",
@@ -156,11 +162,12 @@ def test_timeout() -> None:
 
     timeout.tick_once()
 
-    assert timeout.status == Status.RUNNING
     assert count.status == Status.RUNNING
+    assert timeout.status == Status.RUNNING
 
     time.sleep(0.2)  # go past the duration
+
     timeout.tick_once()
 
-    assert timeout.status == Status.SUCCESS
     assert count.status == Status.SUCCESS
+    assert timeout.status == Status.SUCCESS
