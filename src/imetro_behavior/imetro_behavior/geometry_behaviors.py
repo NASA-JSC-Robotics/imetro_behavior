@@ -29,7 +29,7 @@ from scipy.spatial.transform import RigidTransform, Rotation as R
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped, TwistStamped
 from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
@@ -711,4 +711,55 @@ class PublishTransform(BehaviourWithPorts):
         """Publish the transform frame."""
         transform_stamped = self.get_input("transform_stamped")
         self.tf_broadcaster.sendTransform(transform_stamped)
+        return Status.SUCCESS
+
+class PublishTwist(BehaviourWithPorts):
+  
+    publisher = None
+    twist_stamped = None
+    """Sends an action goal to Nav2 to navigate to a pose."""
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {"topic": PortInformation(data_type=str, required=True),
+                "linear": PortInformation(data_type=list[float], required=True),
+                "angular": PortInformation(data_type=list[float], required=True),
+                "frame_id": PortInformation(data_type=str, required=False)}
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def setup(self, **kwargs):
+        """Setup transform broadcaster."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+          raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        
+    def update(self) -> Status:
+        """Publish the transform frame."""
+        if self.publisher is None:
+          topic_name = "/" + self.get_input("topic")
+          self.publisher = self.node.create_publisher(TwistStamped, topic_name, 1)
+                
+        if self.twist_stamped is None:
+          
+          self.twist_stamped = TwistStamped()
+          
+          linear = self.get_input("linear", [0.0, 0.0, 0.0])
+          angular = self.get_input("angular", [0.0, 0.0, 0.0])
+          
+          self.twist_stamped.twist.linear.x = linear[0]
+          self.twist_stamped.twist.linear.y = linear[1]
+          self.twist_stamped.twist.linear.z = linear[2]
+          
+          self.twist_stamped.twist.angular.x = angular[0]
+          self.twist_stamped.twist.angular.y = angular[1]
+          self.twist_stamped.twist.angular.z = angular[2]
+          
+          self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
+          self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
+
+        self.publisher.publish(self.twist_stamped)
         return Status.SUCCESS
