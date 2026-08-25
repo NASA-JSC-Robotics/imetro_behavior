@@ -95,6 +95,11 @@ class SuccessIfVariableIsFalse(PortsMixin, Decorator):
 
 class TimeoutPort(PortsMixin, Decorator):
     """
+    Reimplimentation of the Timeout behavior from the py_trees library
+    [Link](https://py-trees.readthedocs.io/en/devel/modules.html#py_trees.decorators.Timeout) for reference.
+    
+    NOTE: This behavior is supposed to be temporary.
+    
     Executes a child/subtree with a timeout.
 
     A decorator that applies a timeout pattern to an existing behaviour.
