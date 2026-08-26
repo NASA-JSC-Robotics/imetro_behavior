@@ -111,6 +111,6 @@ class BlackboardMath(BehaviourWithPorts):
 
         result = operator_fn(operand1, operand2)
 
-        self.node.get_logger().info(f"RESULT: {result}")
+        self.node.get_logger().debug(f"RESULT: {result}")
         self._set_output("result", result)
         return Status.SUCCESS
