@@ -42,15 +42,8 @@ class TrackingActionBehavior(RosActionClientBase):
         super().__init__(name, action_type=GripperCommand, **kwargs)
         self.received_result = None
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def create_goal(self) -> GripperCommand.Goal:
         return GripperCommand.Goal()

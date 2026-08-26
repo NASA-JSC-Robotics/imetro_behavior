@@ -185,15 +185,8 @@ class CallTriggerService(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=Trigger, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def create_request(self) -> Trigger.Request:
         """Create a trigger service request."""

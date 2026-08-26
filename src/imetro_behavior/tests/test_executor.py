@@ -35,13 +35,8 @@ from imetro_behavior.executor import BehaviorTreeServer, BehaviorTreeExecutor
 class AlwaysSucceed(BehaviourWithPorts):
     """Test behavior that immediately succeeds. Auto-registered for use in tree XML."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def update(self) -> Status:
         return Status.SUCCESS
@@ -50,13 +45,8 @@ class AlwaysSucceed(BehaviourWithPorts):
 class AlwaysFail(BehaviourWithPorts):
     """Test behavior that immediately fails. Auto-registered for use in tree XML."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def update(self) -> Status:
         return Status.FAILURE
@@ -65,13 +55,8 @@ class AlwaysFail(BehaviourWithPorts):
 class RunForever(BehaviourWithPorts):
     """Test behavior that runs forever. Auto-registered for use in tree XML."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def update(self) -> Status:
         return Status.RUNNING

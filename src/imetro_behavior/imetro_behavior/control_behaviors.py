@@ -43,15 +43,9 @@ class GetRosControllerInfo(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=ListControllers, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
+    INPUT_PORTS = {}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"controller_info": PortInformation(data_type=list[ControllerState])}
+    OUTPUT_PORTS = {"controller_info": PortInformation(data_type=list[ControllerState])}
 
     def create_request(self) -> ListControllers.Request:
         """Create a list controllers request (no fields necessary)."""
@@ -78,19 +72,13 @@ class SwitchRosControllers(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=SwitchController, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "controller_info": PortInformation(data_type=list[ControllerState], required=False),
-            "activate_controllers": PortInformation(data_type=list[str], required=False),
-            "deactivate_controllers": PortInformation(data_type=list[str], required=False),
-        }
+    INPUT_PORTS = {
+        "controller_info": PortInformation(data_type=list[ControllerState], required=False),
+        "activate_controllers": PortInformation(data_type=list[str], required=False),
+        "deactivate_controllers": PortInformation(data_type=list[str], required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_request(self) -> ListControllers.Request:
         """
@@ -150,18 +138,12 @@ class CommandGripper(RosActionClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=GripperCommand, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "position": PortInformation(data_type=float, required=True),
-            "max_effort": PortInformation(data_type=float, required=False),
-        }
+    INPUT_PORTS = {
+        "position": PortInformation(data_type=float, required=True),
+        "max_effort": PortInformation(data_type=float, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_goal(self) -> GripperCommand.Goal:
         """Create a gripper command goal."""

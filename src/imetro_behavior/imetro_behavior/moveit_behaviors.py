@@ -97,26 +97,20 @@ class PlanToJointState(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=GetMotionPlan, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "pipeline": PortInformation(data_type=str, required=False),
-            "planner": PortInformation(data_type=str, required=False),
-            "group_name": PortInformation(data_type=str, required=True),
-            "joint_names": PortInformation(data_type=list[str], required=True),
-            "joint_positions": PortInformation(data_type=list[float], required=True),
-            "tolerance": PortInformation(data_type=float, required=True),
-            "max_velocity_scaling": PortInformation(data_type=float, required=False),
-            "max_acceleration_scaling": PortInformation(data_type=float, required=False),
-            "num_planning_attempts": PortInformation(data_type=int, required=False),
-            "allowed_planning_time": PortInformation(data_type=float, required=False),
-        }
+    INPUT_PORTS = {
+        "pipeline": PortInformation(data_type=str, required=False),
+        "planner": PortInformation(data_type=str, required=False),
+        "group_name": PortInformation(data_type=str, required=True),
+        "joint_names": PortInformation(data_type=list[str], required=True),
+        "joint_positions": PortInformation(data_type=list[float], required=True),
+        "tolerance": PortInformation(data_type=float, required=True),
+        "max_velocity_scaling": PortInformation(data_type=float, required=False),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=False),
+        "num_planning_attempts": PortInformation(data_type=int, required=False),
+        "allowed_planning_time": PortInformation(data_type=float, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory)}
+    OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
 
     def create_request(self) -> GetMotionPlan.Request:
         """Create a motion plan service request with joint constraints."""
@@ -173,27 +167,21 @@ class PlanToPose(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=GetMotionPlan, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "pipeline": PortInformation(data_type=str, required=False),
-            "planner": PortInformation(data_type=str, required=False),
-            "group_name": PortInformation(data_type=str, required=True),
-            "target_frame": PortInformation(data_type=str, required=True),
-            "target_pose": PortInformation(data_type=PoseStamped, required=True),
-            "position_tolerance": PortInformation(data_type=float, required=True),
-            "orientation_tolerance": PortInformation(data_type=list[float], required=True),
-            "max_velocity_scaling": PortInformation(data_type=float, required=False),
-            "max_acceleration_scaling": PortInformation(data_type=float, required=False),
-            "num_planning_attempts": PortInformation(data_type=int, required=False),
-            "allowed_planning_time": PortInformation(data_type=float, required=False),
-        }
+    INPUT_PORTS = {
+        "pipeline": PortInformation(data_type=str, required=False),
+        "planner": PortInformation(data_type=str, required=False),
+        "group_name": PortInformation(data_type=str, required=True),
+        "target_frame": PortInformation(data_type=str, required=True),
+        "target_pose": PortInformation(data_type=PoseStamped, required=True),
+        "position_tolerance": PortInformation(data_type=float, required=True),
+        "orientation_tolerance": PortInformation(data_type=list[float], required=True),
+        "max_velocity_scaling": PortInformation(data_type=float, required=False),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=False),
+        "num_planning_attempts": PortInformation(data_type=int, required=False),
+        "allowed_planning_time": PortInformation(data_type=float, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory)}
+    OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
 
     def create_request(self) -> GetMotionPlan.Request:
         """Create a motion plan service request with position and orientation constraints."""
@@ -265,15 +253,9 @@ class RequestPlanningScene(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=GetPlanningScene, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
+    INPUT_PORTS = {}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"planning_scene": PortInformation(data_type=PlanningScene)}
+    OUTPUT_PORTS = {"planning_scene": PortInformation(data_type=PlanningScene)}
 
     def create_request(self) -> GetPlanningScene.Request:
         """Create a PlanningScene service request."""
@@ -302,33 +284,27 @@ class ModifyCollisions(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=ApplyPlanningScene, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "planning_scene": PortInformation(data_type=PlanningScene, required=True),
-            "links_list_1": PortInformation(
-                data_type=list[str],
-                required=True,
-                description="First list of robot links or scene objects for which to modify collisions",
-            ),
-            "links_list_2": PortInformation(
-                data_type=list[str],
-                required=True,
-                description="Second list of robot links or scene objects to modify collisions against links_list_1",
-            ),
-            "allow_collision": PortInformation(
-                data_type=bool,
-                required=True,
-                description="True: links are able to collide with each other."
-                "False: collision is forbidden between links.",
-            ),
-        }
+    INPUT_PORTS = {
+        "planning_scene": PortInformation(data_type=PlanningScene, required=True),
+        "links_list_1": PortInformation(
+            data_type=list[str],
+            required=True,
+            description="First list of robot links or scene objects for which to modify collisions",
+        ),
+        "links_list_2": PortInformation(
+            data_type=list[str],
+            required=True,
+            description="Second list of robot links or scene objects to modify collisions against links_list_1",
+        ),
+        "allow_collision": PortInformation(
+            data_type=bool,
+            required=True,
+            description="True: links are able to collide with each other."
+            "False: collision is forbidden between links.",
+        ),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_request(self) -> ApplyPlanningScene.Request:
         """Create an ApplyPlanningScene service request to modify the ACM."""
@@ -392,23 +368,17 @@ class PlanCartesian(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=GetCartesianPath, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "group_name": PortInformation(data_type=str, required=True),
-            "waypoints": PortInformation(
-                data_type=PoseStamped, required=True
-            ),  # TODO support TransformStamped and support list of waypoints
-            "max_step": PortInformation(data_type=float, required=False),
-            "jump_threshold": PortInformation(data_type=float, required=False),
-            "avoid_collisions": PortInformation(data_type=bool, required=False),
-        }
+    INPUT_PORTS = {
+        "group_name": PortInformation(data_type=str, required=True),
+        "waypoints": PortInformation(
+            data_type=PoseStamped, required=True
+        ),  # TODO support TransformStamped and support list of waypoints
+        "max_step": PortInformation(data_type=float, required=False),
+        "jump_threshold": PortInformation(data_type=float, required=False),
+        "avoid_collisions": PortInformation(data_type=bool, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory)}
+    OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
 
     def create_request(self) -> GetCartesianPath.Request:
         """Create a cartesian path service request."""
@@ -451,29 +421,23 @@ class PlanArcPath(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=GetMotionPlan, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "fixed_frame": PortInformation(data_type=str, required=True),
-            "group_name": PortInformation(data_type=str, required=True),
-            "target_frame": PortInformation(data_type=str, required=True),
-            "rotation_pose": PortInformation(data_type=PoseStamped, required=True),
-            "rotation_axis_xyz": PortInformation(data_type=list[float], required=True),
-            "rotation_amount_rad": PortInformation(data_type=float, required=True),
-            "keep_start_orientation": PortInformation(data_type=bool, required=True),
-            "position_tolerance": PortInformation(data_type=float, required=True),
-            "orientation_tolerance_xyz": PortInformation(data_type=list[float], required=True),
-            "max_velocity_scaling": PortInformation(data_type=float, required=True),
-            "max_acceleration_scaling": PortInformation(data_type=float, required=True),
-            "planning_attempt_count": PortInformation(data_type=int, required=False),
-            "planning_attempt_timeout": PortInformation(data_type=float, required=False),
-        }
+    INPUT_PORTS = {
+        "fixed_frame": PortInformation(data_type=str, required=True),
+        "group_name": PortInformation(data_type=str, required=True),
+        "target_frame": PortInformation(data_type=str, required=True),
+        "rotation_pose": PortInformation(data_type=PoseStamped, required=True),
+        "rotation_axis_xyz": PortInformation(data_type=list[float], required=True),
+        "rotation_amount_rad": PortInformation(data_type=float, required=True),
+        "keep_start_orientation": PortInformation(data_type=bool, required=True),
+        "position_tolerance": PortInformation(data_type=float, required=True),
+        "orientation_tolerance_xyz": PortInformation(data_type=list[float], required=True),
+        "max_velocity_scaling": PortInformation(data_type=float, required=True),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=True),
+        "planning_attempt_count": PortInformation(data_type=int, required=False),
+        "planning_attempt_timeout": PortInformation(data_type=float, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory)}
+    OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
@@ -645,15 +609,9 @@ class RequestTrajectoryApproval(RosActionClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=PreviewTrajectory, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory, required=True)}
+    INPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"approved": PortInformation(data_type=bool, required=True)}
+    OUTPUT_PORTS = {"approved": PortInformation(data_type=bool, required=True)}
 
     def create_goal(self) -> PreviewTrajectory.Goal:
         """Create a trajectory preview goal."""
@@ -677,15 +635,9 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=ExecuteTrajectory, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {"trajectory": PortInformation(data_type=RobotTrajectory, required=True)}
+    INPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_goal(self) -> ExecuteTrajectory.Goal:
         """Create a trajectory execution goal."""
@@ -714,15 +666,9 @@ class SetPlanningScene(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=ApplyPlanningScene, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {"planning_scene": PortInformation(data_type=PlanningScene)}
+    INPUT_PORTS = {"planning_scene": PortInformation(data_type=PlanningScene)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_request(self) -> ApplyPlanningScene.Request:
         """Create a PlanningScene service request."""
@@ -752,20 +698,14 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         modified_planning_scene: Planning scene with inserted collision objects.
     """
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "planning_scene": PortInformation(data_type=PlanningScene, required=True),
-            "robot_description": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "planning_scene": PortInformation(data_type=PlanningScene, required=True),
+        "robot_description": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {
-            "modified_planning_scene": PortInformation(data_type=PlanningScene, required=True),
-        }
+    OUTPUT_PORTS = {
+        "modified_planning_scene": PortInformation(data_type=PlanningScene, required=True),
+    }
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""

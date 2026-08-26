@@ -33,25 +33,19 @@ from sensor_msgs.msg import CameraInfo, Image
 class DetectColorBlobs(BehaviourWithPorts):
     """Detects blob positions based on RGB and depth images."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "camera_info": PortInformation(data_type=CameraInfo, required=True),
-            "rgb_image": PortInformation(data_type=Image, required=True),
-            "depth_image": PortInformation(data_type=Image, required=True),
-            "target_color": PortInformation(data_type=str, required=True),
-            "min_blob_size": PortInformation(data_type=float, required=True),
-            "debug_viz": PortInformation(data_type=bool, required=False),
-        }
+    INPUT_PORTS = {
+        "camera_info": PortInformation(data_type=CameraInfo, required=True),
+        "rgb_image": PortInformation(data_type=Image, required=True),
+        "depth_image": PortInformation(data_type=Image, required=True),
+        "target_color": PortInformation(data_type=str, required=True),
+        "min_blob_size": PortInformation(data_type=float, required=True),
+        "debug_viz": PortInformation(data_type=bool, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {
-            "blob_pose": PortInformation(data_type=PoseStamped, required=True),
-            "masked_image": PortInformation(data_type=Image, required=True),
-        }
+    OUTPUT_PORTS = {
+        "blob_pose": PortInformation(data_type=PoseStamped, required=True),
+        "masked_image": PortInformation(data_type=Image, required=True),
+    }
 
     def setup(self, **kwargs):
         """Sets up the ROS node just to have access to a logger."""
