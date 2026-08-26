@@ -121,6 +121,21 @@ def test_math_div_by_zero(ros_node: Node) -> None:
     assert behavior.status == Status.FAILURE
 
 
+def test_math_pow(ros_node: Node) -> None:
+    """Tests simple exponent"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 3.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "^")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == 9.0
+
+
 def test_math_wrong_operator(ros_node: Node) -> None:
     """Tests what happens when an improper operator is given"""
     behavior = BlackboardMath(name="math")
@@ -128,7 +143,7 @@ def test_math_wrong_operator(ros_node: Node) -> None:
     behavior.setup(node=ros_node)
 
     Blackboard.set(behavior._get_blackboard_key("operand1"), 2.0)
-    Blackboard.set(behavior._get_blackboard_key("operator"), "^")
+    Blackboard.set(behavior._get_blackboard_key("operator"), "#")
     Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
 
     behavior.tick_once()
