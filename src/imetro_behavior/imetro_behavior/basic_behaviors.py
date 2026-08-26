@@ -59,6 +59,7 @@ class WaitForDuration(BehaviourWithPorts):
             return Status.SUCCESS
         return Status.RUNNING
 
+
 class BlackboardMath(BehaviourWithPorts):
     """Allows for doing simple arithmetic (+-/*) using blackboard values"""
 
@@ -96,14 +97,9 @@ class BlackboardMath(BehaviourWithPorts):
         op = self.get_input("operator")
         operand2 = self.get_input("operand2")
 
-        operator_set = {
-            "+": operator.add,
-            "-": operator.sub,
-            "*": operator.mul,
-            "/": operator.truediv
-        }
+        operator_set = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
         if op not in operator_set:
-            self.node.get_logger().error(f"Operator: {op} not found in valid list of operatiors: (+-/*)")
+            self.node.get_logger().error(f"Operator: {op} not found in valid list of operators: (+-/*)")
             return Status.FAILURE
 
         try:
@@ -112,5 +108,6 @@ class BlackboardMath(BehaviourWithPorts):
             self.node.get_logger().error("Division by zero error encountered!")
             return Status.FAILURE
 
+        self.node.get_logger().info(f"RESULT: {result}")
         self._set_output("result", result)
         return Status.SUCCESS
