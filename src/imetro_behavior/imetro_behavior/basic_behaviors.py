@@ -99,15 +99,17 @@ class BlackboardMath(BehaviourWithPorts):
         op = self.get_input("operator")
         operand2 = self.get_input("operand2")
 
-        if op not in self.OPERATOR_SET:
-            self.node.get_logger().error(f"Operator: {op} not found in valid list of operators: (+-/*)")
+        if op == "/" and operand2 == "0.0":
+            self.node.get_logger().error("Error: Division by zero encountered!")
             return Status.FAILURE
 
-        try:
-            result = self.OPERATOR_SET[op](operand1, operand2)
-        except ZeroDivisionError:
-            self.node.get_logger().error("Division by zero error encountered!")
+        operator_fn = self.OPERATOR_SET[op]
+
+        if operator_fn is None:
+            self.node.get_logger().error(f"Operator: {op} not found in valid list of operators: (+-/*)")
             return Status.FAILURE
+        
+        result = operator_fn(operand1, operand2)
 
         self.node.get_logger().info(f"RESULT: {result}")
         self._set_output("result", result)
