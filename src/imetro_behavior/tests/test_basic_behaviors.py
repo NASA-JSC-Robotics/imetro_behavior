@@ -19,9 +19,10 @@
 
 from rclpy.duration import Duration
 from rclpy.node import Node
+from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 
-from imetro_behavior.basic_behaviors import WaitForDuration
+from imetro_behavior.basic_behaviors import WaitForDuration, BlackboardMath
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -44,3 +45,91 @@ def test_wait_for_duration(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
+
+def test_math_add(ros_node: Node) -> None:
+    """Tests simple addition"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 2.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "+")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == 4.0
+
+
+def test_math_sub(ros_node: Node) -> None:
+    """Tests simple subtraction"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 5.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "-")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == 3.0
+
+
+def test_math_mult(ros_node: Node) -> None:
+    """Tests simple multiplication"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 5.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "*")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == 10.0
+
+
+def test_math_div(ros_node: Node) -> None:
+    """Tests simple division"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 6.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "/")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == 3.0
+
+
+def test_math_div_by_zero(ros_node: Node) -> None:
+    """Tests dividing by zero"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 2.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "/")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 0.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+
+def test_math_wrong_operator(ros_node: Node) -> None:
+    """Tests what happens when an improper operator is given"""
+    behavior = BlackboardMath(name="math")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("operand1"), 2.0)
+    Blackboard.set(behavior._get_blackboard_key("operator"), "^")
+    Blackboard.set(behavior._get_blackboard_key("operand2"), 2.0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
