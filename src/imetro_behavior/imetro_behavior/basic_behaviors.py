@@ -61,7 +61,7 @@ class WaitForDuration(BehaviourWithPorts):
 
 
 class BlackboardMath(BehaviourWithPorts):
-    """Allows for doing simple arithmetic (+-/*) using blackboard values"""
+    """Allows for doing simple arithmetic (+-/*^) using blackboard values"""
 
     INPUT_PORTS = {
         "operand1": PortInformation(
@@ -71,7 +71,7 @@ class BlackboardMath(BehaviourWithPorts):
         "operator": PortInformation(
             data_type=str,
             required=True,
-            description="Valid operators: +-/*",
+            description="Valid operators: +-/*^",
         ),
         "operand2": PortInformation(
             data_type=float,
@@ -86,6 +86,8 @@ class BlackboardMath(BehaviourWithPorts):
         )
     }
 
+    OPERATOR_SET = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv, "^": operator.pow}
+
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
         self.node = kwargs.get("node")
@@ -97,13 +99,12 @@ class BlackboardMath(BehaviourWithPorts):
         op = self.get_input("operator")
         operand2 = self.get_input("operand2")
 
-        operator_set = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
-        if op not in operator_set:
+        if op not in self.OPERATOR_SET:
             self.node.get_logger().error(f"Operator: {op} not found in valid list of operators: (+-/*)")
             return Status.FAILURE
 
         try:
-            result = operator_set[op](operand1, operand2)
+            result = self.OPERATOR_SET[op](operand1, operand2)
         except ZeroDivisionError:
             self.node.get_logger().error("Division by zero error encountered!")
             return Status.FAILURE
