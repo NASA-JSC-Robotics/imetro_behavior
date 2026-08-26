@@ -16,12 +16,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import operator
 
 from rclpy.duration import Duration
 from rclpy.node import Node
 
 from py_trees.common import Status
-from py_trees.ports import BehaviourWithPorts
+from py_trees.ports import BehaviourWithPorts, PortInformation
 
 
 class WaitForDuration(BehaviourWithPorts):
@@ -57,3 +58,59 @@ class WaitForDuration(BehaviourWithPorts):
         if self.node.get_clock().now() - self.start_time >= self.duration:
             return Status.SUCCESS
         return Status.RUNNING
+
+class BlackboardMath(BehaviourWithPorts):
+    """Allows for doing simple arithmetic (+-/*) using blackboard values"""
+
+    INPUT_PORTS = {
+        "operand1": PortInformation(
+            data_type=float,
+            required=True,
+        ),
+        "operator": PortInformation(
+            data_type=str,
+            required=True,
+            description="Valid operators: +-/*",
+        ),
+        "operand2": PortInformation(
+            data_type=float,
+            required=True,
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "result": PortInformation(
+            data_type=float,
+            required=True,
+        )
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    def update(self) -> Status:
+        operand1 = self.get_input("operand1")
+        op = self.get_input("operator")
+        operand2 = self.get_input("operand2")
+
+        operator_set = {
+            "+": operator.add,
+            "-": operator.sub,
+            "*": operator.mul,
+            "/": operator.truediv
+        }
+        if op not in operator_set:
+            self.node.get_logger().error(f"Operator: {op} not found in valid list of operatiors: (+-/*)")
+            return Status.FAILURE
+
+        try:
+            result = operator_set[op](operand1, operand2)
+        except ZeroDivisionError:
+            self.node.get_logger().error("Division by zero error encountered!")
+            return Status.FAILURE
+
+        self._set_output("result", result)
+        return Status.SUCCESS
