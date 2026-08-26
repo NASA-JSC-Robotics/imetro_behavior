@@ -39,19 +39,13 @@ from tf2_ros import TransformBroadcaster
 class CreatePoseStamped(BehaviourWithPorts):
     """Create a PoseStamped ROS message."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "position_xyz": PortInformation(data_type=list[float], required=True),
-            "orientation_xyzw": PortInformation(data_type=list[float], required=True),
-            "frame": PortInformation(data_type=str, required=False),
-        }
+    INPUT_PORTS = {
+        "position_xyz": PortInformation(data_type=list[float], required=True),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=True),
+        "frame": PortInformation(data_type=str, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"msg": PortInformation(data_type=PoseStamped, required=True)}
+    OUTPUT_PORTS = {"msg": PortInformation(data_type=PoseStamped, required=True)}
 
     def update(self) -> Status:
         """Create the message and set it as an output port."""
@@ -74,18 +68,12 @@ class CreatePoseStamped(BehaviourWithPorts):
 class TransformPose(BehaviourWithPorts):
     """Transforms a PoseStamped ROS message to a specified frame."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "input_pose": PortInformation(data_type=PoseStamped, required=True),
-            "source_frame": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "input_pose": PortInformation(data_type=PoseStamped, required=True),
+        "source_frame": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+    OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
@@ -116,15 +104,9 @@ class TransformPose(BehaviourWithPorts):
 class AlignPoseToNearestAxis(BehaviourWithPorts):
     """Align a PoseStamped ROS message to the nearest axis (X Y Z)."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {"input_pose": PortInformation(data_type=PoseStamped, required=True)}
+    INPUT_PORTS = {"input_pose": PortInformation(data_type=PoseStamped, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+    OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
     def update(self) -> Status:
         """Create the message and set it as an output port."""
@@ -164,42 +146,38 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
 
 
 class TwistAboutPose(BehaviourWithPorts):
-    """Twist a PoseStamped about a given axis of its parent frame by specified amount of radians."""
+    """
+    Twist a PoseStamped about a given axis of its parent frame by specified amount of radians,
+    outputting a pose rotated about the given rotation pose and parented to reference frame.
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Input ports for required poses to rotate and rotational configuration.
-        Commonly used in conjunction with the GetRelativePoseStamped behavior to rotate one frame about another."""
-        return {
-            "target_pose": PortInformation(
-                data_type=PoseStamped,
-                required=True,
-                description="PoseStamped that will be rotated about its parent, target_T_rotation",
-            ),
-            "rotation_amount": PortInformation(
-                data_type=float, required=True, description="Amount of rotation in radians"
-            ),
-            "rotation_axis": PortInformation(
-                data_type=list[float],
-                required=True,
-                description="Expects axis vector to rotate about, relative to the rotation frame. "
-                "axis-angle representation: [0.0, 0.0, 1.0] for Z for example",
-            ),
-            "keep_start_orientation": PortInformation(
-                data_type=bool, required=True, description="Keep orientation of target_pose static throughout rotation"
-            ),
-        }
+    Commonly used in conjunction with the GetRelativePoseStamped behavior to rotate one frame about another.
+    """
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Returns output_pose, a pose rotated about the given rotation pose and parented to reference frame."""
-        return {
-            "output_pose": PortInformation(
-                data_type=PoseStamped,
-                required=True,
-                description="Rotated pose, with a parent that shares the reference frame of the given input poses",
-            )
-        }
+    INPUT_PORTS = {
+        "target_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="PoseStamped that will be rotated about its parent, target_T_rotation",
+        ),
+        "rotation_amount": PortInformation(data_type=float, required=True, description="Amount of rotation in radians"),
+        "rotation_axis": PortInformation(
+            data_type=list[float],
+            required=True,
+            description="Expects axis vector to rotate about, relative to the rotation frame. "
+            "axis-angle representation: [0.0, 0.0, 1.0] for Z for example",
+        ),
+        "keep_start_orientation": PortInformation(
+            data_type=bool, required=True, description="Keep orientation of target_pose static throughout rotation"
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "output_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="Rotated pose, with a parent that shares the reference frame of the given input poses",
+        )
+    }
 
     def update(self) -> Status:
         """Twist about the rotation frame."""
@@ -253,33 +231,27 @@ class GetRelativePoseStamped(BehaviourWithPorts):
     """Returns a PoseStamped from one Pose to another, given they share a common parent frame.
     Especially useful for Apriltags relative poses which expire from the TF tree quickly."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Input ports for target_T_base."""
-        return {
-            "base_pose": PortInformation(data_type=PoseStamped, required=True, description="reference/start pose."),
-            "base_frame_name": PortInformation(
-                data_type=str,
-                required=True,
-                description="frame name of the reference/start pose. Used as parent for output PoseStamped",
-            ),
-            "target_pose": PortInformation(
-                data_type=PoseStamped,
-                required=True,
-                description="end/tip pose.",
-            ),
-        }
+    INPUT_PORTS = {
+        "base_pose": PortInformation(data_type=PoseStamped, required=True, description="reference/start pose."),
+        "base_frame_name": PortInformation(
+            data_type=str,
+            required=True,
+            description="frame name of the reference/start pose. Used as parent for output PoseStamped",
+        ),
+        "target_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="end/tip pose.",
+        ),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Returns relative PoseStamped target_T_base, with the base as the parent frame."""
-        return {
-            "output_pose": PortInformation(
-                data_type=PoseStamped,
-                required=True,
-                description="Relative pose target_T_base.",
-            )
-        }
+    OUTPUT_PORTS = {
+        "output_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="Relative pose target_T_base.",
+        )
+    }
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
@@ -346,43 +318,37 @@ class GetRelativePoseStamped(BehaviourWithPorts):
 class GetRollPitchYaw(BehaviourWithPorts):
     """Returns roll, pitch, and yaw of a given PoseStamped in radians."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Input posestamped to be broken down into euler components"""
-        return {
-            "input_pose": PortInformation(
-                data_type=PoseStamped,
-                required=True,
-                description="PoseStamped to be decomposed into roll, pitch, and yaw.",
-            ),
-        }
+    INPUT_PORTS = {
+        "input_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="PoseStamped to be decomposed into roll, pitch, and yaw.",
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "roll": PortInformation(
+            data_type=float,
+            required=True,
+            description="Roll relative to parent frame.",
+        ),
+        "pitch": PortInformation(
+            data_type=float,
+            required=True,
+            description="Pitch relative to parent frame.",
+        ),
+        "yaw": PortInformation(
+            data_type=float,
+            required=True,
+            description="Yaw relative to parent frame.",
+        ),
+    }
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
         self.node = kwargs.get("node")
         if not isinstance(self.node, Node):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Returns roll, pitch, and yaw of posestamped in radians relative to its parent frame."""
-        return {
-            "roll": PortInformation(
-                data_type=float,
-                required=True,
-                description="Roll relative to parent frame.",
-            ),
-            "pitch": PortInformation(
-                data_type=float,
-                required=True,
-                description="Pitch relative to parent frame.",
-            ),
-            "yaw": PortInformation(
-                data_type=float,
-                required=True,
-                description="Yaw relative to parent frame.",
-            ),
-        }
 
     def update(self) -> Status:
         """Get the pose from base to target."""
@@ -408,19 +374,13 @@ class GetRollPitchYaw(BehaviourWithPorts):
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "input_pose": PortInformation(data_type=PoseStamped, required=True),
-            "translation_xyz": PortInformation(data_type=list[float], required=False),
-            "orientation_xyzw": PortInformation(data_type=list[float], required=False),
-        }
+    INPUT_PORTS = {
+        "input_pose": PortInformation(data_type=PoseStamped, required=True),
+        "translation_xyz": PortInformation(data_type=list[float], required=False),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+    OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
     def update(self) -> Status:
         """Offset the pose message."""
@@ -480,19 +440,13 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
                 w: 1.0
     """
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the port declarations."""
-        return {
-            "package_name": PortInformation(data_type=str, required=True),
-            "yaml_file": PortInformation(data_type=str, required=True),
-            "pose_name": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "package_name": PortInformation(data_type=str, required=True),
+        "yaml_file": PortInformation(data_type=str, required=True),
+        "pose_name": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {"msg": PortInformation(data_type=PoseStamped, required=True)}
+    OUTPUT_PORTS = {"msg": PortInformation(data_type=PoseStamped, required=True)}
 
     def setup(self, **kwargs):
         """Get access to the node for error statements."""
@@ -546,20 +500,14 @@ class LookupTransform(BehaviourWithPorts):
     Namely, `target_T_source`.
     """
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "source_frame": PortInformation(data_type=str, required=True),
-            "target_frame": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "source_frame": PortInformation(data_type=str, required=True),
+        "target_frame": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {
-            "target_T_source": PortInformation(data_type=TransformStamped, required=True),
-        }
+    OUTPUT_PORTS = {
+        "target_T_source": PortInformation(data_type=TransformStamped, required=True),
+    }
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
@@ -587,18 +535,14 @@ class LookupTransform(BehaviourWithPorts):
 class TransformStampedToPoseStamped(BehaviourWithPorts):
     """Convert a TransformStamped ROS message to a PoseStamped ROS message."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
-        }
+    INPUT_PORTS = {
+        "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {
-            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
-            "child_frame_id": PortInformation(data_type=str, required=True),
-        }
+    OUTPUT_PORTS = {
+        "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+        "child_frame_id": PortInformation(data_type=str, required=True),
+    }
 
     def update(self) -> Status:
         """Extract the transform's translation and rotation into a PoseStamped message."""
@@ -619,18 +563,14 @@ class TransformStampedToPoseStamped(BehaviourWithPorts):
 class PoseStampedToTransformStamped(BehaviourWithPorts):
     """Convert a PoseStamped ROS message to a TransformStamped ROS message."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
-            "child_frame_id": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
+        "child_frame_id": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {
-            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
-        }
+    OUTPUT_PORTS = {
+        "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
+    }
 
     def update(self) -> Status:
         """Extract the pose's position and orientation into a TransformStamped message."""
@@ -656,19 +596,13 @@ class DecomposePoseStamped(BehaviourWithPorts):
     Works well with OffsetPoseStamped.
     """
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "pose_stamped": PortInformation(data_type=PoseStamped, required=True),
-        }
+    INPUT_PORTS = {"pose_stamped": PortInformation(data_type=PoseStamped, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {
-            "frame_id": PortInformation(data_type=str, required=False),
-            "translation_xyz": PortInformation(data_type=list[float], required=False),
-            "orientation_xyzw": PortInformation(data_type=list[float], required=False),
-        }
+    OUTPUT_PORTS = {
+        "frame_id": PortInformation(data_type=str, required=False),
+        "translation_xyz": PortInformation(data_type=list[float], required=False),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=False),
+    }
 
     def update(self) -> Status:
         """Extract the pose's position, orientation, and frame_id and return as list[float] and str"""
@@ -690,17 +624,9 @@ class DecomposePoseStamped(BehaviourWithPorts):
 class PublishTransform(BehaviourWithPorts):
     """Publish transform stamped message to the tf2_ros server."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "transform_stamped": PortInformation(data_type=TransformStamped, required=True),
-        }
+    INPUT_PORTS = {"transform_stamped": PortInformation(data_type=TransformStamped, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def setup(self, **kwargs):
         """Setup transform broadcaster."""
@@ -735,19 +661,13 @@ class PublishTwist(BehaviourWithPorts):
         self.publisher = None
         self.twist_stamped = None
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {
-            "linear_velocity": PortInformation(data_type=list[float], required=True),
-            "angular_velocity": PortInformation(data_type=list[float], required=True),
-            "frame_id": PortInformation(data_type=str, required=False),
-        }
+    INPUT_PORTS = {
+        "linear_velocity": PortInformation(data_type=list[float], required=True),
+        "angular_velocity": PortInformation(data_type=list[float], required=True),
+        "frame_id": PortInformation(data_type=str, required=False),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def initialise(self) -> None:
         """Create TwistStamped message publisher, assemble twist message."""

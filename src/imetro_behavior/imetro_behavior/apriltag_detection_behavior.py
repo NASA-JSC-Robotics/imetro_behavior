@@ -33,21 +33,17 @@ from cv_bridge import CvBridge
 class DetectAprilTag(BehaviourWithPorts):
     """Detects AprilTag based on RGB images and camera info, then returns the tag pose."""
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "rgb_image": PortInformation(data_type=Image, required=True),
-            "camera_info": PortInformation(data_type=CameraInfo, required=True),
-            "tag_id": PortInformation(data_type=int, required=True),
-            "tag_size": PortInformation(data_type=float, required=True),
-            "tag_family": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "rgb_image": PortInformation(data_type=Image, required=True),
+        "camera_info": PortInformation(data_type=CameraInfo, required=True),
+        "tag_id": PortInformation(data_type=int, required=True),
+        "tag_size": PortInformation(data_type=float, required=True),
+        "tag_family": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {
-            "tag_pose": PortInformation(data_type=PoseStamped, required=True),
-        }
+    OUTPUT_PORTS = {
+        "tag_pose": PortInformation(data_type=PoseStamped, required=True),
+    }
 
     def setup(self, **kwargs):
         """Sets up the ROS node, detector, and bridge."""

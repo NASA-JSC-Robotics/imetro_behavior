@@ -43,15 +43,9 @@ class ResetMujocoWorld(RosServiceClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=ResetWorld, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "keyframe": PortInformation(data_type=str, required=False),
-        }
+    INPUT_PORTS = {"keyframe": PortInformation(data_type=str, required=False)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_request(self) -> ResetWorld.Request:
         return ResetWorld.Request(

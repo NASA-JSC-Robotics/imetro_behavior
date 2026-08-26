@@ -72,20 +72,14 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         self.depth_image_sub = None
         self.point_cloud_sub = None
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
+    INPUT_PORTS = {}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {
-            "camera_info": PortInformation(data_type=CameraInfo, required=True),
-            "rgb_image": PortInformation(data_type=Image, required=True),
-            "depth_image": PortInformation(data_type=Image, required=True),
-            "point_cloud": PortInformation(data_type=PointCloud2, required=True),
-        }
+    OUTPUT_PORTS = {
+        "camera_info": PortInformation(data_type=CameraInfo, required=True),
+        "rgb_image": PortInformation(data_type=Image, required=True),
+        "depth_image": PortInformation(data_type=Image, required=True),
+        "point_cloud": PortInformation(data_type=PointCloud2, required=True),
+    }
 
     def setup(self, **kwargs):
         """

@@ -136,17 +136,9 @@ class GetStringTopic(RosSubscriberBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, topic_type=String, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
+    INPUT_PORTS = {}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {
-            "message": PortInformation(data_type=str, required=True),
-        }
+    OUTPUT_PORTS = {"message": PortInformation(data_type=str, required=True)}
 
     def process_msg(self, message: String) -> Status:
         try:

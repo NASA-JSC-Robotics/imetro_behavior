@@ -39,15 +39,8 @@ class WaitForDuration(BehaviourWithPorts):
         self.duration = Duration(seconds=duration_sec)
         super().__init__(name, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {}
-
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {}
 
     def setup(self, **kwargs):
         """Get access to the ROS node for its clock."""

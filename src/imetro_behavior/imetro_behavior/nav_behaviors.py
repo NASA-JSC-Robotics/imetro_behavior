@@ -34,15 +34,9 @@ class NavigateToPoseBehavior(RosActionClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=NavigateToPose, **kwargs)
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        """Return the input port declarations."""
-        return {"goal_pose": PortInformation(data_type=PoseStamped, required=True)}
+    INPUT_PORTS = {"goal_pose": PortInformation(data_type=PoseStamped, required=True)}
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        """Return the output port declarations."""
-        return {}
+    OUTPUT_PORTS = {}
 
     def create_goal(self) -> NavigateToPose.Goal:
         """Create a navigation goal."""

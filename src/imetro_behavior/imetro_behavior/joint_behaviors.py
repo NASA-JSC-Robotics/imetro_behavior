@@ -46,20 +46,16 @@ class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
     Downstream consumers should do their own validation based on what they support.
     """
 
-    @classmethod
-    def input_ports(cls) -> dict:
-        return {
-            "package_name": PortInformation(data_type=str, required=True),
-            "yaml_file": PortInformation(data_type=str, required=True),
-            "state_name": PortInformation(data_type=str, required=True),
-        }
+    INPUT_PORTS = {
+        "package_name": PortInformation(data_type=str, required=True),
+        "yaml_file": PortInformation(data_type=str, required=True),
+        "state_name": PortInformation(data_type=str, required=True),
+    }
 
-    @classmethod
-    def output_ports(cls) -> dict:
-        return {
-            "joint_names": PortInformation(data_type=list[str], required=True),
-            "joint_positions": PortInformation(data_type=list[float], required=True),
-        }
+    OUTPUT_PORTS = {
+        "joint_names": PortInformation(data_type=list[str], required=True),
+        "joint_positions": PortInformation(data_type=list[float], required=True),
+    }
 
     def setup(self, **kwargs):
         """Get access to the node for error statements."""
