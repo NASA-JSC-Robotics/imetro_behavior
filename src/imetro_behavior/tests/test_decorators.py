@@ -16,12 +16,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import time
 
 import py_trees
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 
-from imetro_behavior.decorators import SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
+from imetro_behavior.decorators import SuccessIfVariableIsFalse, SuccessIfVariableIsTrue, TimeoutPort
 
 
 def test_success_if_variable_is_true_skips_child() -> None:
@@ -88,3 +89,85 @@ def test_success_if_variable_is_false_ticks_child() -> None:
     decorator.tick_once()
     assert decorator.status == Status.FAILURE
     assert child.status == Status.FAILURE
+
+
+def test_timeout_reinitialization() -> None:
+    running = py_trees.behaviours.Running(name="Running")
+
+    timeout = TimeoutPort(name="Timeout", child=running)
+    timeout.setup_ports()
+    Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
+
+    # Test that it times out and re-initialises properly
+    for i in range(0, 2):
+        timeout.tick_once()
+
+        assert timeout.status == Status.RUNNING
+        assert running.status == Status.RUNNING
+
+        time.sleep(0.3)
+
+        timeout.tick_once()
+
+        assert timeout.status == Status.FAILURE
+        assert running.status == Status.INVALID
+
+
+def test_timeout_passthrough_success() -> None:
+    # test that it passes on success
+    count = py_trees.behaviours.StatusQueue(
+        name="Queue",
+        queue=[Status.RUNNING],
+        eventually=Status.SUCCESS,
+    )
+
+    timeout = TimeoutPort(name="Timeout", child=count)
+    timeout.setup_ports()
+    Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
+
+    timeout.tick_once()
+    assert count.status == Status.RUNNING
+    assert timeout.status == Status.RUNNING
+
+    timeout.tick_once()
+    assert count.status == Status.SUCCESS
+    assert timeout.status == Status.SUCCESS
+
+
+def test_timeout_passthrough_failure() -> None:
+    # test that it passes on failure
+    failure = py_trees.behaviours.Failure(name="Failure")
+
+    timeout = TimeoutPort(name="Timeout", child=failure)
+    timeout.setup_ports()
+    Blackboard.set(timeout._get_blackboard_key("duration"), 0.2)
+
+    timeout.tick_once()
+
+    assert failure.status == Status.FAILURE
+    assert timeout.status == Status.FAILURE
+
+
+def test_timeout_status_passthrough_order() -> None:
+    # test that it succeeds if child succeeds on last tick
+    count = py_trees.behaviours.StatusQueue(
+        name="Queue",
+        queue=[Status.RUNNING],
+        eventually=Status.SUCCESS,
+    )
+    timeout = TimeoutPort(name="Timeout", child=count)
+    timeout.setup_ports()
+
+    Blackboard.set(timeout._get_blackboard_key("duration"), 0.1)
+
+    timeout.tick_once()
+
+    assert count.status == Status.RUNNING
+    assert timeout.status == Status.RUNNING
+
+    time.sleep(0.2)  # go past the duration
+
+    timeout.tick_once()
+
+    assert count.status == Status.SUCCESS
+    assert timeout.status == Status.SUCCESS

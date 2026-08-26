@@ -17,6 +17,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 import copy
 import yaml
 
@@ -29,7 +31,7 @@ from scipy.spatial.transform import RigidTransform, Rotation as R
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
 import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped, TwistStamped
 from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
@@ -712,3 +714,72 @@ class PublishTransform(BehaviourWithPorts):
         transform_stamped = self.get_input("transform_stamped")
         self.tf_broadcaster.sendTransform(transform_stamped)
         return Status.SUCCESS
+
+
+class PublishTwist(BehaviourWithPorts):
+    """
+    Takes in `linear` and `angular` velocities and converts them geometry_msgs/msg/Twist.
+    Creates std_msgs/msg/Header from `frame_id` input and current ROS 2 timestamp.
+    Combines both into geometry_msgs/msg/TwistStamped and publishes onto the `topic_name`.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        topic_name: str,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(name, **kwargs)
+        self.topic_name = topic_name
+        self.publisher = None
+        self.twist_stamped = None
+
+    @classmethod
+    def input_ports(cls) -> dict:
+        """Return the input port declarations."""
+        return {
+            "linear_velocity": PortInformation(data_type=list[float], required=True),
+            "angular_velocity": PortInformation(data_type=list[float], required=True),
+            "frame_id": PortInformation(data_type=str, required=False),
+        }
+
+    @classmethod
+    def output_ports(cls) -> dict:
+        """Return the output port declarations."""
+        return {}
+
+    def initialise(self) -> None:
+        """Create TwistStamped message publisher, assemble twist message."""
+        self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
+        self.twist_stamped = TwistStamped()
+
+        linear = self.get_input("linear_velocity", [0.0, 0.0, 0.0])
+        angular = self.get_input("angular_velocity", [0.0, 0.0, 0.0])
+
+        self.twist_stamped.twist.linear.x = linear[0]
+        self.twist_stamped.twist.linear.y = linear[1]
+        self.twist_stamped.twist.linear.z = linear[2]
+
+        self.twist_stamped.twist.angular.x = angular[0]
+        self.twist_stamped.twist.angular.y = angular[1]
+        self.twist_stamped.twist.angular.z = angular[2]
+
+        self.twist_stamped.header.stamp = self.node.get_clock().now().to_msg()
+        self.twist_stamped.header.frame_id = self.get_input("frame_id", "map")
+
+    def setup(self, **kwargs):
+        """Get the ROS node from the blackboard."""
+        self.node = kwargs.get("node")
+        if not isinstance(self.node, Node):
+            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+
+    def update(self) -> Status:
+        """Publish twist stamped message."""
+        self.publisher.publish(self.twist_stamped)
+        return Status.SUCCESS
+
+    def terminate(self, new_status: Status) -> Status:
+        """Cleanup the publisher"""
+        if self.status == Status.RUNNING and new_status == Status.INVALID:
+            self.publisher.destroy()
