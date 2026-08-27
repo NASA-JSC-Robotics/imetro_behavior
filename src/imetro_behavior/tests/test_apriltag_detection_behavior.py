@@ -50,7 +50,9 @@ def apriltag_behavior(ros_node: Node):
     Blackboard.set(behavior._get_blackboard_key("tag_size"), 0.073)
     Blackboard.set(behavior._get_blackboard_key("tag_family"), "tag36h11")
 
-    return behavior
+    yield behavior
+
+    behavior.shutdown()
 
 
 def test_detect_apriltag_success(apriltag_behavior) -> None:
