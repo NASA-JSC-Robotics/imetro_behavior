@@ -116,3 +116,22 @@ class DetectAprilTag(BehaviourWithPorts):
 
         self._set_output("tag_pose", pose_msg)
         return Status.SUCCESS
+
+    def shutdown(self) -> None:
+        # pupil_apriltags' __del__ frees the tag family structs before apriltag_detector_destroy,
+        # which still dereferences them. This causes a use-after-free segfault at interpreter shutdown
+        # under memory pressure, for example in CI. Tear down in the correct order here, then null the
+        # ctypes pointer so upstream __del__ no-ops when the garbage collector eventually runs.
+        det, self.detector = self.detector, None
+        if det is None:
+            return
+        if getattr(det, "tag_detector_ptr", None) is not None:
+            det.libc.apriltag_detector_destroy.restype = None
+            det.libc.apriltag_detector_destroy(det.tag_detector_ptr)
+            det.tag_detector_ptr = None  # makes upstream __del__ a no-op
+        for family, tf in getattr(det, "tag_families", {}).items():
+            destroy = getattr(det.libc, f"{family}_destroy", None)
+            if destroy is not None:
+                destroy.restype = None
+                destroy(tf)
+        det.tag_families = {}
