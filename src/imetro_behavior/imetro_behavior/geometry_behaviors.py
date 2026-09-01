@@ -95,8 +95,7 @@ class TransformPose(BehaviourWithPorts):
             return Status.FAILURE
 
         output_pose = PoseStamped()
-        output_pose.header = input_pose.header
-        output_pose.header.frame_id = source_frame
+        output_pose.header = tform.header
         output_pose.pose = tf2_geometry_msgs.do_transform_pose(input_pose.pose, tform)
         self._set_output("output_pose", output_pose)
         return Status.SUCCESS
