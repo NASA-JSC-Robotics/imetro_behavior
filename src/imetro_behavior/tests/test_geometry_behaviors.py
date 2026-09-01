@@ -114,6 +114,8 @@ def test_transform_pose(ros_node: Node, tf_buffer: Buffer) -> None:
     behavior.setup(node=ros_node)
 
     input_pose = make_pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="map")
+    input_pose.header.stamp.sec = 10
+    input_pose.header.stamp.nanosec = 15
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     Blackboard.set(behavior._get_blackboard_key("source_frame"), "base")
 
@@ -121,6 +123,8 @@ def test_transform_pose(ros_node: Node, tf_buffer: Buffer) -> None:
     assert behavior.status == Status.SUCCESS
     output_pose = behavior.get_last_output("output_pose")
     assert output_pose.header.frame_id == "base"
+    assert output_pose.header.stamp.nanosec == 15
+    assert output_pose.header.stamp.sec == 10
     # The base frame sits at x=1.0 in map, so the map origin is at x=-1.0 in base.
     assert output_pose.pose.position.x == pytest.approx(-1.0)
 
