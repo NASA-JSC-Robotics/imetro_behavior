@@ -436,8 +436,8 @@ class OffsetPoseStampedLocally(BehaviourWithPorts):
     def update(self) -> Status:
         """Locally offset the pose message."""
         input_posestamp = self.get_input("input_pose")
-        translation_xyz = self.get_input("translation_xyz")
-        orientation_xyzw = self.get_input("orientation_xyzw")
+        translation_xyz = self.get_input("translation_xyz", [0.0, 0.0, 0.0])
+        orientation_xyzw = self.get_input("orientation_xyzw", [0.0, 0.0, 0.0, 1.0])
 
         input_orientation = R.from_quat(
             [
