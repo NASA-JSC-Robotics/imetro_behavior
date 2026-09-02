@@ -12,6 +12,7 @@ imports:
   - imetro_behavior.decorators
   - imetro_behavior.geometry_behaviors
   - imetro_behavior.joint_behaviors
+  - imetro_behavior.mockup_behaviors
   - imetro_behavior.moveit_behaviors
   - imetro_behavior.nav_behaviors
   - imetro_behavior.ros_behaviors

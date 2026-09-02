@@ -74,7 +74,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Abstract method for processing a ROS service response.
         """
-        raise NotImplementedError("Must implement create_request() method.")
+        raise NotImplementedError("Must implement process_request() method.")
 
     def setup(self, **kwargs):
         """

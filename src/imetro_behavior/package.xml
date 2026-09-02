@@ -16,6 +16,7 @@
   <exec_depend>py_trees_ros</exec_depend>
   <exec_depend>py_trees_ros_viewer</exec_depend>
   <exec_depend>imetro_behavior_msgs</exec_depend>
+  <exec_depend>mockup_msgs</exec_depend>
 
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>python3-pytest-mock</test_depend>
