@@ -1,0 +1,12 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <UpdateMockupStates
+        name="test_mockup_states"
+        service_name="/mockups/mockup_manager/set_joint_state"
+        mockup_joint_names="exterior_hatch_4040_hatch_outer_frame_face_joint; exterior_hatch_4040_external_rotary_joint"
+        mockup_joint_positions="0.5; 1.2"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>
