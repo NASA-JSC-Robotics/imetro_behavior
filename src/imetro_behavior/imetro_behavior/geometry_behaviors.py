@@ -384,7 +384,7 @@ class OffsetPoseStamped(BehaviourWithPorts):
     OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
     def update(self) -> Status:
-        """Offset the pose message."""
+        """Offset the pose message relative to its parent frame."""
         msg = copy.deepcopy(self.get_input("input_pose"))
 
         # Translation offset can be applied simply by adding it.
@@ -419,6 +419,57 @@ class OffsetPoseStamped(BehaviourWithPorts):
         msg.pose.orientation.w = q_new[3]
 
         self._set_output("output_pose", msg)
+        return Status.SUCCESS
+
+
+class OffsetPoseStampedLocally(BehaviourWithPorts):
+    """Offset a PoseStamped ROS message in its local coordinate frame."""
+
+    INPUT_PORTS = {
+        "input_pose": PortInformation(data_type=PoseStamped, required=True),
+        "translation_xyz": PortInformation(data_type=list[float], required=False),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=False),
+    }
+
+    OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
+
+    def update(self) -> Status:
+        """Locally offset the pose message."""
+        input_posestamp = self.get_input("input_pose")
+        translation_xyz = self.get_input("translation_xyz")
+        orientation_xyzw = self.get_input("orientation_xyzw")
+
+        input_orientation = R.from_quat(
+            [
+                input_posestamp.pose.orientation.x,
+                input_posestamp.pose.orientation.y,
+                input_posestamp.pose.orientation.z,
+                input_posestamp.pose.orientation.w,
+            ]
+        )
+        input_translation = np.array(
+            [input_posestamp.pose.position.x, input_posestamp.pose.position.y, input_posestamp.pose.position.z]
+        )
+        input_RT = RigidTransform.from_components(input_translation, input_orientation)
+        offset_RT = RigidTransform.from_components(np.array(translation_xyz), R.from_quat(orientation_xyzw))
+
+        offset_T_input = input_RT * offset_RT
+
+        final_pose = offset_T_input.translation
+        final_rotation = offset_T_input.rotation.as_quat()
+
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header = input_posestamp.header
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
+        output_pose.pose.orientation.x = final_rotation[0]
+        output_pose.pose.orientation.y = final_rotation[1]
+        output_pose.pose.orientation.z = final_rotation[2]
+        output_pose.pose.orientation.w = final_rotation[3]
+
+        self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
 
