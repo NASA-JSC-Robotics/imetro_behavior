@@ -20,6 +20,10 @@ imports:
   # https://github.com/NASA-JSC-Robotics/color_tools
   # - imetro_behavior.color_behaviors
 
+  # Omitting this too since it requires `mockup_msgs` external repo:
+  # https://github.com/NASA-JSC-Robotics/surface_robotics_mockups_description
+  # - imetro_behavior.mockup_behaviors
+
   # Additionally omitting until we add a pixi dependency on the mujoco drivers.
   # - imetro_behavior.mujoco_behaviors
 
