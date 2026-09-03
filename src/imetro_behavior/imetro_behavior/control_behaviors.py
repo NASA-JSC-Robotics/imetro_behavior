@@ -176,37 +176,37 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         super().__init__(name, service_type=SetParametersAtomically, **kwargs)
 
     INPUT_PORTS = {
-        "admittance.selected_axes": PortInformation(
+        "admittance_selected_axes": PortInformation(
             data_type=list[bool],
             required=False,
             default_value=[],
             description="Which axes to enable for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
         ),
-        "admittance.mass": PortInformation(
+        "admittance_mass": PortInformation(
             data_type=list[float],
             required=False,
             default_value=[],
             description="Mass for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
         ),
-        "admittance.stiffness": PortInformation(
+        "admittance_stiffness": PortInformation(
             data_type=list[float],
             required=False,
             default_value=[],
             description="Stiffness for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
         ),
-        "admittance.damping_ratio": PortInformation(
+        "admittance_damping_ratio": PortInformation(
             data_type=list[float],
             required=False,
             default_value=[],
             description="Damping ratio for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
         ),
-        "gravity_compensation.CoG.force": PortInformation(
+        "gravity_compensation_CoG_force": PortInformation(
             data_type=float,
             required=False,
             default_value=None,
             description="Force of gravity to be compensated for the force torque data",
         ),
-        "gravity_compensation.CoG.pos": PortInformation(
+        "gravity_compensation_CoG_pos": PortInformation(
             data_type=list[float],
             required=False,
             default_value=[],
@@ -226,9 +226,9 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
 
         if param_type == ParameterType.PARAMETER_BOOL_ARRAY:
             parameter.value.bool_array_value = param_value
-        if param_type == ParameterType.PARAMETER_DOUBLE_ARRAY:
+        elif param_type == ParameterType.PARAMETER_DOUBLE_ARRAY:
             parameter.value.double_array_value = param_value
-        if param_type == ParameterType.PARAMETER_DOUBLE:
+        elif param_type == ParameterType.PARAMETER_DOUBLE:
             parameter.value.double_value = param_value
         else:
             self.node.get_logger().error(
@@ -236,45 +236,59 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
             )
             return False
 
+        params_list.append(parameter)
+
         return True
 
     def create_request(self) -> SetParametersAtomically.Request:
         """
         Package up a SetParametersAtomically request for the admittance parameters we want to update."""
-        admittance_selected_axes = self.get_input("admittance.selected_axes")
-        admittance_mass = self.get_input("admittance.mass")
-        admittance_stiffness = self.get_input("admittance.stiffness")
-        admittance_damping_ratio = self.get_input("admittance.damping_ratio")
-        gravity_compensation_CoG_force = self.get_input("gravity_compensation.CoG.force")
-        gravity_compensation_CoG_pos = self.get_input("gravity_compensation.CoG.pos")
+        admittance_selected_axes = self.get_input("admittance_selected_axes")
+        admittance_mass = self.get_input("admittance_mass")
+        admittance_stiffness = self.get_input("admittance_stiffness")
+        admittance_damping_ratio = self.get_input("admittance_damping_ratio")
+        gravity_compensation_CoG_force = self.get_input("gravity_compensation_CoG_force")
+        gravity_compensation_CoG_pos = self.get_input("gravity_compensation_CoG_pos")
 
         request = SetParametersAtomically.Request
         params_list = []
 
         success = True
         success = success and self.add_parameter_to_list(
-            params_list, "admittance.selected_axes", admittance_selected_axes, ParameterType.PARAMETER_BOOL_ARRAY
+            params_list=params_list,
+            param_name="admittance.selected_axes",
+            param_type=ParameterType.PARAMETER_BOOL_ARRAY,
+            param_value=admittance_selected_axes,
         )
         success = success and self.add_parameter_to_list(
-            params_list, "admittance.mass", admittance_mass, ParameterType.PARAMETER_DOUBLE_ARRAY
+            params_list=params_list,
+            param_name="admittance.mass",
+            param_type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+            param_value=admittance_mass,
         )
         success = success and self.add_parameter_to_list(
-            params_list, "admittance.stiffness", admittance_stiffness, ParameterType.PARAMETER_DOUBLE_ARRAY
+            params_list=params_list,
+            param_name="admittance.stiffness",
+            param_type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+            param_value=admittance_stiffness,
         )
         success = success and self.add_parameter_to_list(
-            params_list, "admittance.damping_ratio", admittance_damping_ratio, ParameterType.PARAMETER_DOUBLE_ARRAY
+            params_list=params_list,
+            param_name="admittance.damping_ratio",
+            param_type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+            param_value=admittance_damping_ratio,
         )
         success = success and self.add_parameter_to_list(
-            params_list,
-            "gravity_compensation.CoG.force",
-            gravity_compensation_CoG_force,
-            ParameterType.PARAMETER_DOUBLE_ARRAY,
+            params_list=params_list,
+            param_name="gravity_compensation.CoG.force",
+            param_type=ParameterType.PARAMETER_DOUBLE,
+            param_value=gravity_compensation_CoG_force,
         )
         success = success and self.add_parameter_to_list(
-            params_list,
-            "gravity_compensation.CoG.pos",
-            gravity_compensation_CoG_pos,
-            ParameterType.PARAMETER_DOUBLE_ARRAY,
+            params_list=params_list,
+            param_name="gravity_compensation.CoG.pos",
+            param_type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+            param_value=gravity_compensation_CoG_pos,
         )
         if not success:
             raise RuntimeError("Setting parameters inside UpdateAdmittanceParameters did not work.")

@@ -163,17 +163,17 @@ def test_update_admittance_parameters_create_goal_full(ros_node: Node) -> None:
     example_gravity_compensation_CoG_force = 9.0
     example_gravity_compensation_CoG_pos = [4.0, 5.0, 6.0]
 
-    admittance_selected_axes_port = behavior._get_blackboard_key("admittance.selected_axes")
+    admittance_selected_axes_port = behavior._get_blackboard_key("admittance_selected_axes")
     Blackboard.set(admittance_selected_axes_port, example_admittance_selected_axes)
-    admittance_mass_port = behavior._get_blackboard_key("admittance.mass")
+    admittance_mass_port = behavior._get_blackboard_key("admittance_mass")
     Blackboard.set(admittance_mass_port, example_admittance_mass)
-    admittance_stiffness_port = behavior._get_blackboard_key("admittance.stiffness")
+    admittance_stiffness_port = behavior._get_blackboard_key("admittance_stiffness")
     Blackboard.set(admittance_stiffness_port, example_admittance_stiffness)
-    admittance_damping_ratio_port = behavior._get_blackboard_key("admittance.damping_ratio")
+    admittance_damping_ratio_port = behavior._get_blackboard_key("admittance_damping_ratio")
     Blackboard.set(admittance_damping_ratio_port, example_admittance_damping_ratio)
-    gravity_compensation_CoG_force_port = behavior._get_blackboard_key("gravity_compensation.CoG.force")
+    gravity_compensation_CoG_force_port = behavior._get_blackboard_key("gravity_compensation_CoG_force")
     Blackboard.set(gravity_compensation_CoG_force_port, example_gravity_compensation_CoG_force)
-    gravity_compensation_CoG_pos_port = behavior._get_blackboard_key("gravity_compensation.CoG.pos")
+    gravity_compensation_CoG_pos_port = behavior._get_blackboard_key("gravity_compensation_CoG_pos")
     Blackboard.set(gravity_compensation_CoG_pos_port, example_gravity_compensation_CoG_pos)
 
     request = behavior.create_request()
