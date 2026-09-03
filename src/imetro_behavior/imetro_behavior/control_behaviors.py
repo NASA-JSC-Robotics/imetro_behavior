@@ -22,6 +22,9 @@ from typing import Any
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
+from rcl_interfaces.srv import SetParametersAtomically
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
@@ -80,7 +83,7 @@ class SwitchRosControllers(RosServiceClientBase):
 
     OUTPUT_PORTS = {}
 
-    def create_request(self) -> ListControllers.Request:
+    def create_request(self) -> SwitchController.Request:
         """
         Look up which controllers must be activated and/or deactivated based on the inputs,
         and then package up a corresponding switch controller request."""
@@ -122,7 +125,7 @@ class SwitchRosControllers(RosServiceClientBase):
             deactivate_controllers=deactivate_controllers,
         )
 
-    def process_response(self, response: ListControllers.Response) -> Status:
+    def process_response(self, response: SwitchController.Response) -> Status:
         """Process the service response."""
         if response.ok:
             self.node.get_logger().debug("Successfully switched controllers!")
@@ -159,4 +162,130 @@ class CommandGripper(RosActionClientBase):
             return Status.SUCCESS
         else:
             self.node.get_logger().error("Gripper command action did not reach its goal or hit a stall condition.")
+            return Status.FAILURE
+
+
+class UpdateAdmittanceParameter(RosServiceClientBase):
+    """
+    Updates admittance parameters using the SetParametersAtomically service.
+
+    All of the parameters are optional, and only the populated ones will be applied to the controller.
+    """
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(name, service_type=SetParametersAtomically, **kwargs)
+
+    INPUT_PORTS = {
+        "admittance.selected_axes": PortInformation(
+            data_type=list[bool],
+            required=False,
+            default_value=[],
+            description="Which axes to enable for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
+        ),
+        "admittance.mass": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[],
+            description="Mass for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
+        ),
+        "admittance.stiffness": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[],
+            description="Stiffness for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
+        ),
+        "admittance.damping_ratio": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[],
+            description="Damping ratio for each axis for admittance (tx, ty, tz, rx, ry, rz). Must be size 6",
+        ),
+        "gravity_compensation.CoG.force": PortInformation(
+            data_type=float,
+            required=False,
+            default_value=None,
+            description="Force of gravity to be compensated for the force torque data",
+        ),
+        "gravity_compensation.CoG.pos": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[],
+            description="Center of Gravity location w.r.t. the predifined frame (px, py, pz). Must be size 3",
+        ),
+    }
+
+    OUTPUT_PORTS = {}
+
+    def add_parameter_to_list(self, params_list, param_name, param_type, param_value) -> bool:
+
+        # return early if param_value is None or is empty list
+        if not param_value:
+            return
+
+        parameter = Parameter(name=param_name, value=ParameterValue(type=param_type))
+
+        if param_type == ParameterType.PARAMETER_BOOL_ARRAY:
+            parameter.value.bool_array_value = param_value
+        if param_type == ParameterType.PARAMETER_DOUBLE_ARRAY:
+            parameter.value.double_array_value = param_value
+        if param_type == ParameterType.PARAMETER_DOUBLE:
+            parameter.value.double_value = param_value
+        else:
+            self.node.get_logger().error(
+                f"Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' are supported for the add_parameter_to_list() method."
+            )
+            return False
+
+        return True
+
+    def create_request(self) -> SetParametersAtomically.Request:
+        """
+        Package up a SetParametersAtomically request for the admittance parameters we want to update."""
+        admittance_selected_axes = self.get_input("admittance.selected_axes")
+        admittance_mass = self.get_input("admittance.mass")
+        admittance_stiffness = self.get_input("admittance.stiffness")
+        admittance_damping_ratio = self.get_input("admittance.damping_ratio")
+        gravity_compensation_CoG_force = self.get_input("gravity_compensation.CoG.force")
+        gravity_compensation_CoG_pos = self.get_input("gravity_compensation.CoG.pos")
+
+        request = SetParametersAtomically.Request
+        params_list = []
+
+        success = True
+        success = success and self.add_parameter_to_list(
+            params_list, "admittance.selected_axes", admittance_selected_axes, ParameterType.PARAMETER_BOOL_ARRAY
+        )
+        success = success and self.add_parameter_to_list(
+            params_list, "admittance.mass", admittance_mass, ParameterType.PARAMETER_DOUBLE_ARRAY
+        )
+        success = success and self.add_parameter_to_list(
+            params_list, "admittance.stiffness", admittance_stiffness, ParameterType.PARAMETER_DOUBLE_ARRAY
+        )
+        success = success and self.add_parameter_to_list(
+            params_list, "admittance.damping_ratio", admittance_damping_ratio, ParameterType.PARAMETER_DOUBLE_ARRAY
+        )
+        success = success and self.add_parameter_to_list(
+            params_list,
+            "gravity_compensation.CoG.force",
+            gravity_compensation_CoG_force,
+            ParameterType.PARAMETER_DOUBLE_ARRAY,
+        )
+        success = success and self.add_parameter_to_list(
+            params_list,
+            "gravity_compensation.CoG.pos",
+            gravity_compensation_CoG_pos,
+            ParameterType.PARAMETER_DOUBLE_ARRAY,
+        )
+        if not success:
+            raise RuntimeError("Setting parameters inside UpdateAdmittanceParameters did not work.")
+
+        return request
+
+    def process_response(self, response: SetParametersAtomically.Response) -> Status:
+        """Process the service response."""
+        if response.result.successful:
+            self.node.get_logger().debug("Successfully set admittance parameters!")
+            return Status.SUCCESS
+        else:
+            self.node.get_logger().error(f"Failed to set parameters: {response.result.reason}")
             return Status.FAILURE
