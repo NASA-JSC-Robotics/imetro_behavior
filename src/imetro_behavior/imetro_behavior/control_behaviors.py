@@ -22,8 +22,8 @@ from typing import Any
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
-from rcl_interfaces.srv import SetParametersAtomically
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import SetParametersAtomically
 
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
