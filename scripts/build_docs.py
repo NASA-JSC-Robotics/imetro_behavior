@@ -23,8 +23,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-# Mock any modules that aren't available, many of these are pulled
-# in my color_tools, but mocking them still lets that module have documentation.
+# Mock any modules that aren't available, (such as color_tools or mockups);
+# but mocking them still lets that module have documentation.
 mocks = [
     "cv2",
     "cv_bridge",
