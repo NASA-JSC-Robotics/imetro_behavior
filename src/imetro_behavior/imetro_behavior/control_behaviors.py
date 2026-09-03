@@ -165,7 +165,7 @@ class CommandGripper(RosActionClientBase):
             return Status.FAILURE
 
 
-class UpdateAdmittanceParameter(RosServiceClientBase):
+class UpdateAdmittanceParameters(RosServiceClientBase):
     """
     Updates admittance parameters using the SetParametersAtomically service.
 
