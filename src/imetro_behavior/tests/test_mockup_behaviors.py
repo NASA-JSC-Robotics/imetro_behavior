@@ -30,8 +30,8 @@ def test_update_mockup_states_create_request(ros_node: Node) -> None:
     behavior.setup(node=ros_node)
     behavior.setup_ports()
 
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_names"), ["door"])
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_positions"), [0.78])
+    Blackboard.set(behavior._get_blackboard_key("joint_names"), ["door"])
+    Blackboard.set(behavior._get_blackboard_key("joint_positions"), [0.78])
 
     request = behavior.create_request()
     assert request.joint_state.name == ["door"]
@@ -39,10 +39,10 @@ def test_update_mockup_states_create_request(ros_node: Node) -> None:
     assert list(request.joint_state.velocity) == []
     assert list(request.joint_state.effort) == []
 
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_names"), ["bench1", "bench2"])
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_positions"), [0.0, 1.57])
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_velocities"), [0.0, 0.0])
-    Blackboard.set(behavior._get_blackboard_key("mockup_joint_efforts"), [0.0, 0.0])
+    Blackboard.set(behavior._get_blackboard_key("joint_names"), ["bench1", "bench2"])
+    Blackboard.set(behavior._get_blackboard_key("joint_positions"), [0.0, 1.57])
+    Blackboard.set(behavior._get_blackboard_key("joint_velocities"), [0.0, 0.0])
+    Blackboard.set(behavior._get_blackboard_key("joint_efforts"), [0.0, 0.0])
 
     request = behavior.create_request()
     assert request.joint_state.name == ["bench1", "bench2"]

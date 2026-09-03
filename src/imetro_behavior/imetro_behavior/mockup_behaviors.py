@@ -28,25 +28,29 @@ from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
 
 class UpdateMockupStates(RosServiceClientBase):
-    """Calls the service to update the mockup joint states."""
+    """Calls the service to update the mockup joint states.
+
+    Joint names are required; positions, velocities, and efforts are not.
+    Any positions, velocities, and efforts provided must be the same size as the provided joint names.
+    """
 
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, service_type=SetJointState, **kwargs)
 
     INPUT_PORTS = {
-        "mockup_joint_names": PortInformation(data_type=list[str], required=True),
-        "mockup_joint_positions": PortInformation(data_type=list[float], required=False),
-        "mockup_joint_velocities": PortInformation(data_type=list[float], required=False),
-        "mockup_joint_efforts": PortInformation(data_type=list[float], required=False),
+        "joint_names": PortInformation(data_type=list[str], required=True),
+        "joint_positions": PortInformation(data_type=list[float], required=False, default_value=[]),
+        "joint_velocities": PortInformation(data_type=list[float], required=False, default_value=[]),
+        "joint_efforts": PortInformation(data_type=list[float], required=False, default_value=[]),
     }
     OUTPUT_PORTS = {}
 
     def create_request(self) -> SetJointState.Request:
         """Create a SetJointState service request."""
-        mockup_joint_names = self.get_input("mockup_joint_names")
-        mockup_joint_positions = self.get_input("mockup_joint_positions", [])
-        mockup_joint_velocities = self.get_input("mockup_joint_velocities", [])
-        mockup_joint_efforts = self.get_input("mockup_joint_efforts", [])
+        mockup_joint_names = self.get_input("joint_names")
+        mockup_joint_positions = self.get_input("joint_positions")
+        mockup_joint_velocities = self.get_input("joint_velocities")
+        mockup_joint_efforts = self.get_input("joint_efforts")
 
         req = SetJointState.Request()
         req.joint_state.name = mockup_joint_names
