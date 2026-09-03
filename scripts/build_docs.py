@@ -30,6 +30,7 @@ mocks = [
     "cv_bridge",
     "color_blob_centroid",
     "color_blob_centroid.bindings",
+    "mockup_msgs.srv",
     "mujoco_ros2_control_msgs.srv",
 ]
 for mod in mocks:
