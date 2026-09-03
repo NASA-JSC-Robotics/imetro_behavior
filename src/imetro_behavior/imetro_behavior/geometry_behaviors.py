@@ -377,48 +377,58 @@ class OffsetPoseStamped(BehaviourWithPorts):
 
     INPUT_PORTS = {
         "input_pose": PortInformation(data_type=PoseStamped, required=True),
-        "translation_xyz": PortInformation(data_type=list[float], required=False),
-        "orientation_xyzw": PortInformation(data_type=list[float], required=False),
+        "translation_xyz": PortInformation(data_type=list[float], required=False, default_value=[0.0, 0.0, 0.0]),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=False, default_value=[0.0, 0.0, 0.0, 1.0]),
+        "wrt_parent_frame": PortInformation(data_type=bool, required=False, default_value=True),
     }
 
     OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
     def update(self) -> Status:
-        """Offset the pose message."""
-        msg = copy.deepcopy(self.get_input("input_pose"))
+        """Offset the pose message relative to its parent frame."""
+        input_posestamp = self.get_input("input_pose")
+        translation_xyz = self.get_input("translation_xyz")
+        orientation_xyzw = self.get_input("orientation_xyzw")
+        wrt_parent = self.get_input("wrt_parent_frame")
 
-        # Translation offset can be applied simply by adding it.
-        translation_xyz = self.get_input("translation_xyz", [0.0, 0.0, 0.0])
-        msg.pose.position.x += translation_xyz[0]
-        msg.pose.position.y += translation_xyz[1]
-        msg.pose.position.z += translation_xyz[2]
-
-        # Orientation offset must be applied with quaternion multiplication.
-        # Note that SciPy uses xyzw notation!
-        orientation_xyzw = self.get_input("orientation_xyzw", [0.0, 0.0, 0.0, 1.0])
-        rot_cur = R.from_quat(
+        input_orientation = R.from_quat(
             [
-                msg.pose.orientation.x,
-                msg.pose.orientation.y,
-                msg.pose.orientation.z,
-                msg.pose.orientation.w,
+                input_posestamp.pose.orientation.x,
+                input_posestamp.pose.orientation.y,
+                input_posestamp.pose.orientation.z,
+                input_posestamp.pose.orientation.w,
             ]
         )
-        rot_offset = R.from_quat(
-            [
-                orientation_xyzw[0],
-                orientation_xyzw[1],
-                orientation_xyzw[2],
-                orientation_xyzw[3],
-            ]
+        input_translation = np.array(
+            [input_posestamp.pose.position.x, input_posestamp.pose.position.y, input_posestamp.pose.position.z]
         )
-        q_new = (rot_offset * rot_cur).as_quat()
-        msg.pose.orientation.x = q_new[0]
-        msg.pose.orientation.y = q_new[1]
-        msg.pose.orientation.z = q_new[2]
-        msg.pose.orientation.w = q_new[3]
+        input_RT = RigidTransform.from_components(input_translation, input_orientation)
+        offset_RT = RigidTransform.from_components(np.array(translation_xyz), R.from_quat(orientation_xyzw))
 
-        self._set_output("output_pose", msg)
+        if wrt_parent:
+            # To maintain parity with the previous version, the orientation offset is applied at the end
+            offset_T_input_rot = offset_RT * input_RT
+            offset_T_input = RigidTransform.from_components(
+                (input_translation + translation_xyz), offset_T_input_rot.rotation
+            )
+        else:
+            offset_T_input = input_RT * offset_RT
+
+        final_pose = offset_T_input.translation
+        final_rotation = offset_T_input.rotation.as_quat()
+
+        # Output final message
+        output_pose = PoseStamped()
+        output_pose.header = input_posestamp.header
+        output_pose.pose.position.x = final_pose[0]
+        output_pose.pose.position.y = final_pose[1]
+        output_pose.pose.position.z = final_pose[2]
+        output_pose.pose.orientation.x = final_rotation[0]
+        output_pose.pose.orientation.y = final_rotation[1]
+        output_pose.pose.orientation.z = final_rotation[2]
+        output_pose.pose.orientation.w = final_rotation[3]
+
+        self._set_output("output_pose", output_pose)
         return Status.SUCCESS
 
 

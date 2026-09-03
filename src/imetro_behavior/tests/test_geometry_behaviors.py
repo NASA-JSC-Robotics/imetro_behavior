@@ -186,6 +186,54 @@ def test_align_pose_to_nearest_axis_already_aligned() -> None:
     assert output_pose.pose.orientation == input_pose.pose.orientation
 
 
+def test_local_offset_pose_stamped_translation() -> None:
+    behavior = OffsetPoseStamped(name="offset_pose")
+    behavior.setup_ports()
+
+    input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("translation_xyz"), [0.5, -0.5, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    output_pose = behavior.get_last_output("output_pose")
+    assert output_pose.pose.position.x == pytest.approx(1.5)
+    assert output_pose.pose.position.y == pytest.approx(2.5)
+    assert output_pose.pose.position.z == pytest.approx(3.0)
+    assert output_pose.pose.orientation.x == pytest.approx(input_pose.pose.orientation.x)
+    assert output_pose.pose.orientation.y == pytest.approx(input_pose.pose.orientation.y)
+    assert output_pose.pose.orientation.z == pytest.approx(input_pose.pose.orientation.z)
+    assert output_pose.pose.orientation.w == pytest.approx(input_pose.pose.orientation.w)
+    # The input pose must not be modified in place.
+    assert input_pose.pose.position.x == 2.0
+
+
+def test_local_offset_pose_stamped_orientation() -> None:
+    behavior = OffsetPoseStamped(name="offset_pose")
+    behavior.setup_ports()
+
+    input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    quat_offset = R.from_euler("x", 90.0, degrees=True).as_quat()
+    Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), list(quat_offset))
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    output_pose = behavior.get_last_output("output_pose")
+    assert output_pose.pose.position.x == pytest.approx(2.0)
+    assert output_pose.pose.position.y == pytest.approx(2.0)
+    assert output_pose.pose.position.z == pytest.approx(2.0)
+    result_orientation = R.from_euler("zx", [180.0, -90.0], degrees=True).as_quat()
+    assert output_pose.pose.orientation.x == pytest.approx(result_orientation[0])
+    assert output_pose.pose.orientation.y == pytest.approx(result_orientation[1])
+    assert output_pose.pose.orientation.z == pytest.approx(result_orientation[2])
+    assert output_pose.pose.orientation.w == pytest.approx(result_orientation[3])
+    # The input pose must not be modified in place.
+    assert input_pose.pose.position.x == 2.0
+
+
 def test_offset_pose_stamped_translation() -> None:
     behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
@@ -193,6 +241,7 @@ def test_offset_pose_stamped_translation() -> None:
     input_pose = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="map")
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     Blackboard.set(behavior._get_blackboard_key("translation_xyz"), [0.5, -0.5, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -213,6 +262,7 @@ def test_offset_pose_stamped_orientation() -> None:
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     quat_offset = R.from_euler("z", 90.0, degrees=True).as_quat()
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), list(quat_offset))
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -228,6 +278,7 @@ def test_offset_pose_stamped_no_offsets() -> None:
 
     input_pose = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0])
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
