@@ -377,9 +377,9 @@ class OffsetPoseStamped(BehaviourWithPorts):
 
     INPUT_PORTS = {
         "input_pose": PortInformation(data_type=PoseStamped, required=True),
-        "translation_xyz": PortInformation(data_type=list[float], required=False),
-        "orientation_xyzw": PortInformation(data_type=list[float], required=False),
-        "wrt_parent_frame": PortInformation(data_type=bool, required=False),
+        "translation_xyz": PortInformation(data_type=list[float], required=False, default_value=[0.0, 0.0, 0.0]),
+        "orientation_xyzw": PortInformation(data_type=list[float], required=False, default_value=[0.0, 0.0, 0.0, 1.0]),
+        "wrt_parent_frame": PortInformation(data_type=bool, required=False, default_value=True),
     }
 
     OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
@@ -387,9 +387,9 @@ class OffsetPoseStamped(BehaviourWithPorts):
     def update(self) -> Status:
         """Offset the pose message relative to its parent frame."""
         input_posestamp = self.get_input("input_pose")
-        translation_xyz = self.get_input("translation_xyz", [0.0, 0.0, 0.0])
-        orientation_xyzw = self.get_input("orientation_xyzw", [0.0, 0.0, 0.0, 1.0])
-        wrt_parent = self.get_input("wrt_parent_frame", True)
+        translation_xyz = self.get_input("translation_xyz")
+        orientation_xyzw = self.get_input("orientation_xyzw")
+        wrt_parent = self.get_input("wrt_parent_frame")
 
         input_orientation = R.from_quat(
             [
