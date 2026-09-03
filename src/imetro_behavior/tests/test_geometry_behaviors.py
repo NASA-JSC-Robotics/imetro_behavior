@@ -32,7 +32,6 @@ from imetro_behavior.geometry_behaviors import (
     AlignPoseToNearestAxis,
     CreatePoseStamped,
     LookupTransform,
-    OffsetPoseStampedLocally,
     OffsetPoseStamped,
     PublishTransform,
     TransformPose,
@@ -188,12 +187,13 @@ def test_align_pose_to_nearest_axis_already_aligned() -> None:
 
 
 def test_local_offset_pose_stamped_translation() -> None:
-    behavior = OffsetPoseStampedLocally(name="offset_pose")
+    behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
 
     input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     Blackboard.set(behavior._get_blackboard_key("translation_xyz"), [0.5, -0.5, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), False)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -210,13 +210,14 @@ def test_local_offset_pose_stamped_translation() -> None:
 
 
 def test_local_offset_pose_stamped_orientation() -> None:
-    behavior = OffsetPoseStampedLocally(name="offset_pose")
+    behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
 
     input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     quat_offset = R.from_euler("x", 90.0, degrees=True).as_quat()
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), list(quat_offset))
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), False)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -240,6 +241,7 @@ def test_offset_pose_stamped_translation() -> None:
     input_pose = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="map")
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     Blackboard.set(behavior._get_blackboard_key("translation_xyz"), [0.5, -0.5, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -260,6 +262,7 @@ def test_offset_pose_stamped_orientation() -> None:
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     quat_offset = R.from_euler("z", 90.0, degrees=True).as_quat()
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), list(quat_offset))
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -275,6 +278,7 @@ def test_offset_pose_stamped_no_offsets() -> None:
 
     input_pose = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0])
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), True)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
