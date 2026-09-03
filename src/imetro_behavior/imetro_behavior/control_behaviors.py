@@ -210,7 +210,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
             data_type=list[float],
             required=False,
             default_value=[],
-            description="Center of Gravity location w.r.t. the predifined frame (px, py, pz). Must be size 3",
+            description="Center of Gravity location w.r.t. the predefined frame (px, py, pz). Must be size 3",
         ),
     }
 
@@ -232,7 +232,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
             parameter.value.double_value = param_value
         else:
             self.node.get_logger().error(
-                f"Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' are supported for the add_parameter_to_list() method."
+                "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' are supported for the add_parameter_to_list() method."
             )
             return False
 
