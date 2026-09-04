@@ -235,7 +235,8 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         else:
             self.node.get_logger().error(
                 "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' "
-                "are supported for the add_parameter_to_list() method."
+                f"are supported for the add_parameter_to_list() method. '{param_name}' of type "
+                f"{param_type} (see ParameterType msg definition for enum) was invalid."
             )
             return False
 
