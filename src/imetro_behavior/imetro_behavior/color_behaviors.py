@@ -21,8 +21,9 @@ from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
+
+from imetro_behavior.helpers import set_ros_node
 
 
 class DetectColorBlobs(BehaviourWithPorts):
@@ -44,9 +45,7 @@ class DetectColorBlobs(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Sets up the ROS node just to have access to a logger."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Perform blob detection."""
@@ -61,8 +60,7 @@ class DetectColorBlobs(BehaviourWithPorts):
 
         result = process_blobs(request)
         if not result.success:
-            assert self.node is not None, "No ROS node available"
-            self.node.get_logger().error(f"Failed to detect blobs: {result.err_msg}")
+            self.logger.error(f"Failed to detect blobs: {result.err_msg}")
             return Status.FAILURE
 
         if self.get_input("debug_viz", False):

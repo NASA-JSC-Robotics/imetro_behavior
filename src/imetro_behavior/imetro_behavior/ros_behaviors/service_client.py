@@ -23,6 +23,8 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from std_srvs.srv import Trigger
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class RosServiceClientBase(BehaviourWithPorts):
     """
@@ -58,6 +60,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         self.service_name = service_name
         self.service_server_timeout = Duration(seconds=service_server_timeout) if service_server_timeout else None
         self.service_timeout = Duration(seconds=service_timeout) if service_timeout else None
+        self.node: Node
         super().__init__(name, **kwargs)
 
     def create_request(self) -> Any | None:
@@ -78,10 +81,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Sets up the service client.
         """
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
+        set_ros_node(self, **kwargs)
         self.service_client = self.node.create_client(
             srv_type=self.service_type,
             srv_name=self.service_name,
@@ -96,7 +96,6 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
-        assert self.node is not None, "No ROS node available"
         self.service_future = None
         self.service_start_time = None
         self.client_start_time = self.node.get_clock().now()
@@ -106,14 +105,13 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Kick off a new service request and then check whether the service has completed or timed out.
         """
-        assert self.node is not None, "No ROS node available"
-        if not self.client_ready:
+        if not self.client_ready and self.client_start_time is not None:
             # Wait for the service server to be available until there is a timeout.
             if (
                 self.service_server_timeout is not None
                 and self.node.get_clock().now() - self.client_start_time > self.service_server_timeout
             ):
-                self.node.get_logger().error(f"Timed out waiting for service server {self.service_name}.")
+                self.logger.error(f"Timed out waiting for service server {self.service_name}.")
                 return Status.FAILURE
             else:
                 self.client_ready = self.service_client.service_is_ready()
@@ -124,10 +122,10 @@ class RosServiceClientBase(BehaviourWithPorts):
             try:
                 request = self.create_request()  # Must be implemented
             except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
-                self.node.get_logger().error(f"Failed to create service request: {e}")
+                self.logger.error(f"Failed to create service request: {e}")
                 return Status.FAILURE
 
-            self.node.get_logger().debug("Sending service request...")
+            self.logger.debug("Sending service request...")
             self.service_future = self.service_client.call_async(request)
             self.service_start_time = self.node.get_clock().now()
             return Status.RUNNING
@@ -138,15 +136,16 @@ class RosServiceClientBase(BehaviourWithPorts):
                 # Must be implemented
                 return self.process_response(self.service_future.result())
             except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
-                self.node.get_logger().error(f"Failed to process action result: {e}")
+                self.logger.error(f"Failed to process action result: {e}")
                 return Status.FAILURE
 
         elif (
             self.service_timeout is not None
+            and self.service_start_time is not None
             and self.node.get_clock().now() - self.service_start_time > self.service_timeout
         ):
             # If we made it here, the service is in progress. Check for timeouts.
-            self.node.get_logger().error("Service call timed out.")
+            self.logger.error("Service call timed out.")
             return Status.FAILURE
 
         else:
@@ -194,10 +193,9 @@ class CallTriggerService(RosServiceClientBase):
 
     def process_response(self, response: Trigger.Response) -> Status:
         """Process the trigger service response."""
-        assert self.node is not None, "No ROS node available"
         if response.success:
-            self.node.get_logger().info("Trigger request succeeded!")
+            self.logger.info("Trigger request succeeded!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Trigger service failed with error: {response.message}")
+            self.logger.error(f"Trigger service failed with error: {response.message}")
             return Status.FAILURE

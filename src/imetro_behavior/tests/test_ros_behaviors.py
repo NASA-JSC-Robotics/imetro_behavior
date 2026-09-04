@@ -132,13 +132,12 @@ def test_get_synced_data_waiting_and_timeout(
     sync_behavior: GetSyncedImagePointCloudDepth,
 ) -> None:
     node = sync_behavior.node
-    assert node is not None
     sync_behavior.latest_data = None
 
     sync_behavior.start_time = node.get_clock().now()
     assert sync_behavior.update() == Status.RUNNING
 
-    sync_behavior.start_time = node.get_clock().now() - Duration(seconds=2.0)
+    sync_behavior.start_time = node.get_clock().now() - Duration(seconds=2.0)  # ty: ignore [invalid-assignment]
     assert sync_behavior.update() == Status.FAILURE
 
 
