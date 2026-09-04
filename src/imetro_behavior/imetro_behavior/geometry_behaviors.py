@@ -39,6 +39,8 @@ from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class CreatePoseStamped(BehaviourWithPorts):
     """Create a PoseStamped ROS message."""
@@ -81,22 +83,18 @@ class TransformPose(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
+        set_ros_node(self, **kwargs)
         self.blackboard_client.register_key(key="/ros/tf_buffer", access=Access.READ)
         self.tf_buffer = self.blackboard_client.get("/ros/tf_buffer")
 
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""
-        assert self.node is not None, "No ROS node available"
         input_pose = self.get_input("input_pose")
         source_frame = self.get_input("source_frame")
         try:
             tform = self.tf_buffer.lookup_transform(source_frame, input_pose.header.frame_id, Time())
         except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions
-            self.node.get_logger().error(f"TF lookup failed: {e}")
+            self.logger.error(f"TF lookup failed: {e}")
             return Status.FAILURE
 
         output_pose = PoseStamped()
@@ -267,19 +265,16 @@ class GetRelativePoseStamped(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Get the pose from base to target."""
-        assert self.node is not None, "No ROS node available"
         base_posestamp = self.get_input("base_pose")
         base_frame_name = self.get_input("base_frame_name")
         target_posestamp = self.get_input("target_pose")
 
         if base_posestamp.header.frame_id != target_posestamp.header.frame_id:
-            self.node.get_logger().error("Error: given input poses do not share the same reference frame.")
+            self.logger.error("Error: given input poses do not share the same reference frame.")
             return Status.FAILURE
 
         # Convert the inputs to 4x4 transformation matrices
@@ -367,9 +362,7 @@ class GetRollPitchYaw(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Get the pose from base to target."""
@@ -385,8 +378,7 @@ class GetRollPitchYaw(BehaviourWithPorts):
         )
         roll, pitch, yaw = input_orientation.as_euler("xyz", degrees=False)
 
-        assert self.node is not None, "No ROS node available"
-        self.node.get_logger().debug(f"Roll: {roll}, Pitch: {pitch}, Yaw: {yaw}")
+        self.logger.debug(f"Roll: {roll}, Pitch: {pitch}, Yaw: {yaw}")
         self._set_output("roll", roll)
         self._set_output("pitch", pitch)
         self._set_output("yaw", yaw)
@@ -487,16 +479,13 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the node for error statements."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Load the YAML file, create the message, and set it as an output port."""
-        assert self.node is not None, "No ROS node available"
         yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
-            self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
+            self.logger.error(f"File at {yaml_path} could not be found or is not a file")
             return Status.FAILURE
 
         with open(yaml_path) as file:
@@ -504,7 +493,7 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
         pose_name = self.get_input("pose_name")
         pose_dict = data.get(pose_name)
         if pose_dict is None:
-            self.node.get_logger().error(f"Failed to find pose {pose_name} in {yaml_path}")
+            self.logger.error(f"Failed to find pose {pose_name} in {yaml_path}")
             return Status.FAILURE
         frame_id = pose_dict["frame_id"]
         pose = pose_dict["pose"]
@@ -548,10 +537,7 @@ class LookupTransform(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
+        set_ros_node(self, **kwargs)
         self.blackboard_client.register_key(key="/ros/tf_buffer", access=Access.READ)
         self.tf_buffer = self.blackboard_client.get("/ros/tf_buffer")
 
@@ -562,8 +548,7 @@ class LookupTransform(BehaviourWithPorts):
         try:
             target_T_source = self.tf_buffer.lookup_transform(target_frame, source_frame, Time())
         except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions
-            assert self.node is not None, "No ROS node available"
-            self.node.get_logger().error(f"TF lookup failed: {e}")
+            self.logger.error(f"TF lookup failed: {e}")
             return Status.FAILURE
 
         self._set_output("target_T_source", target_T_source)
@@ -670,11 +655,11 @@ class PublishTransform(BehaviourWithPorts):
 
     OUTPUT_PORTS = {}
 
+    node: Node
+
     def setup(self, **kwargs):
         """Setup transform broadcaster."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
         self.tf_broadcaster = TransformBroadcaster(self.node)
 
     def update(self) -> Status:
@@ -702,6 +687,7 @@ class PublishTwist(BehaviourWithPorts):
         self.topic_name = topic_name
         self.publisher = None
         self.twist_stamped = None
+        self.node: Node
 
     INPUT_PORTS = {
         "linear_velocity": PortInformation(data_type=list[float], required=True),
@@ -713,7 +699,6 @@ class PublishTwist(BehaviourWithPorts):
 
     def initialise(self) -> None:
         """Create TwistStamped message publisher, assemble twist message."""
-        assert self.node is not None, "No ROS node available"
         self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
         self.twist_stamped = TwistStamped()
 
@@ -733,9 +718,7 @@ class PublishTwist(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get the ROS node from the blackboard."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Publish twist stamped message."""

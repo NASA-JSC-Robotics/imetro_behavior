@@ -37,17 +37,15 @@ class NavigateToPoseBehavior(RosActionClientBase):
 
     def create_goal(self) -> NavigateToPose.Goal:
         """Create a navigation goal."""
-        assert self.node is not None, "No ROS node available"
         goal_pose = self.get_input("goal_pose")
         goal_pose.header.stamp = self.node.get_clock().now().to_msg()
         return NavigateToPose.Goal(pose=goal_pose)
 
     def process_result(self, result: NavigateToPose.Result) -> Status:
         """Process the navigation action result."""
-        assert self.node is not None, "No ROS node available"
         if result.error_code == NavigateToPose.Result.NONE:
-            self.node.get_logger().info("Navigation action succeeded!")
+            self.logger.info("Navigation action succeeded!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Navigation action failed with error: {result.error_msg}")
+            self.logger.error(f"Navigation action failed with error: {result.error_msg}")
             return Status.FAILURE
