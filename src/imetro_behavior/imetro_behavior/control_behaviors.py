@@ -234,7 +234,8 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
             parameter.value.double_value = param_value
         else:
             self.node.get_logger().error(
-                "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' are supported for the add_parameter_to_list() method."
+                "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' "
+                "are supported for the add_parameter_to_list() method."
             )
             return False
 
