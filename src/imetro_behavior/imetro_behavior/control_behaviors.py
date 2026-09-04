@@ -19,6 +19,8 @@
 
 from typing import Any
 
+from math import isnan
+
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
@@ -203,7 +205,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         "gravity_compensation_CoG_force": PortInformation(
             data_type=float,
             required=False,
-            default_value=None,
+            default_value=float("nan"),
             description="Force of gravity to be compensated for the force torque data",
         ),
         "gravity_compensation_CoG_pos": PortInformation(
@@ -220,7 +222,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
 
         # return early if param_value is None or is empty list
         if not param_value:
-            return
+            return True
 
         parameter = Parameter(name=param_name, value=ParameterValue(type=param_type))
 
@@ -247,10 +249,14 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         admittance_mass = self.get_input("admittance_mass")
         admittance_stiffness = self.get_input("admittance_stiffness")
         admittance_damping_ratio = self.get_input("admittance_damping_ratio")
+        # This lets me check for the existence of ports with a 'if not <variable>:' later.
+        # This is only needed because you apparently can't use 'None' as a default
         gravity_compensation_CoG_force = self.get_input("gravity_compensation_CoG_force")
+        if isnan(gravity_compensation_CoG_force):
+            gravity_compensation_CoG_force = None
         gravity_compensation_CoG_pos = self.get_input("gravity_compensation_CoG_pos")
 
-        request = SetParametersAtomically.Request
+        request = SetParametersAtomically.Request()
         params_list = []
 
         success = True
