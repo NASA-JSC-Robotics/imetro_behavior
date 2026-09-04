@@ -293,6 +293,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         if not success:
             raise RuntimeError("Setting parameters inside UpdateAdmittanceParameters did not work.")
 
+        request.parameters = params_list
         return request
 
     def process_response(self, response: SetParametersAtomically.Response) -> Status:

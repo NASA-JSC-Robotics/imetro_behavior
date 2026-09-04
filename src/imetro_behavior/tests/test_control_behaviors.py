@@ -190,15 +190,15 @@ def test_update_admittance_parameters_create_goal_full(ros_node: Node) -> None:
     # 5. cog_pos
     assert request.parameters[0].value.bool_array_value == example_admittance_selected_axes
     assert request.parameters[0].value.type == ParameterType.PARAMETER_BOOL_ARRAY
-    assert request.parameters[1].value.double_array_value == example_admittance_mass
+    assert request.parameters[1].value.double_array_value.tolist() == example_admittance_mass
     assert request.parameters[1].value.type == ParameterType.PARAMETER_DOUBLE_ARRAY
-    assert request.parameters[2].value.double_array_value == example_admittance_stiffness
+    assert request.parameters[2].value.double_array_value.tolist() == example_admittance_stiffness
     assert request.parameters[2].value.type == ParameterType.PARAMETER_DOUBLE_ARRAY
-    assert request.parameters[3].value.double_array_value == example_admittance_damping_ratio
+    assert request.parameters[3].value.double_array_value.tolist() == example_admittance_damping_ratio
     assert request.parameters[3].value.type == ParameterType.PARAMETER_DOUBLE_ARRAY
-    assert request.parameters[4].value.double == example_gravity_compensation_CoG_force
+    assert request.parameters[4].value.double_value == example_gravity_compensation_CoG_force
     assert request.parameters[4].value.type == ParameterType.PARAMETER_DOUBLE
-    assert request.parameters[5].value.double_array_value == example_gravity_compensation_CoG_pos
+    assert request.parameters[5].value.double_array_value.tolist() == example_gravity_compensation_CoG_pos
     assert request.parameters[5].value.type == ParameterType.PARAMETER_DOUBLE_ARRAY
 
 
