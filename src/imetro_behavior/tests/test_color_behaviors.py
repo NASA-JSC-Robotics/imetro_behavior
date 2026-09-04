@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,12 +16,11 @@
 # under the License.
 
 import pytest
-
-from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import CameraInfo, Image
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
+from rclpy.node import Node
+from sensor_msgs.msg import CameraInfo, Image
 
 
 class FakeBlobRequest:
@@ -66,7 +63,10 @@ def color_behaviors():
     launch_testing pytest plugin imports test modules during collection, and a
     module-level skip aborts collection of the remaining test files.
     """
-    return pytest.importorskip("imetro_behavior.color_behaviors", reason="requires OpenCV and color_blob_centroid")
+    return pytest.importorskip(
+        "imetro_behavior.color_behaviors",
+        reason="requires OpenCV and color_blob_centroid",
+    )
 
 
 @pytest.fixture()

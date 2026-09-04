@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,14 +17,13 @@
 
 
 import pytest
-
-from rclpy.node import Node
 from py_trees.blackboard import Blackboard
+from rclpy.node import Node
 
 
 @pytest.fixture()
 def mujoco_behaviors():
-    """The mujoco behaviors module, or a test skip if its dependencies are unavailable."""
+    """Import the mujoco behaviors module, or a test skip if its dependencies are unavailable."""
     return pytest.importorskip(
         "imetro_behavior.mujoco_behaviors",
         reason="requires mujoco_ros2_control_msgs",

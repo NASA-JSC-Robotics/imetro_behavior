@@ -37,6 +37,22 @@ For example,
 ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehavior '{tree_file_name: nav_tree}'
 ```
 
+## Developing
+
+We use [pre-commit](https://github.com/pre-commit/pre-commit) inside the pixi configuration in this repo.
+
+Rather than running `pre-commit` yourself, run it as a pixi task as follows.
+
+```bash
+pixi run lint
+```
+
+You should also run your tests locally before submitting a pull request.
+
+```bash
+pixi run test
+```
+
 ## Documentation
 
 Information on supported behaviors is available in [GitHub Pages](https://nasa-jsc-robotics.github.io/imetro_behavior/imetro_behavior.html).

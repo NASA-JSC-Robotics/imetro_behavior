@@ -16,16 +16,15 @@
 # under the License.
 
 import time
-from typing import Any, Type
+from typing import Any
 
 from action_msgs.msg import GoalStatus
+from py_trees.common import Status
+from py_trees.ports import BehaviourWithPorts
 from rclpy.action import ActionClient
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.task import Future
-
-from py_trees.common import Status
-from py_trees.ports import BehaviourWithPorts
 
 GOAL_STATUS_DICT = {
     GoalStatus.STATUS_UNKNOWN: "UNKNOWN",
@@ -48,7 +47,7 @@ class RosActionClientBase(BehaviourWithPorts):
     def __init__(
         self,
         name: str,
-        action_type: Type,
+        action_type: type,
         *,
         action_name: str,
         action_server_timeout: float = 3.0,
@@ -115,6 +114,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
+        assert self.node is not None, "No ROS node available"
         self.goal_handle = None
         self.send_goal_future = None
         self.action_start_time = None
@@ -125,6 +125,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Kick off a new goal request and then check whether the action has completed or timed out.
         """
+        assert self.node is not None, "No ROS node available"
         if not self.client_ready:
             # Wait for the action server to be available until there is a timeout.
             if (
@@ -141,7 +142,7 @@ class RosActionClientBase(BehaviourWithPorts):
             # Send a goal request if one hasn't yet been sent.
             try:
                 goal = self.create_goal()  # Must be implemented
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
                 self.node.get_logger().error(f"Failed to create action goal: {e}")
                 return Status.FAILURE
 
@@ -170,7 +171,7 @@ class RosActionClientBase(BehaviourWithPorts):
             try:
                 # Must be implemented
                 return self.process_result(response.result)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
                 self.node.get_logger().error(f"Failed to process action result: {e}")
                 return Status.FAILURE
 
@@ -208,6 +209,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Handle goal response and proceed to listen for the result if accepted.
         """
+        assert self.node is not None, "No ROS node available"
         if future.result() is None:
             self.node.get_logger().error("Goal request failed.")
             return
@@ -217,7 +219,6 @@ class RosActionClientBase(BehaviourWithPorts):
             return
         else:
             self.node.get_logger().debug("Goal request accepted.")
-            pass
 
         self.get_result_future = self.goal_handle.get_result_async()
 
@@ -225,7 +226,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Send a cancel request to the server.
         """
-        if self.goal_handle is not None:
+        if self.node is not None and self.goal_handle is not None:
             self.node.get_logger().debug("Canceling goal.")
             cancel_future = self.goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(self.cancel_response_callback)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,12 +15,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from rclpy.duration import Duration
-from rclpy.node import Node
+from imetro_behavior.basic_behaviors import BlackboardMath, WaitForDuration
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
-
-from imetro_behavior.basic_behaviors import WaitForDuration, BlackboardMath
+from rclpy.duration import Duration
+from rclpy.node import Node
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:

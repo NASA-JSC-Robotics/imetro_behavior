@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,32 +15,31 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import numpy as np
-import pytest
 from pathlib import Path
 
-from scipy.spatial.transform import Rotation as R
+import numpy as np
+import pytest
 from geometry_msgs.msg import PoseStamped, TransformStamped
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-from rclpy.node import Node
-from tf2_ros import Buffer
-
 from imetro_behavior.geometry_behaviors import (
     AlignPoseToNearestAxis,
     CreatePoseStamped,
-    LookupTransform,
-    OffsetPoseStamped,
-    PublishTransform,
-    TransformPose,
-    YamlPoseToPoseStamped,
-    PoseStampedToTransformStamped,
-    TransformStampedToPoseStamped,
-    TwistAboutPose,
+    DecomposePoseStamped,
     GetRelativePoseStamped,
     GetRollPitchYaw,
-    DecomposePoseStamped,
+    LookupTransform,
+    OffsetPoseStamped,
+    PoseStampedToTransformStamped,
+    PublishTransform,
+    TransformPose,
+    TransformStampedToPoseStamped,
+    TwistAboutPose,
+    YamlPoseToPoseStamped,
 )
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rclpy.node import Node
+from scipy.spatial.transform import Rotation as R
+from tf2_ros import Buffer
 
 
 @pytest.fixture()
@@ -190,7 +187,11 @@ def test_local_offset_pose_stamped_translation() -> None:
     behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
 
-    input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
+    input_pose = make_pose(
+        [2.0, 2.0, 2.0],
+        R.from_euler("z", 180.0, degrees=True).as_quat(),
+        frame_id="map",
+    )
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     Blackboard.set(behavior._get_blackboard_key("translation_xyz"), [0.5, -0.5, 1.0])
     Blackboard.set(behavior._get_blackboard_key("wrt_parent_frame"), False)
@@ -213,7 +214,11 @@ def test_local_offset_pose_stamped_orientation() -> None:
     behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
 
-    input_pose = make_pose([2.0, 2.0, 2.0], R.from_euler("z", 180.0, degrees=True).as_quat(), frame_id="map")
+    input_pose = make_pose(
+        [2.0, 2.0, 2.0],
+        R.from_euler("z", 180.0, degrees=True).as_quat(),
+        frame_id="map",
+    )
     Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
     quat_offset = R.from_euler("x", 90.0, degrees=True).as_quat()
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), list(quat_offset))
@@ -330,13 +335,17 @@ def test_yaml_pose_to_pose_stamped(yaml_pose_behavior: YamlPoseToPoseStamped) ->
     assert msg.pose.orientation.w == 1.0
 
 
-def test_yaml_pose_to_pose_stamped_missing_pose(yaml_pose_behavior: YamlPoseToPoseStamped) -> None:
+def test_yaml_pose_to_pose_stamped_missing_pose(
+    yaml_pose_behavior: YamlPoseToPoseStamped,
+) -> None:
     Blackboard.set(yaml_pose_behavior._get_blackboard_key("pose_name"), "nonexistent_pose")
     yaml_pose_behavior.tick_once()
     assert yaml_pose_behavior.status == Status.FAILURE
 
 
-def test_yaml_pose_to_pose_stamped_missing_file(yaml_pose_behavior: YamlPoseToPoseStamped) -> None:
+def test_yaml_pose_to_pose_stamped_missing_file(
+    yaml_pose_behavior: YamlPoseToPoseStamped,
+) -> None:
     Blackboard.set(yaml_pose_behavior._get_blackboard_key("yaml_file"), "nonexistent.yaml")
     Blackboard.set(yaml_pose_behavior._get_blackboard_key("pose_name"), "grasp_pose")
     yaml_pose_behavior.tick_once()

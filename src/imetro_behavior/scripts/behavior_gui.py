@@ -19,21 +19,21 @@
 
 import signal
 import sys
-from PySide6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QPushButton
-from PySide6.QtCore import Qt, QThread, QTimer, Signal, Slot
 
 import rclpy
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
+from moveit_msgs.msg import DisplayTrajectory, RobotTrajectory
+from PySide6.QtCore import Qt, QThread, QTimer, Signal, SignalInstance, Slot
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QWidget
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
-from rclpy.qos import QoSProfile, DurabilityPolicy
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile
 from rclpy.task import Future
-
-from moveit_msgs.msg import DisplayTrajectory, RobotTrajectory
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
+
 from imetro_behavior_msgs.action import PreviewTrajectory
 
 
@@ -61,7 +61,7 @@ class RosWorker(QThread):
 class TrajectoryInterfaceNode(Node):
     """ROS 2 Node handling the interface to MoveIt trajectory previews and execution events."""
 
-    def __init__(self, gui_signal: Signal) -> None:
+    def __init__(self, gui_signal: SignalInstance) -> None:
         super().__init__("trajectory_gui_interface_node")
         self.gui_signal = gui_signal
         self.latest_trajectory = None
@@ -222,14 +222,14 @@ class TrajectoryGUIPanel(QWidget):
 
             # Make sure the window is brought to the top to notify users
             self.raise_()
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
             self.show()
         else:
             self.status_label.setText("Waiting for trajectory")
             self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: gray;")
 
             # Turn the hint back off immediately so the window isn't permanently stuck on top
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
             self.show()
 
     @Slot(RobotTrajectory)

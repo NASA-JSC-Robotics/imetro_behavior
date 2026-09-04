@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,19 +15,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
-
 from math import isnan
-
-from py_trees.common import Status
-from py_trees.ports import PortInformation
-
-from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
-from rcl_interfaces.srv import SetParametersAtomically
+from typing import Any
 
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
+from py_trees.common import Status
+from py_trees.ports import PortInformation
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import SetParametersAtomically
 
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
@@ -89,6 +84,7 @@ class SwitchRosControllers(RosServiceClientBase):
         """
         Look up which controllers must be activated and/or deactivated based on the inputs,
         and then package up a corresponding switch controller request."""
+        assert self.node is not None, "No ROS node available"
         controller_info = self.get_input("controller_info", [])
         activate_controllers = self.get_input("activate_controllers", [])
         deactivate_controllers = self.get_input("deactivate_controllers", [])
@@ -129,6 +125,7 @@ class SwitchRosControllers(RosServiceClientBase):
 
     def process_response(self, response: SwitchController.Response) -> Status:
         """Process the service response."""
+        assert self.node is not None, "No ROS node available"
         if response.ok:
             self.node.get_logger().debug("Successfully switched controllers!")
             return Status.SUCCESS
@@ -159,6 +156,7 @@ class CommandGripper(RosActionClientBase):
 
     def process_result(self, result: GripperCommand.Result) -> Status:
         """Process the gripper command action result."""
+        assert self.node is not None, "No ROS node available"
         if result.reached_goal or result.stalled:
             self.node.get_logger().debug("Successfully commanded gripper!")
             return Status.SUCCESS
@@ -233,6 +231,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         elif param_type == ParameterType.PARAMETER_DOUBLE:
             parameter.value.double_value = param_value
         else:
+            assert self.node is not None, "No ROS node available"
             self.node.get_logger().error(
                 "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' "
                 f"are supported for the add_parameter_to_list() method. '{param_name}' of type "
@@ -306,6 +305,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
 
     def process_response(self, response: SetParametersAtomically.Response) -> Status:
         """Process the service response."""
+        assert self.node is not None, "No ROS node available"
         if response.result.successful:
             self.node.get_logger().debug("Successfully set admittance parameters!")
             return Status.SUCCESS

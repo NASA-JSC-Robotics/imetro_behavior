@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,22 +16,20 @@
 # under the License.
 
 import pytest
-
-from rclpy.node import Node
-from rcl_interfaces.msg import ParameterType, SetParametersResult
-from rcl_interfaces.srv import SetParametersAtomically
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-
 from imetro_behavior.control_behaviors import (
     CommandGripper,
     GetRosControllerInfo,
     SwitchRosControllers,
     UpdateAdmittanceParameters,
 )
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rcl_interfaces.msg import ParameterType, SetParametersResult
+from rcl_interfaces.srv import SetParametersAtomically
+from rclpy.node import Node
 
 
 @pytest.fixture()
@@ -66,8 +62,9 @@ def sample_controller_info() -> list[ControllerState]:
     ]
 
 
-def test_switch_ros_controllers_explicit() -> None:
+def test_switch_ros_controllers_explicit(ros_node: Node) -> None:
     behavior = SwitchRosControllers(name="switch_controllers_explicit", service_name="/foo")
+    behavior.setup(node=ros_node)
     behavior.setup_ports()
 
     activate_controllers_port = behavior._get_blackboard_key("activate_controllers")

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -20,10 +18,10 @@
 
 from typing import Any
 
+from mujoco_ros2_control_msgs.srv import ResetWorld
 from py_trees.common import Status
 from py_trees.ports import PortInformation
 
-from mujoco_ros2_control_msgs.srv import ResetWorld
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
 
@@ -53,6 +51,7 @@ class ResetMujocoWorld(RosServiceClientBase):
         )
 
     def process_response(self, response: ResetWorld.Response) -> Status:
+        assert self.node is not None, "No ROS node available"
         if response.success:
             self.node.get_logger().info(f"Reset world succeeded: {response.message}")
             return Status.SUCCESS

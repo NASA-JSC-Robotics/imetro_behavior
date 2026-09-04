@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,11 +17,10 @@
 
 from typing import Any
 
-from py_trees.common import Status
-from py_trees.ports import PortInformation
-
 from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import NavigateToPose
+from py_trees.common import Status
+from py_trees.ports import PortInformation
 
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 
@@ -40,12 +37,14 @@ class NavigateToPoseBehavior(RosActionClientBase):
 
     def create_goal(self) -> NavigateToPose.Goal:
         """Create a navigation goal."""
+        assert self.node is not None, "No ROS node available"
         goal_pose = self.get_input("goal_pose")
         goal_pose.header.stamp = self.node.get_clock().now().to_msg()
         return NavigateToPose.Goal(pose=goal_pose)
 
     def process_result(self, result: NavigateToPose.Result) -> Status:
         """Process the navigation action result."""
+        assert self.node is not None, "No ROS node available"
         if result.error_code == NavigateToPose.Result.NONE:
             self.node.get_logger().info("Navigation action succeeded!")
             return Status.SUCCESS

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,21 +15,27 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import copy
 from typing import Any
 
-import copy
-import yaml
-
 import numpy as np
+import tf2_geometry_msgs
+import yaml
 from ament_index_python.packages import get_package_share_path
-from rclpy.node import Node
-from rclpy.time import Time
-from scipy.spatial.transform import RigidTransform, Rotation as R
-
+from geometry_msgs.msg import (
+    Point,
+    Pose,
+    PoseStamped,
+    Quaternion,
+    TransformStamped,
+    TwistStamped,
+)
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion, TransformStamped, TwistStamped
+from rclpy.node import Node
+from rclpy.time import Time
+from scipy.spatial.transform import RigidTransform
+from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
@@ -86,11 +90,12 @@ class TransformPose(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""
+        assert self.node is not None, "No ROS node available"
         input_pose = self.get_input("input_pose")
         source_frame = self.get_input("source_frame")
         try:
             tform = self.tf_buffer.lookup_transform(source_frame, input_pose.header.frame_id, Time())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions
             self.node.get_logger().error(f"TF lookup failed: {e}")
             return Status.FAILURE
 
@@ -133,7 +138,7 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
             # Already closely enough aligned to a global axis
             r_aligned = r_current
 
-        q_aligned = r_aligned.as_quat()  # scipy uses xyzw
+        q_aligned = r_aligned.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
 
         aligned_pose = PoseStamped()
         aligned_pose.header = input_pose.header
@@ -168,7 +173,9 @@ class TwistAboutPose(BehaviourWithPorts):
             "axis-angle representation: [0.0, 0.0, 1.0] for Z for example",
         ),
         "keep_start_orientation": PortInformation(
-            data_type=bool, required=True, description="Keep orientation of target_pose static throughout rotation"
+            data_type=bool,
+            required=True,
+            description="Keep orientation of target_pose static throughout rotation",
         ),
     }
 
@@ -196,7 +203,11 @@ class TwistAboutPose(BehaviourWithPorts):
             ]
         )
         target_translation = np.array(
-            [target_posestamp.pose.position.x, target_posestamp.pose.position.y, target_posestamp.pose.position.z]
+            [
+                target_posestamp.pose.position.x,
+                target_posestamp.pose.position.y,
+                target_posestamp.pose.position.z,
+            ]
         )
         target_T_rotation = RigidTransform.from_components(target_translation, target_orientation)
 
@@ -207,8 +218,8 @@ class TwistAboutPose(BehaviourWithPorts):
 
         twistedtarget_T_rotation = twist_matrix * target_T_rotation
 
-        final_pose = twistedtarget_T_rotation.translation
-        final_rotation = twistedtarget_T_rotation.rotation.as_quat()
+        final_pose = twistedtarget_T_rotation.translation  # ty: ignore[unresolved-attribute] -- should be fixed
+        final_rotation = twistedtarget_T_rotation.rotation.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
 
         # Output final message
         output_pose = PoseStamped()
@@ -262,6 +273,7 @@ class GetRelativePoseStamped(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Get the pose from base to target."""
+        assert self.node is not None, "No ROS node available"
         base_posestamp = self.get_input("base_pose")
         base_frame_name = self.get_input("base_frame_name")
         target_posestamp = self.get_input("target_pose")
@@ -280,7 +292,11 @@ class GetRelativePoseStamped(BehaviourWithPorts):
             ]
         )
         base_translation = np.array(
-            [base_posestamp.pose.position.x, base_posestamp.pose.position.y, base_posestamp.pose.position.z]
+            [
+                base_posestamp.pose.position.x,
+                base_posestamp.pose.position.y,
+                base_posestamp.pose.position.z,
+            ]
         )
         base_T_reference = RigidTransform.from_components(base_translation, base_orientation)
         target_orientation = R.from_quat(
@@ -292,14 +308,18 @@ class GetRelativePoseStamped(BehaviourWithPorts):
             ]
         )
         target_translation = np.array(
-            [target_posestamp.pose.position.x, target_posestamp.pose.position.y, target_posestamp.pose.position.z]
+            [
+                target_posestamp.pose.position.x,
+                target_posestamp.pose.position.y,
+                target_posestamp.pose.position.z,
+            ]
         )
         target_T_reference = RigidTransform.from_components(target_translation, target_orientation)
 
         target_T_base = base_T_reference.inv() * target_T_reference
 
-        final_pose = target_T_base.translation
-        final_rotation = target_T_base.rotation.as_quat()
+        final_pose = target_T_base.translation  # ty: ignore[unresolved-attribute] -- should be fixed
+        final_rotation = target_T_base.rotation.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
         # Output final message
         output_pose = PoseStamped()
         output_pose.header = base_posestamp.header
@@ -365,7 +385,8 @@ class GetRollPitchYaw(BehaviourWithPorts):
         )
         roll, pitch, yaw = input_orientation.as_euler("xyz", degrees=False)
 
-        self.node.get_logger().debug(f"Roll: {roll}, " f"Pitch: {pitch}, " f"Yaw: {yaw}")
+        assert self.node is not None, "No ROS node available"
+        self.node.get_logger().debug(f"Roll: {roll}, Pitch: {pitch}, Yaw: {yaw}")
         self._set_output("roll", roll)
         self._set_output("pitch", pitch)
         self._set_output("yaw", yaw)
@@ -400,7 +421,11 @@ class OffsetPoseStamped(BehaviourWithPorts):
             ]
         )
         input_translation = np.array(
-            [input_posestamp.pose.position.x, input_posestamp.pose.position.y, input_posestamp.pose.position.z]
+            [
+                input_posestamp.pose.position.x,
+                input_posestamp.pose.position.y,
+                input_posestamp.pose.position.z,
+            ]
         )
         input_RT = RigidTransform.from_components(input_translation, input_orientation)
         offset_RT = RigidTransform.from_components(np.array(translation_xyz), R.from_quat(orientation_xyzw))
@@ -409,13 +434,14 @@ class OffsetPoseStamped(BehaviourWithPorts):
             # To maintain parity with the previous version, the orientation offset is applied at the end
             offset_T_input_rot = offset_RT * input_RT
             offset_T_input = RigidTransform.from_components(
-                (input_translation + translation_xyz), offset_T_input_rot.rotation
+                (input_translation + translation_xyz),
+                offset_T_input_rot.rotation,  # ty: ignore[unresolved-attribute] -- should be fixed
             )
         else:
             offset_T_input = input_RT * offset_RT
 
-        final_pose = offset_T_input.translation
-        final_rotation = offset_T_input.rotation.as_quat()
+        final_pose = offset_T_input.translation  # ty: ignore[unresolved-attribute] -- should be fixed
+        final_rotation = offset_T_input.rotation.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
 
         # Output final message
         output_pose = PoseStamped()
@@ -467,7 +493,7 @@ class YamlPoseToPoseStamped(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Load the YAML file, create the message, and set it as an output port."""
-
+        assert self.node is not None, "No ROS node available"
         yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
             self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
@@ -535,7 +561,8 @@ class LookupTransform(BehaviourWithPorts):
         target_frame = self.get_input("target_frame")
         try:
             target_T_source = self.tf_buffer.lookup_transform(target_frame, source_frame, Time())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions
+            assert self.node is not None, "No ROS node available"
             self.node.get_logger().error(f"TF lookup failed: {e}")
             return Status.FAILURE
 
@@ -619,7 +646,11 @@ class DecomposePoseStamped(BehaviourWithPorts):
         """Extract the pose's position, orientation, and frame_id and return as list[float] and str"""
         pose_stamped = self.get_input("pose_stamped")
         frame_id = pose_stamped.header.frame_id
-        translation_xyz = [pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z]
+        translation_xyz = [
+            pose_stamped.pose.position.x,
+            pose_stamped.pose.position.y,
+            pose_stamped.pose.position.z,
+        ]
         orientation_xyzw = [
             pose_stamped.pose.orientation.x,
             pose_stamped.pose.orientation.y,
@@ -682,6 +713,7 @@ class PublishTwist(BehaviourWithPorts):
 
     def initialise(self) -> None:
         """Create TwistStamped message publisher, assemble twist message."""
+        assert self.node is not None, "No ROS node available"
         self.publisher = self.node.create_publisher(TwistStamped, self.topic_name, 1)
         self.twist_stamped = TwistStamped()
 
@@ -707,10 +739,13 @@ class PublishTwist(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Publish twist stamped message."""
+        if self.publisher is None:
+            return Status.FAILURE
+
         self.publisher.publish(self.twist_stamped)
         return Status.SUCCESS
 
-    def terminate(self, new_status: Status) -> Status:
+    def terminate(self, new_status: Status) -> None:
         """Cleanup the publisher"""
-        if self.status == Status.RUNNING and new_status == Status.INVALID:
+        if self.status == Status.RUNNING and new_status == Status.INVALID and self.publisher is not None:
             self.publisher.destroy()

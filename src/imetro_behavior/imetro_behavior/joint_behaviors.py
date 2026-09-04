@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,12 +16,10 @@
 # under the License.
 
 import yaml
-
 from ament_index_python.packages import get_package_share_path
-from rclpy.node import Node
-
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
+from rclpy.node import Node
 
 
 class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
@@ -65,7 +61,7 @@ class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Load the YAML file and set the joint name and positions as an output port."""
-
+        assert self.node is not None, "No ROS node available"
         yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
             self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")

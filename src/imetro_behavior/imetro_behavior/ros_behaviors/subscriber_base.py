@@ -15,15 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Type
-
-from rclpy.qos import QoSPresetProfiles
-from rclpy.duration import Duration
-from rclpy.node import Node
+from typing import Any
 
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-
+from rclpy.duration import Duration
+from rclpy.node import Node
+from rclpy.qos import QoSPresetProfiles
 from std_msgs.msg import String
 
 
@@ -35,7 +33,7 @@ class RosSubscriberBase(BehaviourWithPorts):
     def __init__(
         self,
         name: str,
-        topic_type: Type,
+        topic_type: type,
         *,
         topic_name: str,
         subscriber_timeout: float = 3.0,
@@ -77,6 +75,7 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
+        assert self.node is not None, "No ROS node available"
         self.subscription = self.node.create_subscription(
             self.topic_type, self.topic_name, self.callback, self.qos_profile
         )
@@ -89,13 +88,15 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         Monitor latest_msg variable until it is set or the timer runs out.
         """
+        assert self.node is not None, "No ROS node available"
+
         if self.latest_msg is not None:
             self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
             msg = self.latest_msg
             self.latest_msg = None
             try:
                 return self.process_msg(msg)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
                 self.node.get_logger().error(f"Failed to process message: {e}")
                 return Status.FAILURE
 
@@ -113,6 +114,7 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         Cleanup up the subscribers and the latest message if switching to INVALID status.
         """
+        assert self.node is not None, "No ROS node available"
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_subscription(self.subscription)
         self.latest_msg = None
@@ -141,6 +143,7 @@ class GetStringTopic(RosSubscriberBase):
     OUTPUT_PORTS = {"message": PortInformation(data_type=str, required=True)}
 
     def process_msg(self, message: String) -> Status:
+        assert self.node is not None, "No ROS node available"
         try:
             self._set_output("message", message.data)
             return Status.SUCCESS

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,15 +17,14 @@
 
 import time
 
+from cv_bridge import CvBridge
+from geometry_msgs.msg import PoseStamped
+from pupil_apriltags import Detector
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import CameraInfo, Image
-from pupil_apriltags import Detector
 from scipy.spatial.transform import Rotation as R
-from cv_bridge import CvBridge
+from sensor_msgs.msg import CameraInfo, Image
 
 
 class DetectAprilTag(BehaviourWithPorts):
@@ -56,6 +53,8 @@ class DetectAprilTag(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Run AprilTag detection."""
+        assert self.node is not None, "No ROS node available"
+
         rgb_msg = self.get_input("rgb_image")
         camera_info = self.get_input("camera_info")
         target_id = self.get_input("tag_id")
@@ -81,7 +80,7 @@ class DetectAprilTag(BehaviourWithPorts):
         tags = self.detector.detect(cv_img, estimate_tag_pose=True, camera_params=camera_params, tag_size=tag_size)
         detection_time = time.perf_counter() - detection_start
 
-        target_tag = next((t for t in tags if t.tag_id == target_id), None)
+        target_tag = next((t for t in tags if t.tag_id == target_id), None)  # ty: ignore[not-iterable]
 
         if target_tag is None:
             self.node.get_logger().error(
@@ -126,6 +125,7 @@ class DetectAprilTag(BehaviourWithPorts):
         if det is None:
             return
         if getattr(det, "tag_detector_ptr", None) is not None:
+            assert det.libc is not None
             det.libc.apriltag_detector_destroy.restype = None
             det.libc.apriltag_detector_destroy(det.tag_detector_ptr)
             det.tag_detector_ptr = None  # makes upstream __del__ a no-op

@@ -15,15 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Type
-
-from rclpy.duration import Duration
-from rclpy.node import Node
-
-from std_srvs.srv import Trigger
+from typing import Any
 
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
+from rclpy.duration import Duration
+from rclpy.node import Node
+from std_srvs.srv import Trigger
 
 
 class RosServiceClientBase(BehaviourWithPorts):
@@ -36,7 +34,7 @@ class RosServiceClientBase(BehaviourWithPorts):
     def __init__(
         self,
         name: str,
-        service_type: Type,
+        service_type: type,
         *,
         service_name: str,
         service_server_timeout: float = 3.0,
@@ -70,7 +68,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         raise NotImplementedError("Must implement create_request() method.")
 
-    def process_response(self, result: Any) -> Status:
+    def process_response(self, response: Any) -> Status:
         """
         Abstract method for processing a ROS service response.
         """
@@ -98,6 +96,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
+        assert self.node is not None, "No ROS node available"
         self.service_future = None
         self.service_start_time = None
         self.client_start_time = self.node.get_clock().now()
@@ -107,6 +106,7 @@ class RosServiceClientBase(BehaviourWithPorts):
         """
         Kick off a new service request and then check whether the service has completed or timed out.
         """
+        assert self.node is not None, "No ROS node available"
         if not self.client_ready:
             # Wait for the service server to be available until there is a timeout.
             if (
@@ -123,7 +123,7 @@ class RosServiceClientBase(BehaviourWithPorts):
             # Send a service request if one hasn't yet been sent.
             try:
                 request = self.create_request()  # Must be implemented
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
                 self.node.get_logger().error(f"Failed to create service request: {e}")
                 return Status.FAILURE
 
@@ -137,7 +137,7 @@ class RosServiceClientBase(BehaviourWithPorts):
             try:
                 # Must be implemented
                 return self.process_response(self.service_future.result())
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
                 self.node.get_logger().error(f"Failed to process action result: {e}")
                 return Status.FAILURE
 
@@ -194,6 +194,7 @@ class CallTriggerService(RosServiceClientBase):
 
     def process_response(self, response: Trigger.Response) -> Status:
         """Process the trigger service response."""
+        assert self.node is not None, "No ROS node available"
         if response.success:
             self.node.get_logger().info("Trigger request succeeded!")
             return Status.SUCCESS

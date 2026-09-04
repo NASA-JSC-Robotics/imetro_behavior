@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -16,13 +14,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import operator
 
-from rclpy.duration import Duration
-from rclpy.node import Node
+import operator
 
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
+from rclpy.duration import Duration
+from rclpy.node import Node
 
 
 class WaitForDuration(BehaviourWithPorts):
@@ -30,7 +28,7 @@ class WaitForDuration(BehaviourWithPorts):
 
     def __init__(self, name: str, duration_sec: float, **kwargs):
         """
-        Constructs behavior to wait for a duration.
+        Construct behavior to wait for a duration.
 
         Args:
             name: The name of the behavior (required by PyTrees)
@@ -50,18 +48,20 @@ class WaitForDuration(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def initialise(self):
-        """Initializes the start time against which to compare the duration."""
+        """Initialize the start time against which to compare the duration."""
+        assert self.node is not None, "No ROS node available"
         self.start_time = self.node.get_clock().now()
 
     def update(self) -> Status:
         """Return running until the duration is complete."""
+        assert self.node is not None, "No ROS node available"
         if self.node.get_clock().now() - self.start_time >= self.duration:
             return Status.SUCCESS
         return Status.RUNNING
 
 
 class BlackboardMath(BehaviourWithPorts):
-    """Allows for doing simple arithmetic (+-/*^) using blackboard values"""
+    """Allow for doing simple arithmetic (+-/*^) using blackboard values."""
 
     INPUT_PORTS = {
         "operand1": PortInformation(
@@ -86,7 +86,13 @@ class BlackboardMath(BehaviourWithPorts):
         )
     }
 
-    OPERATOR_SET = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv, "^": operator.pow}
+    OPERATOR_SET = {
+        "+": operator.add,
+        "-": operator.sub,
+        "*": operator.mul,
+        "/": operator.truediv,
+        "^": operator.pow,
+    }
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
@@ -95,6 +101,8 @@ class BlackboardMath(BehaviourWithPorts):
             raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
 
     def update(self) -> Status:
+        assert self.node is not None, "No ROS node available"
+
         operand1 = self.get_input("operand1")
         op = self.get_input("operator")
         operand2 = self.get_input("operand2")

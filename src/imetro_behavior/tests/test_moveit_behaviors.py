@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,31 +17,39 @@
 
 import numpy as np
 import pytest
-
-from rclpy.node import Node
 from ament_index_python.packages import get_package_share_path
 from geometry_msgs.msg import PoseStamped, TransformStamped
-from moveit_msgs.action import ExecuteTrajectory
-from moveit_msgs.msg import AllowedCollisionEntry, MoveItErrorCodes, PlanningScene, RobotTrajectory
-from moveit_msgs.srv import ApplyPlanningScene, GetCartesianPath, GetMotionPlan, GetPlanningScene
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-from shape_msgs.msg import SolidPrimitive
-from tf2_ros import Buffer
-
-
-from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.moveit_behaviors import (
     ExecuteTrajectoryBehavior,
     ModifyCollisions,
     PlanArcPath,
     PlanCartesian,
+    PlanningSceneFromRobotDescription,
     PlanToJointState,
     PlanToPose,
     RequestPlanningScene,
     RequestTrajectoryApproval,
-    PlanningSceneFromRobotDescription,
 )
+from moveit_msgs.action import ExecuteTrajectory
+from moveit_msgs.msg import (
+    AllowedCollisionEntry,
+    MoveItErrorCodes,
+    PlanningScene,
+    RobotTrajectory,
+)
+from moveit_msgs.srv import (
+    ApplyPlanningScene,
+    GetCartesianPath,
+    GetMotionPlan,
+    GetPlanningScene,
+)
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rclpy.node import Node
+from shape_msgs.msg import SolidPrimitive
+from tf2_ros import Buffer
+
+from imetro_behavior_msgs.action import PreviewTrajectory
 
 
 def set_input(behavior, port_name, value):
@@ -233,7 +239,11 @@ def test_modify_collisions_disallow(ros_node: Node) -> None:
     behavior.setup(node=ros_node)
     behavior.setup_ports()
 
-    set_input(behavior, "planning_scene", make_planning_scene(["link_a", "link_b"], enabled=True))
+    set_input(
+        behavior,
+        "planning_scene",
+        make_planning_scene(["link_a", "link_b"], enabled=True),
+    )
     set_input(behavior, "links_list_1", ["link_a"])
     set_input(behavior, "links_list_2", ["link_b"])
     set_input(behavior, "allow_collision", False)
@@ -293,7 +303,7 @@ def test_plan_cartesian_process_response(ros_node: Node) -> None:
 
 @pytest.fixture()
 def arc_behavior(ros_node: Node) -> PlanArcPath:
-    """A PlanArcPath behavior with a 'tool' frame at x=1.0 in the 'world' frame, rotating 90 degrees about +Z."""
+    """Return a PlanArcPath behavior with a 'tool' frame at x=1.0 in the 'world' frame, rotating 90 degrees about +Z."""
     buffer = Buffer()
     tform = TransformStamped()
     tform.header.frame_id = "world"
@@ -406,7 +416,9 @@ def test_execute_trajectory(ros_node: Node) -> None:
 
 
 @pytest.fixture()
-def planning_scene_from_robot_description_behavior(ros_node: Node) -> PlanningSceneFromRobotDescription:
+def planning_scene_from_robot_description_behavior(
+    ros_node: Node,
+) -> PlanningSceneFromRobotDescription:
 
     test_urdf_path = get_package_share_path("imetro_behavior") / "tests" / "test_data" / "test.urdf"
 

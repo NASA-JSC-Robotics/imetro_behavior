@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,39 +16,45 @@
 # under the License.
 
 import copy
+import os
+import re
+import xml.etree.ElementTree as ET
 from typing import Any
 
-import xml.etree.ElementTree as ET
-
-from py_trees.common import Access, Status
-from py_trees.ports import BehaviourWithPorts, PortInformation
-
 import numpy as np
-from scipy.spatial.transform import Rotation as R
-from rclpy.node import Node
-
-from rclpy.time import Time
+import trimesh
+from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import (
+    AllowedCollisionEntry,
     BoundingVolume,
+    CollisionObject,
     Constraints,
     JointConstraint,
     MoveItErrorCodes,
-    PositionConstraint,
     OrientationConstraint,
-    RobotTrajectory,
     PlanningScene,
-    CollisionObject,
-    AllowedCollisionEntry,
+    PositionConstraint,
+    RobotTrajectory,
 )
-from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, GetPlanningScene, ApplyPlanningScene
-from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
+from moveit_msgs.srv import (
+    ApplyPlanningScene,
+    GetCartesianPath,
+    GetMotionPlan,
+    GetPlanningScene,
+)
+from py_trees.common import Access, Status
+from py_trees.ports import BehaviourWithPorts, PortInformation
+from rclpy.node import Node
+from rclpy.time import Time
+from scipy.spatial.transform import Rotation as R
+from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
 from std_msgs.msg import Header
 
-from imetro_behavior_msgs.action import PreviewTrajectory
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
+from imetro_behavior_msgs.action import PreviewTrajectory
 
 # Handy dictionary for reporting failures.
 # Painstakingly copied from https://github.com/moveit/moveit_msgs/blob/ros2/msg/MoveItErrorCodes.msg
@@ -146,6 +150,7 @@ class PlanToJointState(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion planning service response."""
+        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Motion plan succeeded!")
@@ -232,6 +237,7 @@ class PlanToPose(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion plan service response."""
+        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Motion plan succeeded!")
@@ -264,6 +270,7 @@ class RequestPlanningScene(RosServiceClientBase):
 
     def process_response(self, response: GetPlanningScene.Response) -> Status:
         """Process the PlanningScene service response."""
+        assert self.node is not None, "No ROS node available"
         planning_scene = response.scene
         if planning_scene:
             self.node.get_logger().info("Got planning scene!")
@@ -299,8 +306,7 @@ class ModifyCollisions(RosServiceClientBase):
         "allow_collision": PortInformation(
             data_type=bool,
             required=True,
-            description="True: links are able to collide with each other."
-            "False: collision is forbidden between links.",
+            description="True: links are able to collide with each other.False: collision is forbidden between links.",
         ),
     }
 
@@ -352,6 +358,7 @@ class ModifyCollisions(RosServiceClientBase):
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
         """Process the ApplyPlanningScene service response."""
+        assert self.node is not None, "No ROS node available"
         if response.success:
             self.node.get_logger().info("Successfully modified the planning scene!")
             return Status.SUCCESS
@@ -398,6 +405,7 @@ class PlanCartesian(RosServiceClientBase):
 
     def process_response(self, response: GetCartesianPath.Response) -> Status:
         """Process the cartesian path service response."""
+        assert self.node is not None, "No ROS node available"
         error_code = response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Cartesian plan succeeded!")
@@ -509,7 +517,7 @@ class PlanArcPath(RosServiceClientBase):
         final_pose.position.x = p_final[0]
         final_pose.position.y = p_final[1]
         final_pose.position.z = p_final[2]
-        quat_final = q_final.as_quat()
+        quat_final = q_final.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
         final_pose.orientation.x = quat_final[0]
         final_pose.orientation.y = quat_final[1]
         final_pose.orientation.z = quat_final[2]
@@ -541,11 +549,18 @@ class PlanArcPath(RosServiceClientBase):
 
         goal_bounding_volume = BoundingVolume()
         goal_bounding_volume.primitives = [
-            SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[self.get_input("position_tolerance")])
+            SolidPrimitive(
+                type=SolidPrimitive.SPHERE,
+                dimensions=[self.get_input("position_tolerance")],
+            )
         ]
         goal_bounding_volume.primitive_poses = [
             Pose(
-                position=Point(x=target_pose.position.x, y=target_pose.position.y, z=target_pose.position.z),
+                position=Point(
+                    x=target_pose.position.x,
+                    y=target_pose.position.y,
+                    z=target_pose.position.z,
+                ),
                 orientation=Quaternion(w=1.0),
             )
         ]
@@ -574,7 +589,10 @@ class PlanArcPath(RosServiceClientBase):
         path_position_constraint.link_name = target_frame
         center_bounding_volume = BoundingVolume()
         center_bounding_volume.primitives = [
-            SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[self.get_input("position_tolerance")])
+            SolidPrimitive(
+                type=SolidPrimitive.SPHERE,
+                dimensions=[self.get_input("position_tolerance")],
+            )
         ]
         center_bounding_volume.primitive_poses = [
             Pose(
@@ -590,6 +608,7 @@ class PlanArcPath(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion plan service response."""
+        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Motion plan succeeded!")
@@ -619,6 +638,7 @@ class RequestTrajectoryApproval(RosActionClientBase):
 
     def process_result(self, result: PreviewTrajectory.Result) -> Status:
         """Process the trajectory preview action result."""
+        assert self.node is not None, "No ROS node available"
         approved = result.approved
         self._set_output("approved", approved)
         if approved:
@@ -645,6 +665,7 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
 
     def process_result(self, result: ExecuteTrajectory.Result) -> Status:
         """Process the trajectory execution action result."""
+        assert self.node is not None, "No ROS node available"
         error_code = result.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
             self.node.get_logger().info("Trajectory execution succeeded!")
@@ -678,6 +699,7 @@ class SetPlanningScene(RosServiceClientBase):
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
         """Process the ApplyPlanningScene service response."""
+        assert self.node is not None, "No ROS node available"
         if response.success:
             self.node.get_logger().info("Successfully modified the planning scene!")
             return Status.SUCCESS
@@ -715,12 +737,13 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
 
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""
+        assert self.node is not None, "No ROS node available"
         planning_scene = self.get_input("planning_scene")
         robot_description = self.get_input("robot_description")
         try:
             planning_scene.world.collision_objects = self.parse_xml(robot_description)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions, should fix
             self.node.get_logger().error(f"Parsing robot description has failed with : {e}")
             return Status.FAILURE
 
@@ -737,7 +760,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
     def cylinder_to_solid_primitive(self, cylinder_radius: float, cylinder_length: float) -> SolidPrimitive:
         solid_primitive = SolidPrimitive()
         solid_primitive.type = SolidPrimitive.CYLINDER
-        solid_primitive.dimensions = list([cylinder_radius, cylinder_length])
+        solid_primitive.dimensions = [cylinder_radius, cylinder_length]
 
         return solid_primitive
 
@@ -749,16 +772,13 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return solid_primitive
 
     def load_mesh_to_message(self, file_name: str) -> Mesh:
-        import trimesh
-        import re
-        import os
-        from ament_index_python.packages import get_package_share_directory
+        mesh_msg = Mesh()
 
         pattern = r"package://(.*?)?/"
         match = re.search(pattern, file_name)
 
         if not match:
-            return
+            return mesh_msg
 
         package_name = match.group(1).strip()
         package_dir = get_package_share_directory(package_name)
@@ -769,6 +789,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         scene_or_mesh = trimesh.load(file_path)
         # Attempt to guess the units and convey that to the operator.
         units = trimesh.units.units_from_metadata(scene_or_mesh, True)
+        assert self.node is not None, "No ROS node available"
         self.node.get_logger().warning(f"Loaded mesh is assumed to be in [{units}].")
         # Handle scene objects (if obj contains multiple meshes)
         if isinstance(scene_or_mesh, trimesh.Scene):
@@ -776,10 +797,8 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         else:
             mesh = scene_or_mesh
 
-        mesh_msg = Mesh()
-
         # Populate vertices
-        for v in mesh.vertices:
+        for v in mesh.vertices:  # ty: ignore[unresolved-attribute] -- should be fixed
             pt = Point()
             pt.x = float(v[0])
             pt.y = float(v[1])
@@ -787,7 +806,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
             mesh_msg.vertices.append(pt)
 
         # Populate triangle faces
-        for f in mesh.faces:
+        for f in mesh.faces:  # ty: ignore[unresolved-attribute] -- should be fixed
             tri = MeshTriangle()
             tri.vertex_indices = [int(f[0]), int(f[1]), int(f[2])]
             mesh_msg.triangles.append(tri)
@@ -795,7 +814,12 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return mesh_msg
 
     def collision_primitve_to_collision_object(
-        self, header: Header, pose: Pose, solid_primitive: SolidPrimitive, xyz: list[float], rpy: list[float]
+        self,
+        header: Header,
+        pose: Pose,
+        solid_primitive: SolidPrimitive,
+        xyz: list[float],
+        rpy: list[float],
     ) -> CollisionObject:
         collision_object = CollisionObject()
         collision_object.header = header
@@ -885,7 +909,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return header, pose
 
     def parse_xml(self, robot_description) -> list[CollisionObject]:
-
+        assert self.node is not None, "No ROS node available"
         collision_objects = []
 
         root = ET.fromstring(robot_description)
@@ -895,16 +919,15 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
             collision = link.find("collision")
 
             if collision is not None:
-
                 xyz = [0.0, 0.0, 0.0]
                 rpy = [0.0, 0.0, 0.0]
 
                 origin = collision.find("origin")
                 if origin is not None:
                     if origin.get("xyz"):
-                        xyz = [float(x) for x in origin.get("xyz").split()]
+                        xyz = [float(x) for x in origin.get("xyz").split()]  # ty: ignore[unresolved-attribute]
                     if origin.get("rpy"):
-                        rpy = [float(x) for x in origin.get("rpy").split()]
+                        rpy = [float(x) for x in origin.get("rpy").split()]  # ty: ignore[unresolved-attribute]
 
                 geometry = collision.find("geometry")
                 if geometry is not None:
@@ -913,7 +936,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                         collision_object = None
                         match child.tag:
                             case "box":
-                                box_size = child.get("size")
+                                box_size = str(child.get("size"))
                                 box_size = [float(x) for x in box_size.split()]
                                 solid_primitive = self.box_to_solid_primitive(box_size)
                                 collision_object = self.collision_primitve_to_collision_object(
@@ -921,15 +944,15 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 )
 
                             case "cylinder":
-                                cylinder_radius = float(child.get("radius"))
-                                cylinder_length = float(child.get("length"))
+                                cylinder_radius = float(child.get("radius"))  # ty: ignore[invalid-argument-type]
+                                cylinder_length = float(child.get("length"))  # ty: ignore[invalid-argument-type]
                                 solid_primitive = self.cylinder_to_solid_primitive(cylinder_radius, cylinder_length)
                                 collision_object = self.collision_primitve_to_collision_object(
                                     header, pose, solid_primitive, xyz, rpy
                                 )
 
                             case "sphere":
-                                sphere_radius = float(child.get("radius"))
+                                sphere_radius = float(child.get("radius"))  # ty: ignore[invalid-argument-type]
                                 solid_primitive = self.sphere_to_solid_primitive(sphere_radius)
                                 collision_object = self.collision_primitve_to_collision_object(
                                     header, pose, solid_primitive, xyz, rpy
@@ -941,6 +964,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 )
 
                                 filename = child.get("filename")
+                                assert filename is not None
                                 mesh = self.load_mesh_to_message(filename)
                                 collision_object = self.mesh_to_collision_object(header, pose, mesh, xyz, rpy)
 

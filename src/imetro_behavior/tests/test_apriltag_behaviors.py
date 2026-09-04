@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,16 +15,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pytest
 import cv2
-
-from rclpy.node import Node
+import pytest
+from ament_index_python.packages import get_package_share_path
+from imetro_behavior.apriltag_behaviors import DetectAprilTag
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
-from sensor_msgs.msg import Image, CameraInfo
-from ament_index_python.packages import get_package_share_path
-
-from imetro_behavior.apriltag_detection_behavior import DetectAprilTag
+from rclpy.node import Node
+from sensor_msgs.msg import CameraInfo, Image
 
 
 @pytest.fixture()

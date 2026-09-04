@@ -23,10 +23,9 @@ https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fi
 """
 
 import pytest
-
 import rclpy
-from rclpy.node import Node
 from py_trees.blackboard import Blackboard
+from rclpy.node import Node
 
 
 @pytest.fixture(autouse=True)

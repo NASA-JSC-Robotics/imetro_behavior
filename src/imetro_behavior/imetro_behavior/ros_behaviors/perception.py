@@ -19,13 +19,12 @@
 from typing import Any
 
 import message_filters
-from rclpy.duration import Duration
-from rclpy.node import Node
-from sensor_msgs.msg import CameraInfo, Image, PointCloud2
-
 import py_trees
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
+from rclpy.duration import Duration
+from rclpy.node import Node
+from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 
 
 class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
@@ -93,6 +92,7 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         """
         Reset internal variables and create subscribers and synchronizers.
         """
+        assert self.node is not None, "No ROS node available"
         self.latest_data = None
 
         self.camera_info_sub = message_filters.Subscriber(self.node, CameraInfo, self.camera_info_topic)
@@ -101,7 +101,12 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         self.point_cloud_sub = message_filters.Subscriber(self.node, PointCloud2, self.point_cloud_topic)
 
         self.synchronizer = message_filters.ApproximateTimeSynchronizer(
-            [self.camera_info_sub, self.rgb_image_sub, self.depth_image_sub, self.point_cloud_sub],
+            [
+                self.camera_info_sub,
+                self.rgb_image_sub,
+                self.depth_image_sub,
+                self.point_cloud_sub,
+            ],
             queue_size=self.queue_size,
             slop=self.time_slop,
         )
@@ -109,15 +114,25 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         self.start_time = self.node.get_clock().now()
 
     def _synchronize_callback(
-        self, camera_info_msg: CameraInfo, rgb_image_msg: Image, depth_image_msg: Image, point_cloud_msg: PointCloud2
+        self,
+        camera_info_msg: CameraInfo,
+        rgb_image_msg: Image,
+        depth_image_msg: Image,
+        point_cloud_msg: PointCloud2,
     ) -> None:
         """Callback triggered only when all topics have synchronized headers."""
-        self.latest_data = (camera_info_msg, rgb_image_msg, depth_image_msg, point_cloud_msg)
+        self.latest_data = (
+            camera_info_msg,
+            rgb_image_msg,
+            depth_image_msg,
+            point_cloud_msg,
+        )
 
     def update(self) -> Status:
         """
         Executes every time the behavior tree ticks this node.
         """
+        assert self.node is not None, "No ROS node available"
         if self.latest_data is not None:
             self.node.get_logger().info(f"[{self.qualified_name}] Got synchronized images and point clouds!")
             camera_info_msg, rgb_image_msg, depth_image_msg, point_cloud_msg = self.latest_data
@@ -140,8 +155,17 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
 
     def terminate(self, new_status: Status) -> None:
         """Cleanup if the behavior is interrupted or completes."""
+        if self.node is None:
+            return
+
         if self.synchronizer is not None:
             self.synchronizer.callbacks.clear()
 
-        for subscription in (self.camera_info_sub, self.rgb_image_sub, self.depth_image_sub, self.point_cloud_sub):
-            self.node.destroy_subscription(subscription.sub)
+        for subscription in (
+            self.camera_info_sub,
+            self.rgb_image_sub,
+            self.depth_image_sub,
+            self.point_cloud_sub,
+        ):
+            if subscription is not None:
+                self.node.destroy_subscription(subscription.sub)
