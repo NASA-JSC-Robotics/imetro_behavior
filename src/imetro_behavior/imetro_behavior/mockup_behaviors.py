@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,10 +17,9 @@
 
 from typing import Any
 
+from mockup_msgs.srv import SetJointState
 from py_trees.common import Status
 from py_trees.ports import PortInformation
-
-from mockup_msgs.srv import SetJointState
 
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
@@ -61,6 +58,7 @@ class UpdateMockupStates(RosServiceClientBase):
 
     def process_response(self, response: SetJointState.Response) -> Status:
         """Process the SetJointState service response."""
+        assert self.node is not None, "No ROS node available"
         if response.success:
             self.node.get_logger().info("SetJointState request succeeded!")
             return Status.SUCCESS

@@ -1,28 +1,34 @@
-[workspace]
+[project]
 name = "imetro_behavior"
-authors = ["Sebastian Castro <sebastian.a.castrofernandez@nasa.gov>"]
-platforms = ["linux-aarch64", "linux-64"]
 version = "0.1.0"
+authors = [{ name = "Sebastian Castro", email = "sebastian.a.castrofernandez@nasa.gov" }]
+
+## pixi (project management) options
+
+[tool.pixi.workspace]
+platforms = ["linux-aarch64", "linux-64"]
 channels = [
   "https://prefix.dev/conda-forge",
   "https://prefix.dev/robostack-jazzy",
 ]
 
-[activation]
+[tool.pixi.activation]
 scripts = ["scripts/entrypoint.sh"]
 
-[activation.env]
+[tool.pixi.activation.env]
 COLCON_DEFAULT_OUTPUT_STYLE = "catkin_tools"
 COLCON_DEFAULTS_FILE = "${PIXI_PROJECT_ROOT}/config/colcon-defaults.yaml"
 RCUTILS_COLORIZED_OUTPUT = "1"
 
-[tasks]
+[tool.pixi.tasks]
 build = "colcon build --cmake-args"
+lint = "pre-commit run -a"
 test = "colcon test"
 clean = "rm -rf build/* install/* log/*"
 
-[dependencies]
+[tool.pixi.dependencies]
 # Python dependencies
+pre-commit = ">=4.6.2,<5"
 libopencv = { version = ">=4.12.0,<5", build = "qt6*" }  # Ensure we aren't installing opencv headless
 py-opencv = { version = ">=4.12.0,<5", build = "qt6*" }
 pydot = ">=4.0.1,<5"
@@ -32,6 +38,7 @@ pytest = "<9.1.0"  # Gets around error with ament running pytest on newer versio
 pytest-mock = ">=3.15.1,<4"
 setuptools = "<80"  # Newer versions break colcon symlink installs
 scipy = ">=1.18.0,<2"
+trimesh = ">=5.1.0,<6"
 
 # ROS dependencies
 colcon-common-extensions = "*"
@@ -42,14 +49,29 @@ ros-jazzy-nav2-msgs = "*"
 ros-jazzy-control-msgs = "*"
 ros-jazzy-controller-manager-msgs = "*"
 
-[pypi-dependencies]
+[tool.pixi.pypi-dependencies]
 pupil-apriltags = ">=1.0.4.post11, <2"
 
-[feature.docs.dependencies]
+[tool.pixi.feature.docs.dependencies]
 pdoc = ">=15,<16"
 
-[feature.docs.tasks]
+[tool.pixi.feature.docs.tasks]
 build-docs = { cmd = "python3 scripts/build_docs.py", depends-on = ["build"] }
 
-[environments]
+[tool.pixi.environments]
 docs = { features = ["docs"], solve-group = "default" }
+
+## ty (type checking) options
+
+[tool.ty.src]
+exclude = [
+    "src/external",
+    "scripts/",
+]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = [
+    "color_blob_centroid.**",
+    "mockup_msgs.**",
+    "mujoco_ros2_control_msgs.**",
+]

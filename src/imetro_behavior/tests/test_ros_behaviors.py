@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,21 +16,19 @@
 # under the License.
 
 import pytest
-
-from rclpy.duration import Duration
-from rclpy.node import Node
-from rclpy.task import Future
 from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
-from sensor_msgs.msg import CameraInfo, Image, PointCloud2
-from std_srvs.srv import Trigger
-from std_msgs.msg import String
-from py_trees.common import Status
-
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
 from imetro_behavior.ros_behaviors.service_client import CallTriggerService
 from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
+from py_trees.common import Status
+from rclpy.duration import Duration
+from rclpy.node import Node
+from rclpy.task import Future
+from sensor_msgs.msg import CameraInfo, Image, PointCloud2
+from std_msgs.msg import String
+from std_srvs.srv import Trigger
 
 
 class TrackingActionBehavior(RosActionClientBase):
@@ -55,7 +51,7 @@ class TrackingActionBehavior(RosActionClientBase):
 
 @pytest.fixture()
 def completed_action_behavior(ros_node: Node) -> TrackingActionBehavior:
-    """A TrackingActionBehavior with its internal state staged as if a goal is in flight."""
+    """Return a TrackingActionBehavior with its internal state staged as if a goal is in flight."""
     behavior = TrackingActionBehavior(name="tracking_action", action_name="/foo")
     behavior.setup(node=ros_node)
     behavior.setup_ports()
@@ -72,7 +68,9 @@ def set_action_result(behavior: RosActionClientBase, status: int, result) -> Non
     behavior.get_result_future = future
 
 
-def test_action_client_unwraps_successful_result(completed_action_behavior: TrackingActionBehavior) -> None:
+def test_action_client_unwraps_successful_result(
+    completed_action_behavior: TrackingActionBehavior,
+) -> None:
     result = GripperCommand.Result(position=0.5)
     set_action_result(completed_action_behavior, GoalStatus.STATUS_SUCCEEDED, result)
 
@@ -80,7 +78,9 @@ def test_action_client_unwraps_successful_result(completed_action_behavior: Trac
     assert completed_action_behavior.received_result == result
 
 
-def test_action_client_fails_without_goal_success(completed_action_behavior: TrackingActionBehavior) -> None:
+def test_action_client_fails_without_goal_success(
+    completed_action_behavior: TrackingActionBehavior,
+) -> None:
     set_action_result(completed_action_behavior, GoalStatus.STATUS_ABORTED, GripperCommand.Result())
 
     assert completed_action_behavior.update() == Status.FAILURE
@@ -128,8 +128,11 @@ def test_get_synced_data_success(sync_behavior: GetSyncedImagePointCloudDepth) -
     assert sync_behavior.latest_data is None
 
 
-def test_get_synced_data_waiting_and_timeout(sync_behavior: GetSyncedImagePointCloudDepth) -> None:
+def test_get_synced_data_waiting_and_timeout(
+    sync_behavior: GetSyncedImagePointCloudDepth,
+) -> None:
     node = sync_behavior.node
+    assert node is not None
     sync_behavior.latest_data = None
 
     sync_behavior.start_time = node.get_clock().now()
@@ -142,7 +145,10 @@ def test_get_synced_data_waiting_and_timeout(sync_behavior: GetSyncedImagePointC
 @pytest.fixture()
 def get_string_topic_behavior(ros_node: Node) -> GetStringTopic:
     behavior = GetStringTopic(
-        name="get_string_topic", topic_name="/string_topic", subscriber_timeout=1.0, qos_profile="default"
+        name="get_string_topic",
+        topic_name="/string_topic",
+        subscriber_timeout=1.0,
+        qos_profile="default",
     )
     behavior.setup(node=ros_node)
     behavior.setup_ports()

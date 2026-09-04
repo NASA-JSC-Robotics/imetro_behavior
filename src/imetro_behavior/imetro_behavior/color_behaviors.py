@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -18,15 +16,12 @@
 # under the License.
 
 import cv2
+from color_blob_centroid.bindings import BlobRequest, process_blobs
 from cv_bridge import CvBridge
-
+from geometry_msgs.msg import PoseStamped
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-
-from color_blob_centroid.bindings import BlobRequest, process_blobs
-
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
 
 
@@ -66,6 +61,7 @@ class DetectColorBlobs(BehaviourWithPorts):
 
         result = process_blobs(request)
         if not result.success:
+            assert self.node is not None, "No ROS node available"
             self.node.get_logger().error(f"Failed to detect blobs: {result.err_msg}")
             return Status.FAILURE
 

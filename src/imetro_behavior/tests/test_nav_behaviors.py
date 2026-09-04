@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,13 +15,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from imetro_behavior.nav_behaviors import NavigateToPoseBehavior
 from nav2_msgs.action import NavigateToPose
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
-
-from imetro_behavior.nav_behaviors import NavigateToPoseBehavior
+from rclpy.node import Node
 
 
 def test_navigate_to_pose_create_goal(ros_node: Node) -> None:

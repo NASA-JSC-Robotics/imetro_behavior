@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,14 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pytest
 from pathlib import Path
 
+import pytest
+from imetro_behavior.joint_behaviors import JointNamesAndPositionsFromYaml
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
-
-from imetro_behavior.joint_behaviors import JointNamesAndPositionsFromYaml
 
 
 @pytest.fixture()
@@ -54,7 +51,9 @@ home:
     return behavior
 
 
-def test_joint_names_and_positions_from_yaml(yaml_joint_behavior: JointNamesAndPositionsFromYaml) -> None:
+def test_joint_names_and_positions_from_yaml(
+    yaml_joint_behavior: JointNamesAndPositionsFromYaml,
+) -> None:
     Blackboard.set(yaml_joint_behavior._get_blackboard_key("state_name"), "home")
 
     yaml_joint_behavior.tick_once()
@@ -65,13 +64,17 @@ def test_joint_names_and_positions_from_yaml(yaml_joint_behavior: JointNamesAndP
     assert joint_positions == [0.1, 0.2, 0.3]
 
 
-def test_joint_names_and_positions_from_yaml_missing_state(yaml_joint_behavior: JointNamesAndPositionsFromYaml) -> None:
+def test_joint_names_and_positions_from_yaml_missing_state(
+    yaml_joint_behavior: JointNamesAndPositionsFromYaml,
+) -> None:
     Blackboard.set(yaml_joint_behavior._get_blackboard_key("state_name"), "retreat")
     yaml_joint_behavior.tick_once()
     assert yaml_joint_behavior.status == Status.FAILURE
 
 
-def test_joint_names_and_positions_from_yaml_missing_file(yaml_joint_behavior: JointNamesAndPositionsFromYaml) -> None:
+def test_joint_names_and_positions_from_yaml_missing_file(
+    yaml_joint_behavior: JointNamesAndPositionsFromYaml,
+) -> None:
     Blackboard.set(yaml_joint_behavior._get_blackboard_key("yaml_file"), "nonexistent.yaml")
     Blackboard.set(yaml_joint_behavior._get_blackboard_key("state_name"), "home")
     yaml_joint_behavior.tick_once()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -17,11 +19,11 @@
 
 """Build API docs with pdoc, mocking unavailable dependencies."""
 
-import pdoc
 import sys
-
 from pathlib import Path
 from unittest.mock import MagicMock
+
+import pdoc
 
 # Mock any modules that aren't available, (such as color_tools or mockups);
 # but mocking them still lets that module have documentation.

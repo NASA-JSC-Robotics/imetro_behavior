@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -22,14 +20,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-
-from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
+from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
-
-from imetro_behavior.executor import BehaviorTreeServer, BehaviorTreeExecutor
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.node import Node
 
 
 class AlwaysSucceed(BehaviourWithPorts):

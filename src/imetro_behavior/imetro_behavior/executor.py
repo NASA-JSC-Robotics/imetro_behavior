@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright (c) 2026, United States Government, as represented by the
 # Administrator of the National Aeronautics and Space Administration.
 #
@@ -19,24 +17,23 @@
 
 import os
 import threading
-import yaml
 from importlib import import_module
 from pathlib import Path
 
+import yaml
 from ament_index_python.packages import get_package_share_path
-from rclpy.action import ActionServer, CancelResponse, GoalResponse
-from rclpy.action.server import ServerGoalHandle
-from rclpy.callback_groups import ReentrantCallbackGroup
-from rclpy.duration import Duration
-from rclpy.node import Node
-from tf2_ros import Buffer, TransformListener
-
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.composites import Sequence
 from py_trees.parsers.behaviour_tree_xml import parse_behaviour_tree_xml
 from py_trees.ports import NoDataAvailable
 from py_trees_ros.trees import BehaviourTree
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from rclpy.action.server import ServerGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.duration import Duration
+from rclpy.node import Node
+from tf2_ros import Buffer, TransformListener
 
 from imetro_behavior_msgs.action import ExecuteBehavior
 
@@ -226,6 +223,8 @@ class BehaviorTreeExecutor:
         if self._current_behavior is not None:
             self._logger.info("Stopping current behavior...")
             self._current_behavior = None
+
+        if self._tree is not None:
             self._tree.root.status = Status.INVALID
             self._tree.shutdown(destroy_node=False)
 
