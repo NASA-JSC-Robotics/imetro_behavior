@@ -22,6 +22,8 @@ from py_trees.ports import BehaviourWithPorts, PortInformation
 from rclpy.duration import Duration
 from rclpy.node import Node
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class WaitForDuration(BehaviourWithPorts):
     """Waits for a specified duration using the ROS clock."""
@@ -35,6 +37,7 @@ class WaitForDuration(BehaviourWithPorts):
             duration_sec: Duration, in seconds, to wait for before completion.
             kwargs: Additional keyword arguments to pass through to ports.
         """
+        self.node: Node
         self.duration = Duration(seconds=duration_sec)
         super().__init__(name, **kwargs)
 
@@ -43,18 +46,14 @@ class WaitForDuration(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the ROS node for its clock."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def initialise(self):
         """Initialize the start time against which to compare the duration."""
-        assert self.node is not None, "No ROS node available"
         self.start_time = self.node.get_clock().now()
 
     def update(self) -> Status:
         """Return running until the duration is complete."""
-        assert self.node is not None, "No ROS node available"
         if self.node.get_clock().now() - self.start_time >= self.duration:
             return Status.SUCCESS
         return Status.RUNNING
@@ -96,29 +95,25 @@ class BlackboardMath(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the ROS node for logger."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
-        assert self.node is not None, "No ROS node available"
-
         operand1 = self.get_input("operand1")
         op = self.get_input("operator")
         operand2 = self.get_input("operand2")
 
         if op == "/" and operand2 == 0.0:
-            self.node.get_logger().error("Error: Division by zero encountered!")
+            self.logger.error("Error: Division by zero encountered!")
             return Status.FAILURE
 
         operator_fn = self.OPERATOR_SET.get(op)
 
         if operator_fn is None:
-            self.node.get_logger().error(f"Operator: {op} not found in valid list of operators: (+-/*)")
+            self.logger.error(f"Operator: {op} not found in valid list of operators: (+-/*)")
             return Status.FAILURE
 
         result = operator_fn(operand1, operand2)
 
-        self.node.get_logger().debug(f"RESULT: {result}")
+        self.logger.debug(f"RESULT: {result}")
         self._set_output("result", result)
         return Status.SUCCESS

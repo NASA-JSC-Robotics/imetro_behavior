@@ -24,6 +24,8 @@ from rclpy.node import Node
 from rclpy.qos import QoSPresetProfiles
 from std_msgs.msg import String
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class RosSubscriberBase(BehaviourWithPorts):
     """
@@ -61,21 +63,19 @@ class RosSubscriberBase(BehaviourWithPorts):
             raise KeyError(f"QoSProfile [ {qos_profile} ] is not available!")
         self.qos_profile = QoSPresetProfiles.get_from_short_key(qos_profile)
 
+        self.node: Node
         self.latest_msg = None
 
     def setup(self, **kwargs):
         """
         Get the node from the blackboard.
         """
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def initialise(self):
         """
         Reset the internal variables.
         """
-        assert self.node is not None, "No ROS node available"
         self.subscription = self.node.create_subscription(
             self.topic_type, self.topic_name, self.callback, self.qos_profile
         )
@@ -88,16 +88,14 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         Monitor latest_msg variable until it is set or the timer runs out.
         """
-        assert self.node is not None, "No ROS node available"
-
         if self.latest_msg is not None:
-            self.node.get_logger().debug(f"[{self.qualified_name}] Got topic message!")
+            self.logger.debug(f"[{self.qualified_name}] Got topic message!")
             msg = self.latest_msg
             self.latest_msg = None
             try:
                 return self.process_msg(msg)
             except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
-                self.node.get_logger().error(f"Failed to process message: {e}")
+                self.logger.error(f"Failed to process message: {e}")
                 return Status.FAILURE
 
         # If no message has arrived yet, keep waiting until timeout.
@@ -105,7 +103,7 @@ class RosSubscriberBase(BehaviourWithPorts):
             self.subscriber_timeout is not None
             and self.node.get_clock().now() - self.start_time > self.subscriber_timeout
         ):
-            self.node.get_logger().error(f"[{self.qualified_name}] Timed out waiting on topic {self.topic_name}.")
+            self.logger.error(f"[{self.qualified_name}] Timed out waiting on topic {self.topic_name}.")
             return Status.FAILURE
 
         return Status.RUNNING
@@ -114,7 +112,6 @@ class RosSubscriberBase(BehaviourWithPorts):
         """
         Cleanup up the subscribers and the latest message if switching to INVALID status.
         """
-        assert self.node is not None, "No ROS node available"
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_subscription(self.subscription)
         self.latest_msg = None
@@ -143,10 +140,9 @@ class GetStringTopic(RosSubscriberBase):
     OUTPUT_PORTS = {"message": PortInformation(data_type=str, required=True)}
 
     def process_msg(self, message: String) -> Status:
-        assert self.node is not None, "No ROS node available"
         try:
             self._set_output("message", message.data)
             return Status.SUCCESS
         except KeyError:
-            self.node.get_logger().error(f"[{self.qualified_name}] could not get data field from msg.")
+            self.logger.error(f"[{self.qualified_name}] could not get data field from msg.")
             return Status.FAILURE

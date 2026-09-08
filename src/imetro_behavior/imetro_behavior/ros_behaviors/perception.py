@@ -26,6 +26,8 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
     def __init__(
@@ -65,6 +67,7 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         self.time_slop = time_slop
         self.sync_timeout = Duration(seconds=sync_timeout) if sync_timeout else None
 
+        self.node: Node
         self.synchronizer = None
         self.camera_info_sub = None
         self.rgb_image_sub = None
@@ -84,15 +87,12 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         """
         Sets up the ROS node needed for the message filters.
         """
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def initialise(self) -> None:
         """
         Reset internal variables and create subscribers and synchronizers.
         """
-        assert self.node is not None, "No ROS node available"
         self.latest_data = None
 
         self.camera_info_sub = message_filters.Subscriber(self.node, CameraInfo, self.camera_info_topic)
@@ -132,9 +132,8 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         """
         Executes every time the behavior tree ticks this node.
         """
-        assert self.node is not None, "No ROS node available"
         if self.latest_data is not None:
-            self.node.get_logger().info(f"[{self.qualified_name}] Got synchronized images and point clouds!")
+            self.logger.info(f"[{self.qualified_name}] Got synchronized images and point clouds!")
             camera_info_msg, rgb_image_msg, depth_image_msg, point_cloud_msg = self.latest_data
             self._set_output("camera_info", camera_info_msg)
             self._set_output("rgb_image", rgb_image_msg)
@@ -148,7 +147,7 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
 
         # If no synchronized frame has arrived yet, keep waiting until timeout.
         if self.sync_timeout is not None and self.node.get_clock().now() - self.start_time > self.sync_timeout:
-            self.node.get_logger().error(f"[{self.qualified_name}] Timed out waiting for synchronization.")
+            self.logger.error(f"[{self.qualified_name}] Timed out waiting for synchronization.")
             return Status.FAILURE
 
         return py_trees.common.Status.RUNNING

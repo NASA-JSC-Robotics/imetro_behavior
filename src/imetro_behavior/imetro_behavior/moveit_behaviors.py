@@ -46,12 +46,12 @@ from moveit_msgs.srv import (
 )
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-from rclpy.node import Node
 from rclpy.time import Time
 from scipy.spatial.transform import Rotation as R
 from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
 from std_msgs.msg import Header
 
+from imetro_behavior.helpers import set_ros_node
 from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
 from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 from imetro_behavior_msgs.action import PreviewTrajectory
@@ -150,17 +150,16 @@ class PlanToJointState(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion planning service response."""
-        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.node.get_logger().info("Motion plan succeeded!")
+            self.logger.info("Motion plan succeeded!")
             self._set_output("trajectory", response.motion_plan_response.trajectory)
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(f"Motion plan failed with error code: {error_code_str}")
-            self.node.get_logger().error(f"Message: {error_code.message}")
-            self.node.get_logger().error(f"Source: {error_code.source}")
+            self.logger.error(f"Motion plan failed with error code: {error_code_str}")
+            self.logger.error(f"Message: {error_code.message}")
+            self.logger.error(f"Source: {error_code.source}")
             return Status.FAILURE
 
 
@@ -237,17 +236,16 @@ class PlanToPose(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion plan service response."""
-        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.node.get_logger().info("Motion plan succeeded!")
+            self.logger.info("Motion plan succeeded!")
             self._set_output("trajectory", response.motion_plan_response.trajectory)
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(f"Motion plan failed with error code: {error_code_str}")
-            self.node.get_logger().error(f"Message: {error_code.message}")
-            self.node.get_logger().error(f"Source: {error_code.source}")
+            self.logger.error(f"Motion plan failed with error code: {error_code_str}")
+            self.logger.error(f"Message: {error_code.message}")
+            self.logger.error(f"Source: {error_code.source}")
             return Status.FAILURE
 
 
@@ -270,14 +268,13 @@ class RequestPlanningScene(RosServiceClientBase):
 
     def process_response(self, response: GetPlanningScene.Response) -> Status:
         """Process the PlanningScene service response."""
-        assert self.node is not None, "No ROS node available"
         planning_scene = response.scene
         if planning_scene:
-            self.node.get_logger().info("Got planning scene!")
+            self.logger.info("Got planning scene!")
             self._set_output("planning_scene", planning_scene)
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Error: failed to get planning scene.")
+            self.logger.error("Error: failed to get planning scene.")
             return Status.FAILURE
 
 
@@ -358,12 +355,11 @@ class ModifyCollisions(RosServiceClientBase):
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
         """Process the ApplyPlanningScene service response."""
-        assert self.node is not None, "No ROS node available"
         if response.success:
-            self.node.get_logger().info("Successfully modified the planning scene!")
+            self.logger.info("Successfully modified the planning scene!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
+            self.logger.error("Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
 
 
@@ -405,19 +401,18 @@ class PlanCartesian(RosServiceClientBase):
 
     def process_response(self, response: GetCartesianPath.Response) -> Status:
         """Process the cartesian path service response."""
-        assert self.node is not None, "No ROS node available"
         error_code = response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.node.get_logger().info("Cartesian plan succeeded!")
+            self.logger.info("Cartesian plan succeeded!")
             self._set_output("trajectory", response.solution)
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(
+            self.logger.error(
                 f"Cartesian plan failed with error code: {error_code_str}, computed {response.fraction}% of trajectory."
             )
-            self.node.get_logger().error(f"Message: {error_code.message}")
-            self.node.get_logger().error(f"Source: {error_code.source}")
+            self.logger.error(f"Message: {error_code.message}")
+            self.logger.error(f"Source: {error_code.source}")
             return Status.FAILURE
 
 
@@ -608,17 +603,16 @@ class PlanArcPath(RosServiceClientBase):
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
         """Process the motion plan service response."""
-        assert self.node is not None, "No ROS node available"
         error_code = response.motion_plan_response.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.node.get_logger().info("Motion plan succeeded!")
+            self.logger.info("Motion plan succeeded!")
             self._set_output("trajectory", response.motion_plan_response.trajectory)
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(f"Motion plan failed with error code: {error_code_str}")
-            self.node.get_logger().error(f"Message: {error_code.message}")
-            self.node.get_logger().error(f"Source: {error_code.source}")
+            self.logger.error(f"Motion plan failed with error code: {error_code_str}")
+            self.logger.error(f"Message: {error_code.message}")
+            self.logger.error(f"Source: {error_code.source}")
             return Status.FAILURE
 
 
@@ -638,14 +632,13 @@ class RequestTrajectoryApproval(RosActionClientBase):
 
     def process_result(self, result: PreviewTrajectory.Result) -> Status:
         """Process the trajectory preview action result."""
-        assert self.node is not None, "No ROS node available"
         approved = result.approved
         self._set_output("approved", approved)
         if approved:
-            self.node.get_logger().info("Trajectory preview approved by user.")
+            self.logger.info("Trajectory preview approved by user.")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Trajectory preview rejected by user.")
+            self.logger.error("Trajectory preview rejected by user.")
             return Status.FAILURE
 
 
@@ -665,16 +658,15 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
 
     def process_result(self, result: ExecuteTrajectory.Result) -> Status:
         """Process the trajectory execution action result."""
-        assert self.node is not None, "No ROS node available"
         error_code = result.error_code
         if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.node.get_logger().info("Trajectory execution succeeded!")
+            self.logger.info("Trajectory execution succeeded!")
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
-            self.node.get_logger().error(f"Trajectory execution failed with error code: {error_code_str}")
-            self.node.get_logger().error(f"Message: {error_code.message}")
-            self.node.get_logger().error(f"Source: {error_code.source}")
+            self.logger.error(f"Trajectory execution failed with error code: {error_code_str}")
+            self.logger.error(f"Message: {error_code.message}")
+            self.logger.error(f"Source: {error_code.source}")
             return Status.FAILURE
 
 
@@ -699,12 +691,11 @@ class SetPlanningScene(RosServiceClientBase):
 
     def process_response(self, response: ApplyPlanningScene.Response) -> Status:
         """Process the ApplyPlanningScene service response."""
-        assert self.node is not None, "No ROS node available"
         if response.success:
-            self.node.get_logger().info("Successfully modified the planning scene!")
+            self.logger.info("Successfully modified the planning scene!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Error: failed to apply modifications to planning scene.")
+            self.logger.error("Error: failed to apply modifications to planning scene.")
             return Status.FAILURE
 
 
@@ -731,20 +722,17 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the TF buffer."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Look up the transform in TF and transform the frame."""
-        assert self.node is not None, "No ROS node available"
         planning_scene = self.get_input("planning_scene")
         robot_description = self.get_input("robot_description")
         try:
             planning_scene.world.collision_objects = self.parse_xml(robot_description)
 
         except Exception as e:  # noqa: BLE001 -- could be a variety of exceptions, should fix
-            self.node.get_logger().error(f"Parsing robot description has failed with : {e}")
+            self.logger.error(f"Parsing robot description has failed with : {e}")
             return Status.FAILURE
 
         self._set_output("modified_planning_scene", planning_scene)
@@ -789,8 +777,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         scene_or_mesh = trimesh.load(file_path)
         # Attempt to guess the units and convey that to the operator.
         units = trimesh.units.units_from_metadata(scene_or_mesh, True)
-        assert self.node is not None, "No ROS node available"
-        self.node.get_logger().warning(f"Loaded mesh is assumed to be in [{units}].")
+        self.logger.warning(f"Loaded mesh is assumed to be in [{units}].")
         # Handle scene objects (if obj contains multiple meshes)
         if isinstance(scene_or_mesh, trimesh.Scene):
             mesh = scene_or_mesh.dump(concatenate=True)
@@ -909,7 +896,6 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
         return header, pose
 
     def parse_xml(self, robot_description) -> list[CollisionObject]:
-        assert self.node is not None, "No ROS node available"
         collision_objects = []
 
         root = ET.fromstring(robot_description)
@@ -959,7 +945,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 )
 
                             case "mesh":
-                                self.node.get_logger().warning(
+                                self.logger.warning(
                                     "Parsing meshes from URDF into shape_msgs/msg/Mesh is experimental!"
                                 )
 
@@ -969,7 +955,7 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                                 collision_object = self.mesh_to_collision_object(header, pose, mesh, xyz, rpy)
 
                             case _:
-                                self.node.get_logger().warning(
+                                self.logger.warning(
                                     f"Collision object tag {child.tag} is not recognized. Skipping the object."
                                 )
 

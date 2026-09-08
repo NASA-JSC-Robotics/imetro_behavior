@@ -84,7 +84,6 @@ class SwitchRosControllers(RosServiceClientBase):
         """
         Look up which controllers must be activated and/or deactivated based on the inputs,
         and then package up a corresponding switch controller request."""
-        assert self.node is not None, "No ROS node available"
         controller_info = self.get_input("controller_info", [])
         activate_controllers = self.get_input("activate_controllers", [])
         deactivate_controllers = self.get_input("deactivate_controllers", [])
@@ -112,7 +111,7 @@ class SwitchRosControllers(RosServiceClientBase):
 
                 conflicting_interfaces = set(info.claimed_interfaces).intersection(interfaces_to_claim)
                 if len(conflicting_interfaces) > 0:
-                    self.node.get_logger().info(
+                    self.logger.info(
                         f"Adding controller '{info.name}' to deactivate list since it claims "
                         f"the following command interfaces: {conflicting_interfaces}."
                     )
@@ -125,12 +124,11 @@ class SwitchRosControllers(RosServiceClientBase):
 
     def process_response(self, response: SwitchController.Response) -> Status:
         """Process the service response."""
-        assert self.node is not None, "No ROS node available"
         if response.ok:
-            self.node.get_logger().debug("Successfully switched controllers!")
+            self.logger.debug("Successfully switched controllers!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Failed to switch controllers: {response.message}")
+            self.logger.error(f"Failed to switch controllers: {response.message}")
             return Status.FAILURE
 
 
@@ -156,12 +154,11 @@ class CommandGripper(RosActionClientBase):
 
     def process_result(self, result: GripperCommand.Result) -> Status:
         """Process the gripper command action result."""
-        assert self.node is not None, "No ROS node available"
         if result.reached_goal or result.stalled:
-            self.node.get_logger().debug("Successfully commanded gripper!")
+            self.logger.debug("Successfully commanded gripper!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error("Gripper command action did not reach its goal or hit a stall condition.")
+            self.logger.error("Gripper command action did not reach its goal or hit a stall condition.")
             return Status.FAILURE
 
 
@@ -231,8 +228,7 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
         elif param_type == ParameterType.PARAMETER_DOUBLE:
             parameter.value.double_value = param_value
         else:
-            assert self.node is not None, "No ROS node available"
-            self.node.get_logger().error(
+            self.logger.error(
                 "Only 'PARAMETER_DOUBLE', 'PARAMETER_BOOL_ARRAY', and 'PARAMETER_DOUBLE_ARRAY' "
                 f"are supported for the add_parameter_to_list() method. '{param_name}' of type "
                 f"{param_type} (see ParameterType msg definition for enum) was invalid."
@@ -305,10 +301,9 @@ class UpdateAdmittanceParameters(RosServiceClientBase):
 
     def process_response(self, response: SetParametersAtomically.Response) -> Status:
         """Process the service response."""
-        assert self.node is not None, "No ROS node available"
         if response.result.successful:
-            self.node.get_logger().debug("Successfully set admittance parameters!")
+            self.logger.debug("Successfully set admittance parameters!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Failed to set parameters: {response.result.reason}")
+            self.logger.error(f"Failed to set parameters: {response.result.reason}")
             return Status.FAILURE

@@ -26,6 +26,8 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.task import Future
 
+from imetro_behavior.helpers import set_ros_node
+
 GOAL_STATUS_DICT = {
     GoalStatus.STATUS_UNKNOWN: "UNKNOWN",
     GoalStatus.STATUS_ACCEPTED: "ACCEPTED",
@@ -71,6 +73,7 @@ class RosActionClientBase(BehaviourWithPorts):
         self.action_name = action_name
         self.action_server_timeout = Duration(seconds=action_server_timeout) if action_server_timeout else None
         self.action_timeout = Duration(seconds=action_timeout) if action_timeout else None
+        self.node: Node
         super().__init__(name, **kwargs)
 
     def create_goal(self) -> Any | None:
@@ -94,10 +97,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Sets up the action client.
         """
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
+        set_ros_node(self, **kwargs)
         self.action_client = ActionClient(
             node=self.node,
             action_type=self.action_type,
@@ -114,7 +114,6 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
-        assert self.node is not None, "No ROS node available"
         self.goal_handle = None
         self.send_goal_future = None
         self.action_start_time = None
@@ -125,14 +124,13 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Kick off a new goal request and then check whether the action has completed or timed out.
         """
-        assert self.node is not None, "No ROS node available"
-        if not self.client_ready:
+        if not self.client_ready and self.client_start_time is not None:
             # Wait for the action server to be available until there is a timeout.
             if (
                 self.action_server_timeout is not None
                 and self.node.get_clock().now() - self.client_start_time > self.action_server_timeout
             ):
-                self.node.get_logger().error(f"Timed out waiting for action server {self.action_name}.")
+                self.logger.error(f"Timed out waiting for action server {self.action_name}.")
                 return Status.FAILURE
             else:
                 self.client_ready = self.action_client.server_is_ready()
@@ -143,10 +141,10 @@ class RosActionClientBase(BehaviourWithPorts):
             try:
                 goal = self.create_goal()  # Must be implemented
             except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
-                self.node.get_logger().error(f"Failed to create action goal: {e}")
+                self.logger.error(f"Failed to create action goal: {e}")
                 return Status.FAILURE
 
-            self.node.get_logger().debug("Sending action goal...")
+            self.logger.debug("Sending action goal...")
             self.send_goal_future = self.action_client.send_goal_async(goal)
             self.send_goal_future.add_done_callback(self.goal_response_callback)
             self.action_start_time = self.node.get_clock().now()
@@ -154,7 +152,7 @@ class RosActionClientBase(BehaviourWithPorts):
 
         elif self.goal_handle is not None and not self.goal_handle.accepted:
             # Fail if the goal was not accepted.
-            self.node.get_logger().error("Goal rejected.")
+            self.logger.error("Goal rejected.")
             self.goal_handle = None
             return Status.FAILURE
 
@@ -165,22 +163,23 @@ class RosActionClientBase(BehaviourWithPorts):
             response = self.get_result_future.result()
             if response.status != GoalStatus.STATUS_SUCCEEDED:
                 status_str = GOAL_STATUS_DICT.get(response.status, "UNKNOWN")
-                self.node.get_logger().error(f"Action did not succeed, with goal status: {status_str}.")
+                self.logger.error(f"Action did not succeed, with goal status: {status_str}.")
                 return Status.FAILURE
 
             try:
                 # Must be implemented
                 return self.process_result(response.result)
             except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
-                self.node.get_logger().error(f"Failed to process action result: {e}")
+                self.logger.error(f"Failed to process action result: {e}")
                 return Status.FAILURE
 
         elif (
             self.action_timeout is not None
+            and self.action_start_time is not None
             and self.node.get_clock().now() - self.action_start_time > self.action_timeout
         ):
             # If we made it here, the action is in progress. Check for timeouts.
-            self.node.get_logger().error("Action timed out.")
+            self.logger.error("Action timed out.")
             return Status.FAILURE
 
         else:
@@ -209,16 +208,15 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Handle goal response and proceed to listen for the result if accepted.
         """
-        assert self.node is not None, "No ROS node available"
         if future.result() is None:
-            self.node.get_logger().error("Goal request failed.")
+            self.logger.error("Goal request failed.")
             return
         self.goal_handle = future.result()
         if not self.goal_handle.accepted:
-            self.node.get_logger().error("Goal request rejected")
+            self.logger.error("Goal request rejected")
             return
         else:
-            self.node.get_logger().debug("Goal request accepted.")
+            self.logger.debug("Goal request accepted.")
 
         self.get_result_future = self.goal_handle.get_result_async()
 
@@ -227,7 +225,7 @@ class RosActionClientBase(BehaviourWithPorts):
         Send a cancel request to the server.
         """
         if self.node is not None and self.goal_handle is not None:
-            self.node.get_logger().debug("Canceling goal.")
+            self.logger.debug("Canceling goal.")
             cancel_future = self.goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(self.cancel_response_callback)
 

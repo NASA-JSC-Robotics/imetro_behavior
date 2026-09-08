@@ -58,10 +58,9 @@ class UpdateMockupStates(RosServiceClientBase):
 
     def process_response(self, response: SetJointState.Response) -> Status:
         """Process the SetJointState service response."""
-        assert self.node is not None, "No ROS node available"
         if response.success:
-            self.node.get_logger().info("SetJointState request succeeded!")
+            self.logger.info("SetJointState request succeeded!")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"SetJointState service failed with error: {response.message}")
+            self.logger.error(f"SetJointState service failed with error: {response.message}")
             return Status.FAILURE

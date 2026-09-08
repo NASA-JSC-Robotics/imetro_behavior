@@ -51,10 +51,9 @@ class ResetMujocoWorld(RosServiceClientBase):
         )
 
     def process_response(self, response: ResetWorld.Response) -> Status:
-        assert self.node is not None, "No ROS node available"
         if response.success:
-            self.node.get_logger().info(f"Reset world succeeded: {response.message}")
+            self.logger.info(f"Reset world succeeded: {response.message}")
             return Status.SUCCESS
         else:
-            self.node.get_logger().error(f"Reset world failed: {response.message}")
+            self.logger.error(f"Reset world failed: {response.message}")
             return Status.FAILURE

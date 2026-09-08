@@ -19,7 +19,8 @@ import yaml
 from ament_index_python.packages import get_package_share_path
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-from rclpy.node import Node
+
+from imetro_behavior.helpers import set_ros_node
 
 
 class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
@@ -55,16 +56,13 @@ class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """Get access to the node for error statements."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
+        set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
         """Load the YAML file and set the joint name and positions as an output port."""
-        assert self.node is not None, "No ROS node available"
         yaml_path = get_package_share_path(self.get_input("package_name")) / self.get_input("yaml_file")
         if not yaml_path.is_file():
-            self.node.get_logger().error(f"File at {yaml_path} could not be found or is not a file")
+            self.logger.error(f"File at {yaml_path} could not be found or is not a file")
             return Status.FAILURE
 
         with open(yaml_path) as file:
@@ -72,17 +70,17 @@ class JointNamesAndPositionsFromYaml(BehaviourWithPorts):
         state_name = self.get_input("state_name")
         joint_dict = data.get(state_name)
         if joint_dict is None:
-            self.node.get_logger().error(f"Failed to find joint configuration {state_name} in {yaml_path}")
+            self.logger.error(f"Failed to find joint configuration {state_name} in {yaml_path}")
             return Status.FAILURE
 
         joint_names = joint_dict.get("joint_names")
         if joint_names is None:
-            self.node.get_logger().error(f"Joint configuration '{state_name}' does not have a 'joint_names' field.")
+            self.logger.error(f"Joint configuration '{state_name}' does not have a 'joint_names' field.")
             return Status.FAILURE
 
         joint_positions = joint_dict.get("positions")
         if joint_positions is None:
-            self.node.get_logger().error(f"Joint configuration '{state_name}' does not have a 'positions' field.")
+            self.logger.error(f"Joint configuration '{state_name}' does not have a 'positions' field.")
             return Status.FAILURE
 
         self._set_output("joint_names", joint_names)

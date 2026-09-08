@@ -26,6 +26,8 @@ from rclpy.node import Node
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import CameraInfo, Image
 
+from imetro_behavior.helpers import set_ros_node
+
 
 class DetectAprilTag(BehaviourWithPorts):
     """Detects AprilTag based on RGB images and camera info, then returns the tag pose."""
@@ -42,19 +44,16 @@ class DetectAprilTag(BehaviourWithPorts):
         "tag_pose": PortInformation(data_type=PoseStamped, required=True),
     }
 
+    node: Node
+
     def setup(self, **kwargs):
         """Sets up the ROS node, detector, and bridge."""
-        self.node = kwargs.get("node")
-        if not isinstance(self.node, Node):
-            raise KeyError(f"A valid ROS node is required to setup the '{self.qualified_name}' node.")
-
+        set_ros_node(self, **kwargs)
         self.bridge = CvBridge()
         self.detector = None
 
     def update(self) -> Status:
         """Run AprilTag detection."""
-        assert self.node is not None, "No ROS node available"
-
         rgb_msg = self.get_input("rgb_image")
         camera_info = self.get_input("camera_info")
         target_id = self.get_input("tag_id")
