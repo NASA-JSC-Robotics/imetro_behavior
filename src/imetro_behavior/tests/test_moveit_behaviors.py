@@ -160,6 +160,23 @@ def test_plan_to_pose_create_request(ros_node: Node) -> None:
     assert path_orientation.absolute_z_axis_tolerance == 0.3
 
 
+def test_plan_to_joint_state_path_orientation_missing_ports(ros_node: Node) -> None:
+    behavior = PlanToJointState(name="plan_to_joint_state", service_name="/plan")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    set_input(behavior, "group_name", "arm")
+    set_input(behavior, "joint_names", ["joint1", "joint2"])
+    set_input(behavior, "joint_positions", [0.0, 1.0])
+    set_input(behavior, "tolerance", 0.01)
+
+    # Omit path_orientation_frame, path_orientation_link, path_orientation_xyzw and verify
+    # we get an exception
+    set_input(behavior, "path_orientation_tolerance", [0.1, 0.2, 0.3])
+    with pytest.raises(RuntimeError, match="path_orientation_frame"):
+        behavior.create_request()
+
+
 def test_plan_to_pose_process_response(ros_node: Node) -> None:
     behavior = PlanToPose(name="plan_to_pose", service_name="/plan")
     behavior.setup(node=ros_node)

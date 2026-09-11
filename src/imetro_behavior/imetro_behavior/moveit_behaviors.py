@@ -45,7 +45,11 @@ from moveit_msgs.srv import (
     GetPlanningScene,
 )
 from py_trees.common import Access, Status
-from py_trees.ports import BehaviourWithPorts, PortInformation
+from py_trees.ports import (
+    BehaviourWithPorts,
+    NoDataAvailable,
+    PortInformation,
+)
 from rclpy.time import Time
 from scipy.spatial.transform import Rotation as R
 from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
@@ -143,14 +147,23 @@ class PlanToJointState(RosServiceClientBase):
             )
 
         # Path orientation constraint holds the given link's orientation fixed for the whole
-        # trajectory, not just at the goal, so it doesn't flip through an unconstrained wrist flip.
+        # trajectory, not just at the goal.
         path_orientation_tolerance = self.get_input("path_orientation_tolerance")
         if path_orientation_tolerance:
+            try:
+                path_orientation_frame = self.get_input("path_orientation_frame")
+                path_orientation_link = self.get_input("path_orientation_link")
+                xyzw = self.get_input("path_orientation_xyzw")
+            except NoDataAvailable:
+                raise RuntimeError(
+                    "path_orientation_frame, path_orientation_link, and path_orientation_xyzw "
+                    "are all required when path_orientation_tolerance is set."
+                ) from None
+
             path_orientation_constraint = OrientationConstraint()
-            path_orientation_constraint.header.frame_id = self.get_input("path_orientation_frame")
-            path_orientation_constraint.link_name = self.get_input("path_orientation_link")
+            path_orientation_constraint.header.frame_id = path_orientation_frame
+            path_orientation_constraint.link_name = path_orientation_link
             path_orientation_constraint.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
-            xyzw = self.get_input("path_orientation_xyzw")
             path_orientation_constraint.orientation = Quaternion(x=xyzw[0], y=xyzw[1], z=xyzw[2], w=xyzw[3])
             path_orientation_constraint.absolute_x_axis_tolerance = path_orientation_tolerance[0]
             path_orientation_constraint.absolute_y_axis_tolerance = path_orientation_tolerance[1]
