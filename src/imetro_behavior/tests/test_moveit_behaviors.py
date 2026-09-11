@@ -130,6 +130,7 @@ def test_plan_to_pose_create_request(ros_node: Node) -> None:
     set_input(behavior, "target_pose", target_pose)
     set_input(behavior, "position_tolerance", 0.01)
     set_input(behavior, "orientation_tolerance", [0.1, 0.2, 0.3])
+    set_input(behavior, "path_orientation_tolerance", [0.1, 0.2, 0.3])
 
     request = behavior.create_request()
     assert request.motion_plan_request.group_name == "arm"
@@ -148,6 +149,15 @@ def test_plan_to_pose_create_request(ros_node: Node) -> None:
     assert orientation_constraint.absolute_x_axis_tolerance == 0.1
     assert orientation_constraint.absolute_y_axis_tolerance == 0.2
     assert orientation_constraint.absolute_z_axis_tolerance == 0.3
+
+    path_constraints = request.motion_plan_request.path_constraints
+    path_orientation = path_constraints.orientation_constraints[0]
+    assert path_orientation.link_name == "tool0"
+    assert path_orientation.header.frame_id == "world"
+    assert path_orientation.orientation == target_pose.pose.orientation
+    assert path_orientation.absolute_x_axis_tolerance == 0.1
+    assert path_orientation.absolute_y_axis_tolerance == 0.2
+    assert path_orientation.absolute_z_axis_tolerance == 0.3
 
 
 def test_plan_to_pose_process_response(ros_node: Node) -> None:
@@ -292,13 +302,23 @@ def test_plan_cartesian_process_response(ros_node: Node) -> None:
     behavior.setup(node=ros_node)
     behavior.setup_ports()
 
+    # Full path computed — succeeds with default min_fraction of 1.0
     response = GetCartesianPath.Response()
     response.error_code.val = MoveItErrorCodes.SUCCESS
+    response.fraction = 1.0
     assert behavior.process_response(response) == Status.SUCCESS
     assert behavior.get_last_output("trajectory") == response.solution
+    assert behavior.get_last_output("fraction") == 1.0
 
-    response.error_code.val = MoveItErrorCodes.PLANNING_FAILED
+    # Processing fails with default min_fraction of 1.0
+    response.fraction = 0.7
     assert behavior.process_response(response) == Status.FAILURE
+
+    # Processing succeeds when min_fraction is lowered
+    set_input(behavior, "min_fraction", 0.5)
+    response.fraction = 0.7
+    assert behavior.process_response(response) == Status.SUCCESS
+    assert behavior.get_last_output("fraction") == 0.7
 
 
 @pytest.fixture()
