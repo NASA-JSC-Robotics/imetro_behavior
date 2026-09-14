@@ -45,7 +45,11 @@ from moveit_msgs.srv import (
     GetPlanningScene,
 )
 from py_trees.common import Access, Status
-from py_trees.ports import BehaviourWithPorts, PortInformation
+from py_trees.ports import (
+    BehaviourWithPorts,
+    NoDataAvailable,
+    PortInformation,
+)
 from rclpy.time import Time
 from scipy.spatial.transform import Rotation as R
 from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
@@ -102,16 +106,20 @@ class PlanToJointState(RosServiceClientBase):
         super().__init__(name, service_type=GetMotionPlan, **kwargs)
 
     INPUT_PORTS = {
-        "pipeline": PortInformation(data_type=str, required=False),
-        "planner": PortInformation(data_type=str, required=False),
+        "pipeline": PortInformation(data_type=str, required=False, default_value=""),
+        "planner": PortInformation(data_type=str, required=False, default_value=""),
         "group_name": PortInformation(data_type=str, required=True),
         "joint_names": PortInformation(data_type=list[str], required=True),
         "joint_positions": PortInformation(data_type=list[float], required=True),
         "tolerance": PortInformation(data_type=float, required=True),
-        "max_velocity_scaling": PortInformation(data_type=float, required=False),
-        "max_acceleration_scaling": PortInformation(data_type=float, required=False),
-        "num_planning_attempts": PortInformation(data_type=int, required=False),
-        "allowed_planning_time": PortInformation(data_type=float, required=False),
+        "max_velocity_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
+        "num_planning_attempts": PortInformation(data_type=int, required=False, default_value=5),
+        "allowed_planning_time": PortInformation(data_type=float, required=False, default_value=1.0),
+        "path_orientation_tolerance": PortInformation(data_type=list[float], required=False, default_value=[]),
+        "path_orientation_xyzw": PortInformation(data_type=list[float], required=False),
+        "path_orientation_frame": PortInformation(data_type=str, required=False),
+        "path_orientation_link": PortInformation(data_type=str, required=False),
     }
 
     OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
@@ -138,14 +146,41 @@ class PlanToJointState(RosServiceClientBase):
                 )
             )
 
-        request.motion_plan_request.pipeline_id = self.get_input("pipeline", "")
-        request.motion_plan_request.planner_id = self.get_input("planner", "")
+        # Path orientation constraint holds the given link's orientation fixed for the whole
+        # trajectory, not just at the goal.
+        path_orientation_tolerance = self.get_input("path_orientation_tolerance")
+        if path_orientation_tolerance:
+            try:
+                path_orientation_frame = self.get_input("path_orientation_frame")
+                path_orientation_link = self.get_input("path_orientation_link")
+                xyzw = self.get_input("path_orientation_xyzw")
+            except NoDataAvailable:
+                raise RuntimeError(
+                    "path_orientation_frame, path_orientation_link, and path_orientation_xyzw "
+                    "are all required when path_orientation_tolerance is set."
+                ) from None
+
+            path_orientation_constraint = OrientationConstraint()
+            path_orientation_constraint.header.frame_id = path_orientation_frame
+            path_orientation_constraint.link_name = path_orientation_link
+            path_orientation_constraint.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
+            path_orientation_constraint.orientation = Quaternion(x=xyzw[0], y=xyzw[1], z=xyzw[2], w=xyzw[3])
+            path_orientation_constraint.absolute_x_axis_tolerance = path_orientation_tolerance[0]
+            path_orientation_constraint.absolute_y_axis_tolerance = path_orientation_tolerance[1]
+            path_orientation_constraint.absolute_z_axis_tolerance = path_orientation_tolerance[2]
+            path_orientation_constraint.weight = 1.0
+            path_constraints = Constraints()
+            path_constraints.orientation_constraints.append(path_orientation_constraint)
+            request.motion_plan_request.path_constraints = path_constraints
+
+        request.motion_plan_request.pipeline_id = self.get_input("pipeline")
+        request.motion_plan_request.planner_id = self.get_input("planner")
         request.motion_plan_request.group_name = self.get_input("group_name")
-        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
-        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 1.0)
+        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling")
+        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling")
         request.motion_plan_request.goal_constraints = [goal_constraints]
-        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts", 5)
-        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time", 1.0)
+        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts")
+        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time")
         return request
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
@@ -172,17 +207,18 @@ class PlanToPose(RosServiceClientBase):
         super().__init__(name, service_type=GetMotionPlan, **kwargs)
 
     INPUT_PORTS = {
-        "pipeline": PortInformation(data_type=str, required=False),
-        "planner": PortInformation(data_type=str, required=False),
+        "pipeline": PortInformation(data_type=str, required=False, default_value=""),
+        "planner": PortInformation(data_type=str, required=False, default_value=""),
         "group_name": PortInformation(data_type=str, required=True),
         "target_frame": PortInformation(data_type=str, required=True),
         "target_pose": PortInformation(data_type=PoseStamped, required=True),
         "position_tolerance": PortInformation(data_type=float, required=True),
-        "orientation_tolerance": PortInformation(data_type=list[float], required=True),
-        "max_velocity_scaling": PortInformation(data_type=float, required=False),
-        "max_acceleration_scaling": PortInformation(data_type=float, required=False),
-        "num_planning_attempts": PortInformation(data_type=int, required=False),
-        "allowed_planning_time": PortInformation(data_type=float, required=False),
+        "orientation_tolerance": PortInformation(data_type=list[float], required=False),
+        "path_orientation_tolerance": PortInformation(data_type=list[float], required=False, default_value=[]),
+        "max_velocity_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
+        "num_planning_attempts": PortInformation(data_type=int, required=False, default_value=5),
+        "allowed_planning_time": PortInformation(data_type=float, required=False, default_value=1.0),
     }
 
     OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
@@ -224,14 +260,31 @@ class PlanToPose(RosServiceClientBase):
             orientation_constraint.weight = 1.0
             goal_constraints.orientation_constraints.append(orientation_constraint)
 
-        request.motion_plan_request.pipeline_id = self.get_input("pipeline", "")
-        request.motion_plan_request.planner_id = self.get_input("planner", "")
+        # Path orientation constraint holds the orientation fixed for the whole trajectory,
+        # not just at the goal.
+        path_orientation_tolerance = self.get_input("path_orientation_tolerance")
+        if path_orientation_tolerance:
+            path_orientation_constraint = OrientationConstraint()
+            path_orientation_constraint.header.frame_id = source_frame
+            path_orientation_constraint.link_name = target_frame
+            path_orientation_constraint.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
+            path_orientation_constraint.orientation = target_pose.pose.orientation
+            path_orientation_constraint.absolute_x_axis_tolerance = path_orientation_tolerance[0]
+            path_orientation_constraint.absolute_y_axis_tolerance = path_orientation_tolerance[1]
+            path_orientation_constraint.absolute_z_axis_tolerance = path_orientation_tolerance[2]
+            path_orientation_constraint.weight = 1.0
+            path_constraints = Constraints()
+            path_constraints.orientation_constraints.append(path_orientation_constraint)
+            request.motion_plan_request.path_constraints = path_constraints
+
+        request.motion_plan_request.pipeline_id = self.get_input("pipeline")
+        request.motion_plan_request.planner_id = self.get_input("planner")
         request.motion_plan_request.group_name = self.get_input("group_name")
-        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
-        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 1.0)
+        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling")
+        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling")
         request.motion_plan_request.goal_constraints = [goal_constraints]
-        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts", 5)
-        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time", 1.0)
+        request.motion_plan_request.num_planning_attempts = self.get_input("num_planning_attempts")
+        request.motion_plan_request.allowed_planning_time = self.get_input("allowed_planning_time")
         return request
 
     def process_response(self, response: GetMotionPlan.Response) -> Status:
@@ -366,6 +419,10 @@ class ModifyCollisions(RosServiceClientBase):
 class PlanCartesian(RosServiceClientBase):
     """
     Uses MoveIt to plan a motion to a target pose using cartesian path planning.
+
+    By default the behavior requires 100% of the path be computed. However, users
+    can optionally specify a minimum fraction of the path needed to deem the
+    computed path "successful".
     """
 
     def __init__(self, name: str, **kwargs: Any):
@@ -376,12 +433,16 @@ class PlanCartesian(RosServiceClientBase):
         "waypoints": PortInformation(
             data_type=PoseStamped, required=True
         ),  # TODO support TransformStamped and support list of waypoints
-        "max_step": PortInformation(data_type=float, required=False),
-        "jump_threshold": PortInformation(data_type=float, required=False),
-        "avoid_collisions": PortInformation(data_type=bool, required=False),
+        "max_step": PortInformation(data_type=float, required=False, default_value=0.01),
+        "jump_threshold": PortInformation(data_type=float, required=False, default_value=1.25),
+        "avoid_collisions": PortInformation(data_type=bool, required=False, default_value=True),
+        "min_fraction": PortInformation(data_type=float, required=False, default_value=1.0),
     }
 
-    OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
+    OUTPUT_PORTS = {
+        "trajectory": PortInformation(data_type=RobotTrajectory),
+        "fraction": PortInformation(data_type=float),
+    }
 
     def create_request(self) -> GetCartesianPath.Request:
         """Create a cartesian path service request."""
@@ -394,22 +455,26 @@ class PlanCartesian(RosServiceClientBase):
             request.waypoints = waypoints
 
         request.group_name = self.get_input("group_name")
-        request.max_step = self.get_input("max_step", 0.01)
-        request.jump_threshold = self.get_input("jump_threshold", 1.25)
-        request.avoid_collisions = self.get_input("avoid_collisions", True)
+        request.max_step = self.get_input("max_step")
+        request.jump_threshold = self.get_input("jump_threshold")
+        request.avoid_collisions = self.get_input("avoid_collisions")
         return request
 
     def process_response(self, response: GetCartesianPath.Response) -> Status:
         """Process the cartesian path service response."""
         error_code = response.error_code
-        if error_code.val == MoveItErrorCodes.SUCCESS:
-            self.logger.info("Cartesian plan succeeded!")
+        min_fraction = self.get_input("min_fraction")
+
+        if error_code.val == MoveItErrorCodes.SUCCESS and response.fraction >= min_fraction:
+            self.logger.info(f"Cartesian plan succeeded with {response.fraction * 100:.1f}% of path.")
             self._set_output("trajectory", response.solution)
+            self._set_output("fraction", response.fraction)
             return Status.SUCCESS
         else:
             error_code_str = MOVEIT_ERROR_CODE_DICT.get(error_code.val, "UNKNOWN")
             self.logger.error(
-                f"Cartesian plan failed with error code: {error_code_str}, computed {response.fraction}% of trajectory."
+                f"Cartesian plan failed with error code: {error_code_str}, "
+                f"computed {response.fraction * 100:.1f}% of trajectory."
             )
             self.logger.error(f"Message: {error_code.message}")
             self.logger.error(f"Source: {error_code.source}")
@@ -436,8 +501,8 @@ class PlanArcPath(RosServiceClientBase):
         "orientation_tolerance_xyz": PortInformation(data_type=list[float], required=True),
         "max_velocity_scaling": PortInformation(data_type=float, required=True),
         "max_acceleration_scaling": PortInformation(data_type=float, required=True),
-        "planning_attempt_count": PortInformation(data_type=int, required=False),
-        "planning_attempt_timeout": PortInformation(data_type=float, required=False),
+        "planning_attempt_count": PortInformation(data_type=int, required=False, default_value=10),
+        "planning_attempt_timeout": PortInformation(data_type=float, required=False, default_value=15.0),
     }
 
     OUTPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory)}
@@ -531,10 +596,10 @@ class PlanArcPath(RosServiceClientBase):
         request.motion_plan_request.pipeline_id = "pilz_industrial_motion_planner"
         request.motion_plan_request.planner_id = "CIRC"
         request.motion_plan_request.group_name = self.get_input("group_name")
-        request.motion_plan_request.num_planning_attempts = self.get_input("planning_attempt_count", 10)
-        request.motion_plan_request.allowed_planning_time = self.get_input("planning_attempt_timeout", 15.0)
-        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling", 1.0)
-        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling", 0.1)
+        request.motion_plan_request.num_planning_attempts = self.get_input("planning_attempt_count")
+        request.motion_plan_request.allowed_planning_time = self.get_input("planning_attempt_timeout")
+        request.motion_plan_request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling")
+        request.motion_plan_request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling")
 
         goal_constraints = Constraints()
 
