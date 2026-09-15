@@ -713,13 +713,18 @@ class ExecuteTrajectoryBehavior(RosActionClientBase):
     def __init__(self, name: str, **kwargs: Any):
         super().__init__(name, action_type=ExecuteTrajectory, **kwargs)
 
-    INPUT_PORTS = {"trajectory": PortInformation(data_type=RobotTrajectory, required=True)}
+    INPUT_PORTS = {
+        "trajectory": PortInformation(data_type=RobotTrajectory, required=True),
+        "controllers": PortInformation(data_type=list[str], required=False, default_value=[]),
+    }
 
     OUTPUT_PORTS = {}
 
     def create_goal(self) -> ExecuteTrajectory.Goal:
         """Create a trajectory execution goal."""
-        return ExecuteTrajectory.Goal(trajectory=self.get_input("trajectory"))
+        return ExecuteTrajectory.Goal(
+            trajectory=self.get_input("trajectory"), controller_names=self.get_input("controllers")
+        )
 
     def process_result(self, result: ExecuteTrajectory.Result) -> Status:
         """Process the trajectory execution action result."""
