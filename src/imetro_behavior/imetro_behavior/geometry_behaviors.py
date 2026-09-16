@@ -38,6 +38,7 @@ from scipy.spatial.transform import RigidTransform
 from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
+from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
 from imetro_behavior.helpers import set_ros_node
 
@@ -668,7 +669,22 @@ class PublishTransform(BehaviourWithPorts):
         self.tf_broadcaster.sendTransform(transform_stamped)
         return Status.SUCCESS
 
+class PublishStaticTransform(BehaviourWithPorts):
+    """Publish a permanent static transform stamped message to /tf_static."""
 
+    INPUT_PORTS = {"transform_stamped": PortInformation(data_type=TransformStamped, required=True)}
+    OUTPUT_PORTS = {}
+    node: Node
+
+    def setup(self, **kwargs):
+        set_ros_node(self, **kwargs)
+        self.tf_static_broadcaster = StaticTransformBroadcaster(self.node)
+
+    def update(self) -> Status:
+        transform_stamped = self.get_input("transform_stamped")
+        self.tf_static_broadcaster.sendTransform(transform_stamped)
+        return Status.SUCCESS
+    
 class PublishTwist(BehaviourWithPorts):
     """
     Takes in `linear` and `angular` velocities and converts them geometry_msgs/msg/Twist.

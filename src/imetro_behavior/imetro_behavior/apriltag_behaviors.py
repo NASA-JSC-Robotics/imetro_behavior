@@ -42,6 +42,7 @@ class DetectAprilTag(BehaviourWithPorts):
 
     OUTPUT_PORTS = {
         "tag_pose": PortInformation(data_type=PoseStamped, required=True),
+        "tag_found": PortInformation(data_type=bool, required=True),
     }
 
     node: Node
@@ -113,6 +114,7 @@ class DetectAprilTag(BehaviourWithPorts):
         self.node.get_logger().info(f"Apriltag detection total process took {total_time:.4f} seconds!")
 
         self._set_output("tag_pose", pose_msg)
+        self._set_output("tag_found", True)
         return Status.SUCCESS
 
     def shutdown(self) -> None:
