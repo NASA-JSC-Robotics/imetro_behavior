@@ -18,10 +18,11 @@
 from pathlib import Path
 
 import pytest
-from imetro_behavior.joint_behaviors import JointNamesAndPositionsFromYaml
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
+
+from imetro_behavior.joint_behaviors import JointNamesAndPositionsFromYaml
 
 
 @pytest.fixture()

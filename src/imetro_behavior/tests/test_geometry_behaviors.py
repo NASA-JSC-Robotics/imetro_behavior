@@ -20,6 +20,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rclpy.node import Node
+from scipy.spatial.transform import Rotation as R
+from tf2_ros import Buffer
+
 from imetro_behavior.geometry_behaviors import (
     AlignPoseToNearestAxis,
     CreatePoseStamped,
@@ -35,11 +41,6 @@ from imetro_behavior.geometry_behaviors import (
     TwistAboutPose,
     YamlPoseToPoseStamped,
 )
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-from rclpy.node import Node
-from scipy.spatial.transform import Rotation as R
-from tf2_ros import Buffer
 
 
 @pytest.fixture()

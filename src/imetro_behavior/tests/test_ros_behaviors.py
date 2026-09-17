@@ -18,10 +18,6 @@
 import pytest
 from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
-from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
-from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
-from imetro_behavior.ros_behaviors.service_client import CallTriggerService
-from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
 from py_trees.common import Status
 from py_trees.ports import NoDataAvailable
 from rclpy.duration import Duration
@@ -30,6 +26,11 @@ from rclpy.task import Future
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+
+from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
+from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
+from imetro_behavior.ros_behaviors.service_client import CallTriggerService
+from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
 
 
 class TrackingActionBehavior(RosActionClientBase):
