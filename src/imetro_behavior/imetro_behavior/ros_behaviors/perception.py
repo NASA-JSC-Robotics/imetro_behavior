@@ -81,7 +81,7 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         "point_cloud": PortInformation(data_type=PointCloud2, required=False),
     }
 
-    def setup(self, **kwargs):
+    def setup(self, **kwargs) -> None:
         """
         Sets up the ROS node needed for the message filters.
         """
@@ -107,6 +107,9 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         if self.point_cloud_topic:
             self.subscribers.append(message_filters.Subscriber(self.node, PointCloud2, self.point_cloud_topic))
             self.port_order.append("point_cloud")
+
+        if not self.subscribers:
+            raise RuntimeError(f"[{self.qualified_name}] No topics selected for synchronization!")
 
         self.synchronizer = message_filters.ApproximateTimeSynchronizer(
             self.subscribers,
