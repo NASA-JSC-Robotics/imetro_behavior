@@ -16,9 +16,10 @@
 # under the License.
 
 import py_trees
-from imetro_behavior.decorators import SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
+
+from imetro_behavior.decorators import SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
 
 
 def test_success_if_variable_is_true_skips_child() -> None:
