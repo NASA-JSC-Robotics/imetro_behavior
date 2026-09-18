@@ -20,12 +20,13 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+
+from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer
 
 
 class AlwaysSucceed(BehaviourWithPorts):

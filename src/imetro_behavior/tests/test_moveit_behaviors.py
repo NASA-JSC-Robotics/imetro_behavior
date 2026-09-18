@@ -19,17 +19,6 @@ import numpy as np
 import pytest
 from ament_index_python.packages import get_package_share_path
 from geometry_msgs.msg import PoseStamped, TransformStamped
-from imetro_behavior.moveit_behaviors import (
-    ExecuteTrajectoryBehavior,
-    ModifyCollisions,
-    PlanArcPath,
-    PlanCartesian,
-    PlanningSceneFromRobotDescription,
-    PlanToJointState,
-    PlanToPose,
-    RequestPlanningScene,
-    RequestTrajectoryApproval,
-)
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import (
     AllowedCollisionEntry,
@@ -49,6 +38,17 @@ from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
 from tf2_ros import Buffer
 
+from imetro_behavior.moveit_behaviors import (
+    ExecuteTrajectoryBehavior,
+    ModifyCollisions,
+    PlanArcPath,
+    PlanCartesian,
+    PlanningSceneFromRobotDescription,
+    PlanToJointState,
+    PlanToPose,
+    RequestPlanningScene,
+    RequestTrajectoryApproval,
+)
 from imetro_behavior_msgs.action import PreviewTrajectory
 
 

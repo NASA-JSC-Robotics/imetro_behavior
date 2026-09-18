@@ -18,11 +18,12 @@
 import cv2
 import pytest
 from ament_index_python.packages import get_package_share_path
-from imetro_behavior.apriltag_behaviors import DetectAprilTag
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
+
+from imetro_behavior.apriltag_behaviors import DetectAprilTag
 
 
 @pytest.fixture()

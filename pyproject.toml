@@ -61,6 +61,11 @@ build-docs = { cmd = "python3 scripts/build_docs.py", depends-on = ["build"] }
 [tool.pixi.environments]
 docs = { features = ["docs"], solve-group = "default" }
 
+## ruff options
+
+[tool.ruff.lint.isort]
+known-first-party = ["imetro_behavior", "imetro_behavior_msgs"]
+
 ## ty (type checking) options
 
 [tool.ty.src]

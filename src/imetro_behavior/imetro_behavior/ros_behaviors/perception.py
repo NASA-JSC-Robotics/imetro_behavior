@@ -34,10 +34,10 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         self,
         name: str,
         *,
-        camera_info_topic: str,
-        rgb_image_topic: str,
-        depth_image_topic: str,
-        point_cloud_topic: str,
+        camera_info_topic: str | None = None,
+        rgb_image_topic: str | None = None,
+        depth_image_topic: str | None = None,
+        point_cloud_topic: str | None = None,
         queue_size: int = 10,
         time_slop: float = 0.1,
         sync_timeout: float | None = None,
@@ -48,10 +48,10 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
 
         Args:
             name: The name of the behavior (required by PyTrees).
-            camera_info_topic: The name of the camera info topic.
-            rgb_image_topic: The name of the RGB image topic.
-            depth_image_topic: The name of the depth image topic.
-            point_cloud_topic: The name of the point cloud topic.
+            camera_info_topic: The name of the camera info topic (optional).
+            rgb_image_topic: The name of the RGB image topic (optional).
+            depth_image_topic: The name of the depth image topic (optional).
+            point_cloud_topic: The name of the point cloud topic (optional).
             queue_size: The size of the queue in the message synchronizer.
             time_stop: The time slop, in seconds, in the message synchronizer.
             sync_timeout: Timeout, in seconds, to wait for the synchronized data.
@@ -69,21 +69,19 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
 
         self.node: Node
         self.synchronizer = None
-        self.camera_info_sub = None
-        self.rgb_image_sub = None
-        self.depth_image_sub = None
-        self.point_cloud_sub = None
+        self.subscribers: list[message_filters.Subscriber] = []
+        self.port_order: list[str] = []
 
     INPUT_PORTS = {}
 
     OUTPUT_PORTS = {
-        "camera_info": PortInformation(data_type=CameraInfo, required=True),
-        "rgb_image": PortInformation(data_type=Image, required=True),
-        "depth_image": PortInformation(data_type=Image, required=True),
-        "point_cloud": PortInformation(data_type=PointCloud2, required=True),
+        "camera_info": PortInformation(data_type=CameraInfo, required=False),
+        "rgb_image": PortInformation(data_type=Image, required=False),
+        "depth_image": PortInformation(data_type=Image, required=False),
+        "point_cloud": PortInformation(data_type=PointCloud2, required=False),
     }
 
-    def setup(self, **kwargs):
+    def setup(self, **kwargs) -> None:
         """
         Sets up the ROS node needed for the message filters.
         """
@@ -95,54 +93,44 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
         """
         self.latest_data = None
 
-        self.camera_info_sub = message_filters.Subscriber(self.node, CameraInfo, self.camera_info_topic)
-        self.rgb_image_sub = message_filters.Subscriber(self.node, Image, self.rgb_image_topic)
-        self.depth_image_sub = message_filters.Subscriber(self.node, Image, self.depth_image_topic)
-        self.point_cloud_sub = message_filters.Subscriber(self.node, PointCloud2, self.point_cloud_topic)
+        self.subscribers = []
+        self.port_order = []
+        if self.camera_info_topic:
+            self.subscribers.append(message_filters.Subscriber(self.node, CameraInfo, self.camera_info_topic))
+            self.port_order.append("camera_info")
+        if self.rgb_image_topic:
+            self.subscribers.append(message_filters.Subscriber(self.node, Image, self.rgb_image_topic))
+            self.port_order.append("rgb_image")
+        if self.depth_image_topic:
+            self.subscribers.append(message_filters.Subscriber(self.node, Image, self.depth_image_topic))
+            self.port_order.append("depth_image")
+        if self.point_cloud_topic:
+            self.subscribers.append(message_filters.Subscriber(self.node, PointCloud2, self.point_cloud_topic))
+            self.port_order.append("point_cloud")
+
+        if not self.subscribers:
+            raise RuntimeError(f"[{self.qualified_name}] No topics selected for synchronization!")
 
         self.synchronizer = message_filters.ApproximateTimeSynchronizer(
-            [
-                self.camera_info_sub,
-                self.rgb_image_sub,
-                self.depth_image_sub,
-                self.point_cloud_sub,
-            ],
+            self.subscribers,
             queue_size=self.queue_size,
             slop=self.time_slop,
         )
         self.synchronizer.registerCallback(self._synchronize_callback)
         self.start_time = self.node.get_clock().now()
 
-    def _synchronize_callback(
-        self,
-        camera_info_msg: CameraInfo,
-        rgb_image_msg: Image,
-        depth_image_msg: Image,
-        point_cloud_msg: PointCloud2,
-    ) -> None:
+    def _synchronize_callback(self, *data) -> None:
         """Callback triggered only when all topics have synchronized headers."""
-        self.latest_data = (
-            camera_info_msg,
-            rgb_image_msg,
-            depth_image_msg,
-            point_cloud_msg,
-        )
+        self.latest_data = data
 
     def update(self) -> Status:
         """
         Executes every time the behavior tree ticks this node.
         """
         if self.latest_data is not None:
-            self.logger.info(f"[{self.qualified_name}] Got synchronized images and point clouds!")
-            camera_info_msg, rgb_image_msg, depth_image_msg, point_cloud_msg = self.latest_data
-            self._set_output("camera_info", camera_info_msg)
-            self._set_output("rgb_image", rgb_image_msg)
-            self._set_output("depth_image", depth_image_msg)
-            self._set_output("point_cloud", point_cloud_msg)
-
-            # Clear cache so we don't process the exact same frame on the next tick.
-            self.latest_data = None
-
+            self.logger.info(f"[{self.qualified_name}] Got synchronized perception data!")
+            for message, port_name in zip(self.latest_data, self.port_order, strict=True):
+                self._set_output(port_name, message)
             return py_trees.common.Status.SUCCESS
 
         # If no synchronized frame has arrived yet, keep waiting until timeout.
@@ -154,17 +142,12 @@ class GetSyncedImagePointCloudDepth(BehaviourWithPorts):
 
     def terminate(self, new_status: Status) -> None:
         """Cleanup if the behavior is interrupted or completes."""
+        self.latest_data = None
         if self.node is None:
             return
 
         if self.synchronizer is not None:
             self.synchronizer.callbacks.clear()
 
-        for subscription in (
-            self.camera_info_sub,
-            self.rgb_image_sub,
-            self.depth_image_sub,
-            self.point_cloud_sub,
-        ):
-            if subscription is not None:
-                self.node.destroy_subscription(subscription.sub)
+        for subscription in self.subscribers:
+            self.node.destroy_subscription(subscription.sub)

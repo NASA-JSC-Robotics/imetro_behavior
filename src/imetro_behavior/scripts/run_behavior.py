@@ -18,9 +18,10 @@
 # under the License.
 
 import rclpy
-from imetro_behavior.executor import BehaviorTreeServer
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+
+from imetro_behavior.executor import BehaviorTreeServer
 
 if __name__ == "__main__":
     rclpy.init()
