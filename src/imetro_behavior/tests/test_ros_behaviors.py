@@ -18,17 +18,19 @@
 import pytest
 from action_msgs.msg import GoalStatus
 from control_msgs.action import GripperCommand
-from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
-from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
-from imetro_behavior.ros_behaviors.service_client import CallTriggerService
-from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
 from py_trees.common import Status
+from py_trees.ports import NoDataAvailable
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.task import Future
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+
+from imetro_behavior.ros_behaviors.action_client import RosActionClientBase
+from imetro_behavior.ros_behaviors.perception import GetSyncedImagePointCloudDepth
+from imetro_behavior.ros_behaviors.service_client import CallTriggerService
+from imetro_behavior.ros_behaviors.subscriber_base import GetStringTopic
 
 
 class TrackingActionBehavior(RosActionClientBase):
@@ -99,8 +101,7 @@ def test_call_trigger_service(ros_node: Node) -> None:
     assert behavior.process_response(Trigger.Response(success=False, message="oops")) == Status.FAILURE
 
 
-@pytest.fixture()
-def sync_behavior(ros_node: Node) -> GetSyncedImagePointCloudDepth:
+def test_get_synced_data_full_topics(ros_node: Node) -> None:
     behavior = GetSyncedImagePointCloudDepth(
         name="get_synced_data",
         camera_info_topic="/camera/camera_info",
@@ -111,34 +112,66 @@ def sync_behavior(ros_node: Node) -> GetSyncedImagePointCloudDepth:
     )
     behavior.setup(node=ros_node)
     behavior.setup_ports()
-    return behavior
+    behavior.initialise()
+    # Inject a synchronized frame directly instead of waiting for topics.
+    behavior.latest_data = (CameraInfo(), Image(), Image(), PointCloud2())
+
+    assert behavior.update() == Status.SUCCESS
+    assert isinstance(behavior.get_last_output("camera_info"), CameraInfo)
+    assert isinstance(behavior.get_last_output("rgb_image"), Image)
+    assert isinstance(behavior.get_last_output("depth_image"), Image)
+    assert isinstance(behavior.get_last_output("point_cloud"), PointCloud2)
+
+    # The latest data should clear on termination.
+    behavior.terminate(Status.INVALID)
+    assert behavior.latest_data is None
 
 
-def test_get_synced_data_success(sync_behavior: GetSyncedImagePointCloudDepth) -> None:
-    # Inject a synchronized frame directly instead of calling initialise(),
-    # which would create real topic subscriptions.
-    sync_behavior.latest_data = (CameraInfo(), Image(), Image(), PointCloud2())
+def test_get_synced_data_partial_topics(ros_node: Node) -> None:
+    behavior = GetSyncedImagePointCloudDepth(
+        name="get_synced_data",
+        rgb_image_topic="/camera/color",
+        depth_image_topic="/camera/depth",
+        sync_timeout=1.0,
+    )
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+    behavior.initialise()
+    # Inject a synchronized frame directly instead of waiting for topics.
+    behavior.latest_data = (Image(), Image())
 
-    assert sync_behavior.update() == Status.SUCCESS
-    assert isinstance(sync_behavior.get_last_output("camera_info"), CameraInfo)
-    assert isinstance(sync_behavior.get_last_output("rgb_image"), Image)
-    assert isinstance(sync_behavior.get_last_output("depth_image"), Image)
-    assert isinstance(sync_behavior.get_last_output("point_cloud"), PointCloud2)
-    # The cached frame should be cleared so the same data is not processed twice.
-    assert sync_behavior.latest_data is None
+    assert behavior.update() == Status.SUCCESS
+    assert isinstance(behavior.get_last_output("rgb_image"), Image)
+    assert isinstance(behavior.get_last_output("depth_image"), Image)
+    with pytest.raises(NoDataAvailable):
+        behavior.get_last_output("camera_info")
+    with pytest.raises(NoDataAvailable):
+        behavior.get_last_output("point_cloud")
+
+    # The latest data should clear on termination.
+    behavior.terminate(Status.INVALID)
+    assert behavior.latest_data is None
 
 
-def test_get_synced_data_waiting_and_timeout(
-    sync_behavior: GetSyncedImagePointCloudDepth,
-) -> None:
-    node = sync_behavior.node
-    sync_behavior.latest_data = None
+def test_get_synced_data_waiting_and_timeout(ros_node: Node) -> None:
+    behavior = GetSyncedImagePointCloudDepth(
+        name="get_synced_data",
+        camera_info_topic="/camera/camera_info",
+        rgb_image_topic="/camera/color",
+        depth_image_topic="/camera/depth",
+        point_cloud_topic="/camera/points",
+        sync_timeout=1.0,
+    )
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+    behavior.initialise()
+    node = behavior.node
 
-    sync_behavior.start_time = node.get_clock().now()
-    assert sync_behavior.update() == Status.RUNNING
+    behavior.start_time = node.get_clock().now()
+    assert behavior.update() == Status.RUNNING
 
-    sync_behavior.start_time = node.get_clock().now() - Duration(seconds=2.0)  # ty: ignore [invalid-assignment]
-    assert sync_behavior.update() == Status.FAILURE
+    behavior.start_time = node.get_clock().now() - Duration(seconds=2.0)  # ty: ignore [invalid-assignment]
+    assert behavior.update() == Status.FAILURE
 
 
 @pytest.fixture()

@@ -20,6 +20,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rclpy.node import Node
+from scipy.spatial.transform import Rotation as R
+from tf2_ros import Buffer, StaticTransformBroadcaster
+
 from imetro_behavior.geometry_behaviors import (
     AlignPoseToNearestAxis,
     CreatePoseStamped,
@@ -29,17 +35,13 @@ from imetro_behavior.geometry_behaviors import (
     LookupTransform,
     OffsetPoseStamped,
     PoseStampedToTransformStamped,
+    PublishStaticTransform,
     PublishTransform,
     TransformPose,
     TransformStampedToPoseStamped,
     TwistAboutPose,
     YamlPoseToPoseStamped,
 )
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-from rclpy.node import Node
-from scipy.spatial.transform import Rotation as R
-from tf2_ros import Buffer
 
 
 @pytest.fixture()
@@ -55,6 +57,14 @@ def tf_buffer() -> Buffer:
 
     Blackboard.set("/ros/tf_buffer", buffer)
     return buffer
+
+
+@pytest.fixture()
+def tf_static_broadcaster(ros_node: Node) -> StaticTransformBroadcaster:
+    """A static transform broadcaster set on the blackboard."""
+    broadcaster = StaticTransformBroadcaster(ros_node)
+    Blackboard.set("/ros/tf_static_broadcaster", broadcaster)
+    return broadcaster
 
 
 def make_pose(position_xyz: list[float], orientation_xyzw: list[float], frame_id: str = "") -> PoseStamped:
@@ -388,6 +398,21 @@ def test_publish_transform(ros_node: Node) -> None:
     tform = TransformStamped()
     tform.header.frame_id = "map"
     tform.child_frame_id = "object"
+    tform.transform.rotation.w = 1.0
+    Blackboard.set(behavior._get_blackboard_key("transform_stamped"), tform)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+
+def test_publish_static_transform(ros_node: Node, tf_static_broadcaster: StaticTransformBroadcaster) -> None:
+    behavior = PublishStaticTransform(name="publish_static_transform")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    tform = TransformStamped()
+    tform.header.frame_id = "map"
+    tform.child_frame_id = "static_object"
     tform.transform.rotation.w = 1.0
     Blackboard.set(behavior._get_blackboard_key("transform_stamped"), tform)
 

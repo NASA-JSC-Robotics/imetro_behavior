@@ -19,17 +19,18 @@ import pytest
 from control_msgs.action import GripperCommand
 from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers, SwitchController
+from py_trees.blackboard import Blackboard
+from py_trees.common import Status
+from rcl_interfaces.msg import ParameterType, SetParametersResult
+from rcl_interfaces.srv import SetParametersAtomically
+from rclpy.node import Node
+
 from imetro_behavior.control_behaviors import (
     CommandGripper,
     GetRosControllerInfo,
     SwitchRosControllers,
     UpdateAdmittanceParameters,
 )
-from py_trees.blackboard import Blackboard
-from py_trees.common import Status
-from rcl_interfaces.msg import ParameterType, SetParametersResult
-from rcl_interfaces.srv import SetParametersAtomically
-from rclpy.node import Node
 
 
 @pytest.fixture()
