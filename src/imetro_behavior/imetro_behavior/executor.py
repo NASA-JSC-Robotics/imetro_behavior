@@ -33,8 +33,7 @@ from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
 from rclpy.node import Node
-from tf2_ros import Buffer, TransformListener
-from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
+from tf2_ros import Buffer, TransformListener, StaticTransformBroadcaster
 
 from imetro_behavior_msgs.action import ExecuteBehavior
 

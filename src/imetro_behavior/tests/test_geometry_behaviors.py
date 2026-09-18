@@ -40,9 +40,7 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
 from scipy.spatial.transform import Rotation as R
-from tf2_ros import Buffer
-from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
-
+from tf2_ros import Buffer, StaticTransformBroadcaster
 
 @pytest.fixture()
 def tf_buffer() -> Buffer:
