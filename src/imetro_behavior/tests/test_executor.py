@@ -167,6 +167,7 @@ def test_run_tree_resets_blackboard(executor: BehaviorTreeExecutor, tmp_path: Pa
     executor.run_tree(tree_path)
     assert "/leftover_data" not in Blackboard.storage
     assert Blackboard.get("/ros/tf_buffer") is executor._tf_buffer
+    assert Blackboard.get("/ros/tf_static_broadcaster") is executor._tf_static_broadcaster
 
 
 def test_load_tree_from_search_path(ros_node: Node) -> None:

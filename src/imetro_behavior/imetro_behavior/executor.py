@@ -33,7 +33,7 @@ from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
 from rclpy.node import Node
-from tf2_ros import Buffer, TransformListener
+from tf2_ros import Buffer, StaticTransformBroadcaster, TransformListener
 
 from imetro_behavior_msgs.action import ExecuteBehavior
 
@@ -69,6 +69,7 @@ class BehaviorTreeExecutor:
         # Create a global TF buffer to share across behaviors.
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, node)
+        self._tf_static_broadcaster = StaticTransformBroadcaster(node)
         self._init_global_blackboard()
 
         # Initialize state.
@@ -81,6 +82,7 @@ class BehaviorTreeExecutor:
         """Initializes the blackboard and places shared resources on it as necessary."""
         Blackboard.clear()
         Blackboard.set("/ros/tf_buffer", self._tf_buffer)
+        Blackboard.set("/ros/tf_static_broadcaster", self._tf_static_broadcaster)
 
     def _load_config(self, config: dict | Path | str):
         """Loads parameters, imports, and tree search paths from a dictionary or YAML configuration file."""

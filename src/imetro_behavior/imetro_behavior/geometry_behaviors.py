@@ -669,6 +669,26 @@ class PublishTransform(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class PublishStaticTransform(BehaviourWithPorts):
+    """Publish a permanent static transform stamped message to /tf_static."""
+
+    INPUT_PORTS = {"transform_stamped": PortInformation(data_type=TransformStamped, required=True)}
+
+    OUTPUT_PORTS = {}
+
+    node: Node
+
+    def setup(self, **kwargs):
+        set_ros_node(self, **kwargs)
+        self.blackboard_client.register_key(key="/ros/tf_static_broadcaster", access=Access.READ)
+        self.tf_static_broadcaster = self.blackboard_client.get("/ros/tf_static_broadcaster")
+
+    def update(self) -> Status:
+        transform_stamped = self.get_input("transform_stamped")
+        self.tf_static_broadcaster.sendTransform(transform_stamped)
+        return Status.SUCCESS
+
+
 class PublishTwist(BehaviourWithPorts):
     """
     Takes in `linear` and `angular` velocities and converts them geometry_msgs/msg/Twist.
