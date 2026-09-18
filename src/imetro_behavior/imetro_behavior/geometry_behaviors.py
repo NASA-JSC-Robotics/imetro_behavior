@@ -669,6 +669,7 @@ class PublishTransform(BehaviourWithPorts):
         self.tf_broadcaster.sendTransform(transform_stamped)
         return Status.SUCCESS
 
+
 class PublishStaticTransform(BehaviourWithPorts):
     """Publish a permanent static transform stamped message to /tf_static."""
 
@@ -684,7 +685,8 @@ class PublishStaticTransform(BehaviourWithPorts):
         transform_stamped = self.get_input("transform_stamped")
         self.tf_static_broadcaster.sendTransform(transform_stamped)
         return Status.SUCCESS
-    
+
+
 class PublishTwist(BehaviourWithPorts):
     """
     Takes in `linear` and `angular` velocities and converts them geometry_msgs/msg/Twist.
