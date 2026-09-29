@@ -70,6 +70,7 @@ class CreatePoseStamped(BehaviourWithPorts):
         self._set_output("msg", msg)
         return Status.SUCCESS
 
+
 class CreatePose(BehaviourWithPorts):
     """Create a Pose ROS message."""
 
