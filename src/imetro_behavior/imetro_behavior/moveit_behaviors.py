@@ -1034,3 +1034,38 @@ class PlanningSceneFromRobotDescription(BehaviourWithPorts):
                             collision_objects.append(collision_object)
 
         return collision_objects
+
+
+class AddCollisionBoxToPlanningScene(BehaviourWithPorts):
+    """
+    Append to the MoveIt's planning scene a collision object of specified size, at specific pose.
+    """
+
+    INPUT_PORTS = {"planning_scene": PortInformation(data_type=PlanningScene, required=True),
+                   "collision_object_id": PortInformation(data_type=str, required=True, default_value=""),
+                   "reference_frame": PortInformation(data_type=str, required=True),
+                   "size": PortInformation(data_type=list[float], required=False, default_value=[1.0, 1.0, 1.0]),
+                   "pose": PortInformation(data_type=Pose, required=False, default_value=Pose())}
+
+    OUTPUT_PORTS = {"modified_planning_scene": PortInformation(data_type=PlanningScene)}
+
+    def update(self) -> Status:
+        """Create the message and set it as an output port."""
+        
+        collision_object = CollisionObject()
+        collision_object.id = self.get_input("collision_object_id")
+        collision_object.header.frame_id = self.get_input("reference_frame") 
+        
+        primitive = SolidPrimitive()
+        primitive.type = SolidPrimitive.BOX
+        primitive.dimensions = self.get_input("size")
+
+        collision_object.primitives.append(primitive)
+        collision_object.primitive_poses.append(self.get_input("pose"))
+
+        planning_scene = self.get_input("planning_scene")
+        planning_scene.world.collision_objects.append(collision_object)
+        planning_scene.is_diff = True
+
+        self._set_output("modified_planning_scene", planning_scene)
+        return Status.SUCCESS
