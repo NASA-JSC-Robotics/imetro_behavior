@@ -39,6 +39,7 @@ from shape_msgs.msg import SolidPrimitive
 from tf2_ros import Buffer
 
 from imetro_behavior.moveit_behaviors import (
+    AddCollisionBoxToPlanningScene,
     ExecuteTrajectoryBehavior,
     ModifyCollisions,
     PlanArcPath,
@@ -507,3 +508,66 @@ def test_planning_scene_from_robot_description_behavior(
     assert sphere_primitive.type == SolidPrimitive.SPHERE
     assert len(sphere_primitive.dimensions) == 1
     assert sphere_primitive.dimensions[0] == pytest.approx(0.6, abs=1e-9)
+
+
+@pytest.fixture()
+def add_collision_box_to_planning_scene_behavior(
+    ros_node: Node,
+) -> AddCollisionBoxToPlanningScene:
+    behavior = AddCollisionBoxToPlanningScene(name="add_collision_box_to_planning_scene_test")
+    behavior.setup_ports()
+
+    planning_scene = PlanningScene()
+    collision_object_id = "random_object_name"
+    size = [0.1, 0.2, 0.3]
+    pose_stamped = PoseStamped()
+    pose_stamped.header.frame_id = "test_reference_frame"
+
+    pose_stamped.pose.position.x = 0.4
+    pose_stamped.pose.position.y = 0.5
+    pose_stamped.pose.position.z = 0.6
+
+    pose_stamped.pose.orientation.x = 0.7
+    pose_stamped.pose.orientation.y = 0.8
+    pose_stamped.pose.orientation.z = 0.9
+    pose_stamped.pose.orientation.w = 1.1
+
+    set_input(behavior, "planning_scene", planning_scene)
+    set_input(behavior, "collision_object_id", collision_object_id)
+    set_input(behavior, "size", size)
+    set_input(behavior, "pose_stamped", pose_stamped)
+    return behavior
+
+
+def test_add_collision_box_to_planning_scene_behavior(
+    add_collision_box_to_planning_scene_behavior: AddCollisionBoxToPlanningScene,
+) -> None:
+
+    assert add_collision_box_to_planning_scene_behavior.update() == Status.SUCCESS
+
+    modified_planning_scene = add_collision_box_to_planning_scene_behavior.get_last_output("modified_planning_scene")
+
+    assert isinstance(modified_planning_scene, PlanningScene)
+    assert len(modified_planning_scene.world.collision_objects) == 1
+
+    box_collision_object = modified_planning_scene.world.collision_objects[0]
+    assert len(box_collision_object.primitives) == 1
+    box_primitive = box_collision_object.primitives[0]
+    assert box_primitive.type == SolidPrimitive.BOX
+    assert len(box_primitive.dimensions) == 3
+    assert box_primitive.dimensions[0] == pytest.approx(0.1, abs=1e-9)
+    assert box_primitive.dimensions[1] == pytest.approx(0.2, abs=1e-9)
+    assert box_primitive.dimensions[2] == pytest.approx(0.3, abs=1e-9)
+
+    box_pose = box_collision_object.primitive_poses[0]
+    assert box_pose.position.x == pytest.approx(0.4, abs=1e-9)
+    assert box_pose.position.y == pytest.approx(0.5, abs=1e-9)
+    assert box_pose.position.z == pytest.approx(0.6, abs=1e-9)
+
+    assert box_pose.orientation.x == pytest.approx(0.7, abs=1e-9)
+    assert box_pose.orientation.y == pytest.approx(0.8, abs=1e-9)
+    assert box_pose.orientation.z == pytest.approx(0.9, abs=1e-9)
+    assert box_pose.orientation.w == pytest.approx(1.1, abs=1e-9)
+
+    assert box_collision_object.header.frame_id == "test_reference_frame"
+    assert box_collision_object.id == "random_object_name"
