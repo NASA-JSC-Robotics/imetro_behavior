@@ -30,10 +30,8 @@ from geometry_msgs.msg import (
     TransformStamped,
     TwistStamped,
 )
-from phoebe_interfaces.srv import SetWorld
 from py_trees.common import Access, Status
 from py_trees.ports import BehaviourWithPorts, PortInformation
-from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 from rclpy.node import Node
 from rclpy.time import Time
 from scipy.spatial.transform import RigidTransform
@@ -42,6 +40,7 @@ from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
 from imetro_behavior.helpers import set_ros_node
+from imetro_behavior.ros_behaviors.service_client import RosServiceClientBase
 
 
 class CreatePoseStamped(BehaviourWithPorts):
@@ -755,30 +754,37 @@ class PublishTwist(BehaviourWithPorts):
         if self.status == Status.RUNNING and new_status == Status.INVALID and self.publisher is not None:
             self.publisher.destroy()
 
-class SetWorldBehavior(RosServiceClientBase):
-    """
-    Update transform for the world_publisher node.
-    """
 
-    def __init__(self, name: str, **kwargs: Any):
-        super().__init__(name, service_type=SetWorld, **kwargs)
+try:
+    from phoebe_interfaces.srv import SetWorld
 
-    INPUT_PORTS = {"transform_stamped": PortInformation(data_type=TransformStamped)}
+    class SetWorldBehavior(RosServiceClientBase):
+        """
+        Update transform for the world_publisher node.
+        """
 
-    OUTPUT_PORTS = {}
+        def __init__(self, name: str, **kwargs: Any):
+            super().__init__(name, service_type=SetWorld, **kwargs)
 
-    def create_request(self) -> SetWorld.Request:
-        """Create a SetWorld service request."""
-        request = SetWorld.Request()
-        request.transform = self.get_input("transform_stamped").transform
-        return request
+        INPUT_PORTS = {"transform_stamped": PortInformation(data_type=TransformStamped)}
 
-    def process_response(self, response: SetWorld.Response) -> Status:
-        """Process the SetWorld service response."""
-        if response.success:
-            self.logger.info("Successfully set the world frame!")
-            return Status.SUCCESS
-        else:
-            self.logger.error("Error: failed to set the world frame.")
-            return Status.FAILURE
+        OUTPUT_PORTS = {}
 
+        def create_request(self) -> SetWorld.Request:
+            """Create a SetWorld service request."""
+            request = SetWorld.Request()
+            request.transform = self.get_input("transform_stamped").transform
+            return request
+
+        def process_response(self, response: SetWorld.Response) -> Status:
+            """Process the SetWorld service response."""
+            if response.success:
+                self.logger.info("Successfully set the world frame!")
+                return Status.SUCCESS
+            else:
+                self.logger.error("Error: failed to set the world frame.")
+                return Status.FAILURE
+
+
+except ModuleNotFoundError as e:
+    print(e)
