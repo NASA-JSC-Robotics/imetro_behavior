@@ -1044,9 +1044,8 @@ class AddCollisionBoxToPlanningScene(BehaviourWithPorts):
     INPUT_PORTS = {
         "planning_scene": PortInformation(data_type=PlanningScene, required=True),
         "collision_object_id": PortInformation(data_type=str, required=True, default_value=""),
-        "reference_frame": PortInformation(data_type=str, required=True),
         "size": PortInformation(data_type=list[float], required=False, default_value=[1.0, 1.0, 1.0]),
-        "pose": PortInformation(data_type=Pose, required=False, default_value=Pose()),
+        "pose_stamped": PortInformation(data_type=PoseStamped, required=False, default_value=PoseStamped()),
     }
 
     OUTPUT_PORTS = {"modified_planning_scene": PortInformation(data_type=PlanningScene)}
@@ -1054,16 +1053,18 @@ class AddCollisionBoxToPlanningScene(BehaviourWithPorts):
     def update(self) -> Status:
         """Create the message and set it as an output port."""
 
+        pose_stamped = self.get_input("pose_stamped")
+
         collision_object = CollisionObject()
         collision_object.id = self.get_input("collision_object_id")
-        collision_object.header.frame_id = self.get_input("reference_frame")
+        collision_object.header.frame_id = pose_stamped.header.frame_id
 
         primitive = SolidPrimitive()
         primitive.type = SolidPrimitive.BOX
         primitive.dimensions = self.get_input("size")
 
         collision_object.primitives.append(primitive)
-        collision_object.primitive_poses.append(self.get_input("pose"))
+        collision_object.primitive_poses.append(pose_stamped.pose)
 
         planning_scene = self.get_input("planning_scene")
         planning_scene.world.collision_objects.append(collision_object)
