@@ -71,32 +71,6 @@ class CreatePoseStamped(BehaviourWithPorts):
         return Status.SUCCESS
 
 
-class CreatePose(BehaviourWithPorts):
-    """Create a Pose ROS message."""
-
-    INPUT_PORTS = {
-        "position_xyz": PortInformation(data_type=list[float], required=True),
-        "orientation_xyzw": PortInformation(data_type=list[float], required=True),
-    }
-
-    OUTPUT_PORTS = {"msg": PortInformation(data_type=Pose, required=True)}
-
-    def update(self) -> Status:
-        """Create the message and set it as an output port."""
-        msg = Pose()
-        position_xyz = self.get_input("position_xyz")
-        orientation_xyzw = self.get_input("orientation_xyzw")
-        msg.position.x = position_xyz[0]
-        msg.position.y = position_xyz[1]
-        msg.position.z = position_xyz[2]
-        msg.orientation.x = orientation_xyzw[0]
-        msg.orientation.y = orientation_xyzw[1]
-        msg.orientation.z = orientation_xyzw[2]
-        msg.orientation.w = orientation_xyzw[3]
-        self._set_output("msg", msg)
-        return Status.SUCCESS
-
-
 class TransformPose(BehaviourWithPorts):
     """Transforms a PoseStamped ROS message to a specified frame."""
 
