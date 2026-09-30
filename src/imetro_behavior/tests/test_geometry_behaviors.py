@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from geometry_msgs.msg import PoseStamped, TransformStamped
+from phoebe_interfaces.srv import SetWorld
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
@@ -41,6 +42,7 @@ from imetro_behavior.geometry_behaviors import (
     TransformStampedToPoseStamped,
     TwistAboutPose,
     YamlPoseToPoseStamped,
+    SetWorldBehavior,
 )
 
 
@@ -620,3 +622,28 @@ def test_decompose_pose_stamped() -> None:
     assert frame_id_msg == "odom"
     assert translation_msg == [1.0, 2.0, 3.0]
     assert orientation_msg == [0.0, 0.0, 0.0, 1.0]
+
+
+def test_set_world(ros_node: Node) -> None:
+    behavior = SetWorldBehavior(name="set_world_behavior", service_name="/set_world")
+    behavior.setup(node=ros_node)
+    
+    behavior.setup_ports()
+    # 
+    transform_stamped = TransformStamped()
+    transform_stamped.transform.translation.x = 0.0
+    transform_stamped.transform.translation.y = 0.1
+    transform_stamped.transform.translation.z = 0.2
+
+    transform_stamped.transform.rotation.x = 0.3
+    transform_stamped.transform.rotation.y = 0.4
+    transform_stamped.transform.rotation.z = 0.5
+    transform_stamped.transform.rotation.w = 0.6
+
+    Blackboard.set(behavior._get_blackboard_key("transform_stamped"), transform_stamped)
+
+    assert isinstance(behavior.create_request(), SetWorld.Request)
+
+    response = SetWorld.Response()
+    response.success = True
+    assert behavior.process_response(response) == Status.SUCCESS
