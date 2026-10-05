@@ -19,6 +19,7 @@ scripts = ["scripts/entrypoint.sh"]
 COLCON_DEFAULT_OUTPUT_STYLE = "catkin_tools"
 COLCON_DEFAULTS_FILE = "${PIXI_PROJECT_ROOT}/config/colcon-defaults.yaml"
 RCUTILS_COLORIZED_OUTPUT = "1"
+PYTHONNOUSERSITE = "1"  # Never pick up packages from the user site-packages
 
 [tool.pixi.tasks]
 build = "colcon build --cmake-args"

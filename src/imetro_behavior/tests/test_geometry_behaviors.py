@@ -420,6 +420,36 @@ def test_publish_static_transform(ros_node: Node, tf_static_broadcaster: StaticT
     assert behavior.status == Status.SUCCESS
 
 
+def test_publish_static_transform_updates_existing_frame(
+    ros_node: Node, tf_static_broadcaster: StaticTransformBroadcaster
+) -> None:
+    behavior = PublishStaticTransform(name="publish_static_transform")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    other = TransformStamped()
+    other.header.frame_id = "map"
+    other.child_frame_id = "other_object"
+    other.transform.rotation.w = 1.0
+    tf_static_broadcaster.sendTransform(other)
+
+    for x in [1.0, 2.0]:
+        tform = TransformStamped()
+        tform.header.frame_id = "map"
+        tform.child_frame_id = "static_object"
+        tform.transform.translation.x = x
+        tform.transform.rotation.w = 1.0
+        Blackboard.set(behavior._get_blackboard_key("transform_stamped"), tform)
+
+        behavior.tick_once()
+        assert behavior.status == Status.SUCCESS
+
+    transforms = {t.child_frame_id: t for t in tf_static_broadcaster.net_message.transforms}
+    assert len(tf_static_broadcaster.net_message.transforms) == 2
+    assert transforms["static_object"].transform.translation.x == 2.0
+    assert "other_object" in transforms
+
+
 def test_transform_stamped_to_pose_stamped() -> None:
     behavior = TransformStampedToPoseStamped(name="tf_to_pose")
     behavior.setup_ports()

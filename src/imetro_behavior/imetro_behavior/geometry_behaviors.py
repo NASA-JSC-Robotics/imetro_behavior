@@ -685,7 +685,17 @@ class PublishStaticTransform(BehaviourWithPorts):
 
     def update(self) -> Status:
         transform_stamped = self.get_input("transform_stamped")
-        self.tf_static_broadcaster.sendTransform(transform_stamped)
+        # The Python StaticTransformBroadcaster silently ignores transforms whose child frame was already
+        # sent, so replace any existing entry in its accumulated message ourselves before publishing.
+        transforms = self.tf_static_broadcaster.net_message.transforms
+        for i, existing in enumerate(transforms):
+            if existing.child_frame_id == transform_stamped.child_frame_id:
+                transforms[i] = transform_stamped
+                break
+        else:
+            transforms.append(transform_stamped)
+            self.tf_static_broadcaster._child_frame_ids.add(transform_stamped.child_frame_id)
+        self.tf_static_broadcaster.pub_tf.publish(self.tf_static_broadcaster.net_message)
         return Status.SUCCESS
 
 
