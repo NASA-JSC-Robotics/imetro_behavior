@@ -762,3 +762,45 @@ class PublishTwist(BehaviourWithPorts):
         """Cleanup the publisher"""
         if self.status == Status.RUNNING and new_status == Status.INVALID and self.publisher is not None:
             self.publisher.destroy()
+
+class InvertTransformStamped(BehaviourWithPorts):
+    """Create a PoseStamped ROS message."""
+
+    INPUT_PORTS = {
+        "transform_stamped_in": PortInformation(data_type=TransformStamped, required=True),
+    }
+
+    OUTPUT_PORTS = {
+        "transform_stamped_out": PortInformation(data_type=TransformStamped, required=True)}
+
+    def update(self) -> Status:
+        """Look up the transform in TF and transform the frame."""
+        tf_in = self.get_input("transform_stamped_in")
+
+        xyz = [tf_in.transform.translation.x, tf_in.transform.translation.y, tf_in.transform.translation.z]
+        xyzw = [tf_in.transform.rotation.x, tf_in.transform.rotation.y, tf_in.transform.rotation.z, tf_in.transform.rotation.w]
+
+
+        T = np.eye(4)
+        T[:3, :3] = R.from_quat(xyzw).as_matrix()
+        T[:3, 3] = xyz
+        T = np.linalg.inv(T)
+        
+        xyz = T[:3, 3]
+        xyzw = R.from_matrix(T[:3, :3]).as_quat()
+
+        tf_out = TransformStamped()
+        tf_out.header.stamp = tf_in.header.stamp
+        tf_out.header.frame_id = tf_in.child_frame_id
+        tf_out.child_frame_id = tf_in.header.frame_id
+        tf_out.transform.translation.x = xyz[0]
+        tf_out.transform.translation.y = xyz[1]
+        tf_out.transform.translation.z = xyz[2]
+
+        tf_out.transform.rotation.x = xyzw[0]
+        tf_out.transform.rotation.y = xyzw[1]
+        tf_out.transform.rotation.z = xyzw[2]
+        tf_out.transform.rotation.w = xyzw[3]
+
+        self._set_output("transform_stamped_out", tf_out)
+        return Status.SUCCESS
