@@ -777,30 +777,34 @@ class InvertTransformStamped(BehaviourWithPorts):
         """Convert TransformStamped message into a 4x4 matrix, invert the matrix, and convert the result back to TransformStamped message."""
         tf_in = self.get_input("transform_stamped_in")
 
-        xyz = [tf_in.transform.translation.x, tf_in.transform.translation.y, tf_in.transform.translation.z]
-        xyzw = [tf_in.transform.rotation.x, tf_in.transform.rotation.y, tf_in.transform.rotation.z, tf_in.transform.rotation.w]
-
+        xyz_in = [tf_in.transform.translation.x, tf_in.transform.translation.y, tf_in.transform.translation.z]
+        xyzw_in = [
+            tf_in.transform.rotation.x,
+            tf_in.transform.rotation.y,
+            tf_in.transform.rotation.z,
+            tf_in.transform.rotation.w,
+        ]
 
         T = np.eye(4)
-        T[:3, :3] = R.from_quat(xyzw).as_matrix()
-        T[:3, 3] = xyz
+        T[:3, :3] = R.from_quat(xyzw_in).as_matrix()
+        T[:3, 3] = xyz_in
         T = np.linalg.inv(T)
-        
-        xyz = T[:3, 3]
-        xyzw = R.from_matrix(T[:3, :3]).as_quat()
+
+        xyz_out = T[:3, 3]
+        xyzw_out = R.from_matrix(T[:3, :3]).as_quat()
 
         tf_out = TransformStamped()
         tf_out.header.stamp = tf_in.header.stamp
         tf_out.header.frame_id = tf_in.child_frame_id
         tf_out.child_frame_id = tf_in.header.frame_id
-        tf_out.transform.translation.x = xyz[0]
-        tf_out.transform.translation.y = xyz[1]
-        tf_out.transform.translation.z = xyz[2]
+        tf_out.transform.translation.x = xyz_out[0]
+        tf_out.transform.translation.y = xyz_out[1]
+        tf_out.transform.translation.z = xyz_out[2]
 
-        tf_out.transform.rotation.x = xyzw[0]
-        tf_out.transform.rotation.y = xyzw[1]
-        tf_out.transform.rotation.z = xyzw[2]
-        tf_out.transform.rotation.w = xyzw[3]
+        tf_out.transform.rotation.x = xyzw_out[0]
+        tf_out.transform.rotation.y = xyzw_out[1]
+        tf_out.transform.rotation.z = xyzw_out[2]
+        tf_out.transform.rotation.w = xyzw_out[3]
 
         self._set_output("transform_stamped_out", tf_out)
         return Status.SUCCESS
