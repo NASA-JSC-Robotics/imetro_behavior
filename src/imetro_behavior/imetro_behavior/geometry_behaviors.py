@@ -763,18 +763,18 @@ class PublishTwist(BehaviourWithPorts):
         if self.status == Status.RUNNING and new_status == Status.INVALID and self.publisher is not None:
             self.publisher.destroy()
 
+
 class InvertTransformStamped(BehaviourWithPorts):
-    """Create a PoseStamped ROS message."""
+    """Invert the TransformStamped message."""
 
     INPUT_PORTS = {
         "transform_stamped_in": PortInformation(data_type=TransformStamped, required=True),
     }
 
-    OUTPUT_PORTS = {
-        "transform_stamped_out": PortInformation(data_type=TransformStamped, required=True)}
+    OUTPUT_PORTS = {"transform_stamped_out": PortInformation(data_type=TransformStamped, required=True)}
 
     def update(self) -> Status:
-        """Look up the transform in TF and transform the frame."""
+        """Convert TransformStamped message into a 4x4 matrix, invert the matrix, and convert the result back to TransformStamped message."""
         tf_in = self.get_input("transform_stamped_in")
 
         xyz = [tf_in.transform.translation.x, tf_in.transform.translation.y, tf_in.transform.translation.z]
