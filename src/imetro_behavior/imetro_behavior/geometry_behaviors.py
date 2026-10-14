@@ -785,13 +785,13 @@ class InvertTransformStamped(BehaviourWithPorts):
             tf_in.transform.rotation.w,
         ]
 
-        T = np.eye(4)
-        T[:3, :3] = R.from_quat(xyzw_in).as_matrix()
-        T[:3, 3] = xyz_in
-        T = np.linalg.inv(T)
+        T_in = np.eye(4)
+        T_in[:3, :3] = R.from_quat(xyzw_in).as_matrix()
+        T_in[:3, 3] = xyz_in
+        T_out = np.linalg.inv(T_in)
 
-        xyz_out = T[:3, 3]
-        xyzw_out = R.from_matrix(T[:3, :3]).as_quat()
+        xyz_out = T_out[:3, 3]
+        xyzw_out = R.from_matrix(T_out[:3, :3]).as_quat()
 
         tf_out = TransformStamped()
         tf_out.header.stamp = tf_in.header.stamp
