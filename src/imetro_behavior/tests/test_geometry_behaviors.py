@@ -32,6 +32,7 @@ from imetro_behavior.geometry_behaviors import (
     DecomposePoseStamped,
     GetRelativePoseStamped,
     GetRollPitchYaw,
+    InvertTransformStamped,
     LookupTransform,
     OffsetPoseStamped,
     PoseStampedToTransformStamped,
@@ -650,3 +651,50 @@ def test_decompose_pose_stamped() -> None:
     assert frame_id_msg == "odom"
     assert translation_msg == [1.0, 2.0, 3.0]
     assert orientation_msg == [0.0, 0.0, 0.0, 1.0]
+
+
+def test_invert_transport_stamped() -> None:
+    behavior = InvertTransformStamped(name="invert_transform_stamped")
+    behavior.setup_ports()
+
+    for _ in range(10):
+        a_T_b = np.eye(4)
+        a_T_b[:3, :3] = R.random().as_matrix()
+        a_T_b[:3, 3] = np.random.rand(
+            3,
+        )
+
+        a_t_b = a_T_b[:3, 3]
+        a_R_b = R.from_matrix(a_T_b[:3, :3]).as_quat()
+
+        tf_in = TransformStamped()
+        tf_in.header.frame_id = "frame_a"
+        tf_in.child_frame_id = "frame_b"
+        tf_in.transform.translation.x = a_t_b[0]
+        tf_in.transform.translation.y = a_t_b[1]
+        tf_in.transform.translation.z = a_t_b[2]
+
+        tf_in.transform.rotation.x = a_R_b[0]
+        tf_in.transform.rotation.y = a_R_b[1]
+        tf_in.transform.rotation.z = a_R_b[2]
+        tf_in.transform.rotation.w = a_R_b[3]
+
+        Blackboard.set(behavior._get_blackboard_key("transform_stamped_in"), tf_in)
+        behavior.tick_once()
+        assert behavior.status == Status.SUCCESS
+        tf_out = behavior.get_last_output("transform_stamped_out")
+        assert tf_out.header.frame_id == tf_in.child_frame_id
+        assert tf_out.child_frame_id == tf_in.header.frame_id
+
+        b_T_a = np.linalg.inv(a_T_b)
+        b_t_a = b_T_a[:3, 3]
+        b_R_a = R.from_matrix(b_T_a[:3, :3]).as_quat()
+
+        assert tf_out.transform.translation.x == pytest.approx(b_t_a[0], abs=1e-5)
+        assert tf_out.transform.translation.y == pytest.approx(b_t_a[1], abs=1e-5)
+        assert tf_out.transform.translation.z == pytest.approx(b_t_a[2], abs=1e-5)
+
+        assert tf_out.transform.rotation.x == pytest.approx(b_R_a[0], abs=1e-5)
+        assert tf_out.transform.rotation.y == pytest.approx(b_R_a[1], abs=1e-5)
+        assert tf_out.transform.rotation.z == pytest.approx(b_R_a[2], abs=1e-5)
+        assert tf_out.transform.rotation.w == pytest.approx(b_R_a[3], abs=1e-5)
