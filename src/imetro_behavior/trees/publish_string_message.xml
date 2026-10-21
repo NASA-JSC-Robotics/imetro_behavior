@@ -1,0 +1,21 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="Sequence">
+      <PublishString
+        name="publish_test_string_1"
+        topic_name="/test_string_topic"
+        string_data="Hello World!"
+      />
+      <PublishString
+        name="publish_test_string_2"
+        topic_name="/test_string_topic"
+        string_data="TESTING TESTING TESTING"
+      />
+      <PublishString
+        name="publish_test_string_3"
+        topic_name="/test_string_topic"
+        string_data="I like robots!"
+      />
+    </Sequence>
+  </BehaviorTree>
+</root>
