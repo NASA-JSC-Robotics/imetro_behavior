@@ -91,11 +91,9 @@ class RosPublisherBase(BehaviourWithPorts):
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_publisher(self.publisher)
 
-    def create_message(self) -> Any | None:
+    def create_message(self) -> Any:
         """
         Abstract method for setting the message to publish.
-
-        You can return None to consider this a failure case.
         """
         raise NotImplementedError("Must implement set_message() method.")
 
@@ -113,5 +111,5 @@ class PublishString(RosPublisherBase):
 
     OUTPUT_PORTS = {}
 
-    def create_message(self) -> Any | None:
+    def create_message(self) -> Any:
         return String(data=self.get_input("string_data"))

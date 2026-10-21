@@ -63,11 +63,9 @@ class RosServiceClientBase(BehaviourWithPorts):
         self.node: Node
         super().__init__(name, **kwargs)
 
-    def create_request(self) -> Any | None:
+    def create_request(self) -> Any:
         """
         Abstract method for creating and returning a ROS service request.
-
-        You can return None to consider this a failure case.
         """
         raise NotImplementedError("Must implement create_request() method.")
 

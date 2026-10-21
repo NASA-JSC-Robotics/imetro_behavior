@@ -76,11 +76,9 @@ class RosActionClientBase(BehaviourWithPorts):
         self.node: Node
         super().__init__(name, **kwargs)
 
-    def create_goal(self) -> Any | None:
+    def create_goal(self) -> Any:
         """
         Abstract method for creating and returning a ROS action goal.
-
-        You can return None to consider this a failure case.
         """
         raise NotImplementedError("Must implement create_goal() method.")
 
