@@ -17,6 +17,6 @@
 
 from .action_client import *  # ty: ignore[unresolved-import]
 from .perception import *  # ty: ignore[unresolved-import]
+from .publisher_base import *  # ty: ignore[unresolved-import]
 from .service_client import *  # ty: ignore[unresolved-import]
 from .subscriber_base import *  # ty: ignore[unresolved-import]
-from .publisher_base import *  # ty: ignore[unresolved-import]

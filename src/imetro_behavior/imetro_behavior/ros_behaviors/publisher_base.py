@@ -54,11 +54,10 @@ class RosPublisherBase(BehaviourWithPorts):
         self.topic_type = topic_type
         self.topic_name = topic_name
         if qos_profile not in QoSPresetProfiles.short_keys() or qos_profile.lower() == "unknown":
-            raise KeyError(f"QoSProfile [ {qos_profile} ] is not available!")
+            raise KeyError(f"QoSProfile '{qos_profile}' is not available!")
         self.qos_profile = QoSPresetProfiles.get_from_short_key(qos_profile)
 
         self.node: Node
-        self.msg = None
 
     def setup(self, **kwargs):
         """
@@ -70,35 +69,33 @@ class RosPublisherBase(BehaviourWithPorts):
         """
         Reset the internal variables.
         """
-        self.publisher = self.node.create_publisher(
-            self.topic_type, self.topic_name, self.qos_profile
-        )
+        self.publisher = self.node.create_publisher(self.topic_type, self.topic_name, self.qos_profile)
 
     def update(self):
-        # set message
-        success, error_msg = self.set_message()
-        if not success:
-            self.logger.error(f"Failed to set message: {error_msg}")
+        """
+        Sets the message to be published and then publishes it.
+        """
+        try:
+            message = self.create_message()
+        except Exception as e:  # noqa: BLE001 -- we don't know what the user will raise
+            self.logger.error(f"Failed to create message: {e}")
             return Status.FAILURE
 
-        # publish message
-        self.publisher.publish(self.msg)
+        self.publisher.publish(message)
         return Status.SUCCESS
 
     def terminate(self, new_status: Status) -> None:
         """
         Clean up the publisher if switching to INVALID status.
         """
-
         if self.status == Status.RUNNING and new_status == Status.INVALID:
             self.node.destroy_publisher(self.publisher)
 
-    def set_message(self) -> tuple[bool, str]:
+    def create_message(self) -> Any | None:
         """
         Abstract method for setting the message to publish.
 
-        Returns:
-            tuple[bool, str]: a flag indicating success of message setting and optional error message.
+        You can return None to consider this a failure case.
         """
         raise NotImplementedError("Must implement set_message() method.")
 
@@ -116,10 +113,5 @@ class PublishString(RosPublisherBase):
 
     OUTPUT_PORTS = {}
 
-    def set_message(self) -> tuple[bool, str]:
-        # initialize message
-        self.msg = String()
-        # set data
-        self.msg.data = self.get_input("string_data")
-
-        return True, ""
+    def create_message(self) -> Any | None:
+        return String(data=self.get_input("string_data"))
