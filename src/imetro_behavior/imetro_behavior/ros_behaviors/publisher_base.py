@@ -29,6 +29,8 @@ from imetro_behavior.helpers import set_ros_node
 class RosPublisherBase(BehaviourWithPorts):
     """
     Base class for behaviors that publish a single message on a single topic.
+
+    Modified from https://github.com/splintered-reality/py_trees_ros/blob/devel/py_trees_ros/publishers.py
     """
 
     def __init__(
@@ -61,14 +63,9 @@ class RosPublisherBase(BehaviourWithPorts):
 
     def setup(self, **kwargs):
         """
-        Get the node from the blackboard.
+        Get the node and create the publisher.
         """
         set_ros_node(self, **kwargs)
-
-    def initialise(self):
-        """
-        Reset the internal variables.
-        """
         self.publisher = self.node.create_publisher(self.topic_type, self.topic_name, self.qos_profile)
 
     def update(self):
@@ -81,15 +78,18 @@ class RosPublisherBase(BehaviourWithPorts):
             self.logger.error(f"Failed to create message: {e}")
             return Status.FAILURE
 
+        if message is None:
+            self.logger.error("create_message() returned None; treating as failure.")
+            return Status.FAILURE
+
         self.publisher.publish(message)
         return Status.SUCCESS
 
-    def terminate(self, new_status: Status) -> None:
+    def shutdown(self):
         """
-        Clean up the publisher if switching to INVALID status.
+        Clean up the publisher when shutting down.
         """
-        if self.status == Status.RUNNING and new_status == Status.INVALID:
-            self.node.destroy_publisher(self.publisher)
+        self.node.destroy_publisher(self.publisher)
 
     def create_message(self) -> Any | None:
         """
