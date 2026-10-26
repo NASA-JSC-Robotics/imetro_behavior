@@ -194,6 +194,62 @@ def test_align_pose_to_nearest_axis_already_aligned() -> None:
     assert output_pose.pose.orientation == input_pose.pose.orientation
 
 
+def test_align_pose_to_nearest_axis_custom_source_axis() -> None:
+    behavior = AlignPoseToNearestAxis(name="align_pose")
+    behavior.setup_ports()
+
+    # Tilt 80 degrees about Z, so the local X axis is closest to global +Y.
+    quat = R.from_euler("z", 80.0, degrees=True).as_quat()
+    input_pose = make_pose([0.0, 0.0, 0.0], list(quat))
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("source_axis"), [1.0, 0.0, 0.0])
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    q = behavior.get_last_output("output_pose").pose.orientation
+    local_x_axis = R.from_quat([q.x, q.y, q.z, q.w]).apply([1.0, 0.0, 0.0])
+    assert local_x_axis == pytest.approx([0.0, 1.0, 0.0])
+
+
+def test_align_pose_to_nearest_axis_custom_target_axis_is_normalized() -> None:
+    behavior = AlignPoseToNearestAxis(name="align_pose")
+    behavior.setup_ports()
+
+    input_pose = make_pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    # Unnormalized target axis -- should be normalized internally before aligning.
+    Blackboard.set(behavior._get_blackboard_key("target_axis"), [0.0, 2.0, 2.0])
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    output_pose = behavior.get_last_output("output_pose")
+    assert get_z_axis(output_pose) == pytest.approx([0.0, 1.0 / np.sqrt(2), 1.0 / np.sqrt(2)])
+
+
+def test_align_pose_to_nearest_axis_invalid_source_axis() -> None:
+    behavior = AlignPoseToNearestAxis(name="align_pose")
+    behavior.setup_ports()
+
+    input_pose = make_pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("source_axis"), [0.0, 0.0])
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+
+def test_align_pose_to_nearest_axis_invalid_target_axis() -> None:
+    behavior = AlignPoseToNearestAxis(name="align_pose")
+    behavior.setup_ports()
+
+    input_pose = make_pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+    Blackboard.set(behavior._get_blackboard_key("target_axis"), [0.0, 0.0, 0.0])
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+
 def test_local_offset_pose_stamped_translation() -> None:
     behavior = OffsetPoseStamped(name="offset_pose")
     behavior.setup_ports()
