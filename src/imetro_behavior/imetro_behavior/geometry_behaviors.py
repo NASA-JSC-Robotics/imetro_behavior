@@ -54,7 +54,7 @@ class CreatePoseStamped(BehaviourWithPorts):
     OUTPUT_PORTS = {"msg": PortInformation(data_type=PoseStamped, required=True)}
 
     def setup(self, **kwargs):
-        """Get access to the TF buffer."""
+        """Get access to the ROS node."""
         set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
