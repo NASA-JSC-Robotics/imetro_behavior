@@ -106,9 +106,28 @@ class TransformPose(BehaviourWithPorts):
 
 
 class AlignPoseToNearestAxis(BehaviourWithPorts):
-    """Align a PoseStamped ROS message to the nearest axis (X Y Z)."""
+    """
+    Align a PoseStamped ROS message to the nearest axis.
 
-    INPUT_PORTS = {"input_pose": PortInformation(data_type=PoseStamped, required=True)}
+    This allows users to, for example, take the outputs of object detection and align their source axes to the target axes
+    in the parent frame in which these poses are specified.
+    """
+
+    INPUT_PORTS = {
+        "input_pose": PortInformation(data_type=PoseStamped, required=True),
+        "source_axis": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[0.0, 0.0, 1.0],
+            description="The source axis to align to the target axis (defaults to the +Z axis)",
+        ),
+        "target_axis": PortInformation(
+            data_type=list[float],
+            required=False,
+            default_value=[],
+            description="The target axis to align the source axis to. If empty (default), picks the nearest axis component.",
+        ),
+    }
 
     OUTPUT_PORTS = {"output_pose": PortInformation(data_type=PoseStamped, required=True)}
 
@@ -118,18 +137,35 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
         q = input_pose.pose.orientation
         r_current = R.from_quat([q.x, q.y, q.z, q.w])  # scipy uses xyzw
 
-        # Extract the current local Z-axis vector and find which global axis it is closest to.
-        current_z_axis = r_current.as_matrix()[:, 2]
-        closest_axis_idx = np.argmax(np.abs(current_z_axis))
-        target_axis = np.zeros(3)
-        target_axis[closest_axis_idx] = np.sign(current_z_axis[closest_axis_idx])
+        source_axis = np.array(self.get_input("source_axis"), dtype=float)
+        if source_axis.shape != (3,) or (source_axis_norm := np.linalg.norm(source_axis)) < 1e-6:
+            self.logger.error(
+                f"source_axis must have exactly 3 elements and a non-zero norm, got {source_axis.tolist()}"
+            )
+            return Status.FAILURE
+        source_axis = source_axis / source_axis_norm
 
-        # Calculate the minimal rotation to snap current Z to the target axis
-        axis = np.cross(current_z_axis, target_axis)
-        axis_norm = np.linalg.norm(axis)
-        if axis_norm > 1e-6:
+        current_axis = r_current.apply(source_axis)
+
+        target_axis = np.array(self.get_input("target_axis"), dtype=float)
+        if target_axis.shape == (0,):
+            # If target axis was not specified, find which global axis the current axis is closest to.
+            target_axis = np.zeros(3)
+            closest_axis_idx = np.argmax(np.abs(current_axis))
+            target_axis[closest_axis_idx] = np.sign(current_axis[closest_axis_idx])
+        elif target_axis.shape != (3,) or (target_axis_norm := np.linalg.norm(target_axis)) < 1e-6:
+            self.logger.error(
+                f"target_axis must be empty or have exactly 3 elements with a non-zero norm, got {target_axis.tolist()}"
+            )
+            return Status.FAILURE
+        else:
+            target_axis = target_axis / target_axis_norm
+
+        # Calculate the minimal rotation to snap the current axis to the target axis
+        axis = np.cross(current_axis, target_axis)
+        if (axis_norm := np.linalg.norm(axis)) > 1e-6:
             axis = axis / axis_norm
-            angle = np.arccos(np.clip(np.dot(current_z_axis, target_axis), -1.0, 1.0))
+            angle = np.arccos(np.clip(np.dot(current_axis, target_axis), -1.0, 1.0))
             r_align = R.from_rotvec(axis * angle)
             r_aligned = r_align * r_current
         else:
