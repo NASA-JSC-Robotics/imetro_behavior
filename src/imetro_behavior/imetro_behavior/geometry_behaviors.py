@@ -53,9 +53,16 @@ class CreatePoseStamped(BehaviourWithPorts):
 
     OUTPUT_PORTS = {"msg": PortInformation(data_type=PoseStamped, required=True)}
 
+
+    def setup(self, **kwargs):
+        """Get access to the TF buffer."""
+        set_ros_node(self, **kwargs)
+
+
     def update(self) -> Status:
         """Create the message and set it as an output port."""
         msg = PoseStamped()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
         position_xyz = self.get_input("position_xyz")
         orientation_xyzw = self.get_input("orientation_xyzw")
         msg.pose.position.x = position_xyz[0]
