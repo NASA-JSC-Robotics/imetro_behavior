@@ -90,9 +90,10 @@ def get_z_axis(pose: PoseStamped) -> np.ndarray:
     return R.from_quat([q.x, q.y, q.z, q.w]).as_matrix()[:, 2]
 
 
-def test_create_pose_stamped() -> None:
+def test_create_pose_stamped(ros_node: Node) -> None:
     behavior = CreatePoseStamped(name="create_pose")
     behavior.setup_ports()
+    behavior.setup(node=ros_node)
 
     Blackboard.set(behavior._get_blackboard_key("position_xyz"), [1.0, 2.0, 3.0])
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), [0.0, 0.0, 0.0, 1.0])
@@ -108,9 +109,10 @@ def test_create_pose_stamped() -> None:
     assert msg.pose.orientation.w == 1.0
 
 
-def test_create_pose_stamped_default_frame() -> None:
+def test_create_pose_stamped_default_frame(ros_node: Node) -> None:
     behavior = CreatePoseStamped(name="create_pose")
     behavior.setup_ports()
+    behavior.setup(node=ros_node)
 
     Blackboard.set(behavior._get_blackboard_key("position_xyz"), [1.0, 2.0, 3.0])
     Blackboard.set(behavior._get_blackboard_key("orientation_xyzw"), [0.0, 0.0, 0.0, 1.0])
