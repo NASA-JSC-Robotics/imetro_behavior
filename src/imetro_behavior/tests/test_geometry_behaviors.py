@@ -23,6 +23,7 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.node import Node
+from scipy.spatial.transform import RigidTransform
 from scipy.spatial.transform import Rotation as R
 from tf2_ros import Buffer, StaticTransformBroadcaster
 
@@ -34,6 +35,7 @@ from imetro_behavior.geometry_behaviors import (
     GetRollPitchYaw,
     InvertTransformStamped,
     LookupTransform,
+    MultiplyTransformStamped,
     OffsetPoseStamped,
     PoseStampedToTransformStamped,
     PublishStaticTransform,
@@ -42,6 +44,8 @@ from imetro_behavior.geometry_behaviors import (
     TransformStampedToPoseStamped,
     TwistAboutPose,
     YamlPoseToPoseStamped,
+    scipy_to_transform,
+    transform_to_scipy,
 )
 
 
@@ -714,26 +718,12 @@ def test_invert_transport_stamped() -> None:
     behavior.setup_ports()
 
     for _ in range(10):
-        a_T_b = np.eye(4)
-        a_T_b[:3, :3] = R.random().as_matrix()
-        a_T_b[:3, 3] = np.random.rand(
-            3,
-        )
-
-        a_t_b = a_T_b[:3, 3]
-        a_R_b = R.from_matrix(a_T_b[:3, :3]).as_quat()
+        a_T_b = RigidTransform.from_components(np.random.rand(3), R.random())
 
         tf_in = TransformStamped()
         tf_in.header.frame_id = "frame_a"
         tf_in.child_frame_id = "frame_b"
-        tf_in.transform.translation.x = a_t_b[0]
-        tf_in.transform.translation.y = a_t_b[1]
-        tf_in.transform.translation.z = a_t_b[2]
-
-        tf_in.transform.rotation.x = a_R_b[0]
-        tf_in.transform.rotation.y = a_R_b[1]
-        tf_in.transform.rotation.z = a_R_b[2]
-        tf_in.transform.rotation.w = a_R_b[3]
+        tf_in.transform = scipy_to_transform(a_T_b)
 
         Blackboard.set(behavior._get_blackboard_key("transform_stamped_in"), tf_in)
         behavior.tick_once()
@@ -742,15 +732,64 @@ def test_invert_transport_stamped() -> None:
         assert tf_out.header.frame_id == tf_in.child_frame_id
         assert tf_out.child_frame_id == tf_in.header.frame_id
 
-        b_T_a = np.linalg.inv(a_T_b)
-        b_t_a = b_T_a[:3, 3]
-        b_R_a = R.from_matrix(b_T_a[:3, :3]).as_quat()
+        b_T_a = a_T_b.inv()
+        b_t_a, b_R_a = b_T_a.as_components()
+        b_t_a_actual, b_R_a_actual = transform_to_scipy(tf_out.transform).as_components()
 
-        assert tf_out.transform.translation.x == pytest.approx(b_t_a[0], abs=1e-5)
-        assert tf_out.transform.translation.y == pytest.approx(b_t_a[1], abs=1e-5)
-        assert tf_out.transform.translation.z == pytest.approx(b_t_a[2], abs=1e-5)
+        assert b_t_a_actual == pytest.approx(b_t_a, abs=1e-5)
+        assert b_R_a_actual.as_quat() == pytest.approx(b_R_a.as_quat(), abs=1e-5)
 
-        assert tf_out.transform.rotation.x == pytest.approx(b_R_a[0], abs=1e-5)
-        assert tf_out.transform.rotation.y == pytest.approx(b_R_a[1], abs=1e-5)
-        assert tf_out.transform.rotation.z == pytest.approx(b_R_a[2], abs=1e-5)
-        assert tf_out.transform.rotation.w == pytest.approx(b_R_a[3], abs=1e-5)
+
+def test_multiply_transform_stamped() -> None:
+    behavior = MultiplyTransformStamped(name="multiply_transform_stamped")
+    behavior.setup_ports()
+
+    for _ in range(10):
+        a_T_b = RigidTransform.from_components(np.random.rand(3), R.random())
+        b_T_c = RigidTransform.from_components(np.random.rand(3), R.random())
+
+        tf_first = TransformStamped()
+        tf_first.header.frame_id = "frame_a"
+        tf_first.child_frame_id = "frame_b"
+        tf_first.transform = scipy_to_transform(a_T_b)
+
+        tf_second = TransformStamped()
+        tf_second.header.frame_id = "frame_b"
+        tf_second.child_frame_id = "frame_c"
+        tf_second.transform = scipy_to_transform(b_T_c)
+
+        Blackboard.set(behavior._get_blackboard_key("transform_first"), tf_first)
+        Blackboard.set(behavior._get_blackboard_key("transform_second"), tf_second)
+        behavior.tick_once()
+        assert behavior.status == Status.SUCCESS
+        tf_out = behavior.get_last_output("transform_out")
+        assert tf_out.header.frame_id == tf_first.header.frame_id
+        assert tf_out.child_frame_id == tf_second.child_frame_id
+
+        a_T_c = a_T_b * b_T_c
+        assert isinstance(a_T_c, RigidTransform)
+        a_t_c, a_R_c = a_T_c.as_components()
+        a_t_c_actual, a_R_c_actual = transform_to_scipy(tf_out.transform).as_components()
+
+        assert a_t_c_actual == pytest.approx(a_t_c, abs=1e-5)
+        assert a_R_c_actual.as_quat() == pytest.approx(a_R_c.as_quat(), abs=1e-5)
+
+
+def test_multiply_transform_stamped_mismatched_frames() -> None:
+    behavior = MultiplyTransformStamped(name="multiply_transform_stamped")
+    behavior.setup_ports()
+
+    tf_first = TransformStamped()
+    tf_first.header.frame_id = "frame_a"
+    tf_first.child_frame_id = "frame_b"
+    tf_first.transform.rotation.w = 1.0
+
+    tf_second = TransformStamped()
+    tf_second.header.frame_id = "frame_x"
+    tf_second.child_frame_id = "frame_c"
+    tf_second.transform.rotation.w = 1.0
+
+    Blackboard.set(behavior._get_blackboard_key("transform_first"), tf_first)
+    Blackboard.set(behavior._get_blackboard_key("transform_second"), tf_second)
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
