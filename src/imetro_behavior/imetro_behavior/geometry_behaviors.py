@@ -27,6 +27,7 @@ from geometry_msgs.msg import (
     Pose,
     PoseStamped,
     Quaternion,
+    Transform,
     TransformStamped,
     TwistStamped,
 )
@@ -40,6 +41,36 @@ from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
 from imetro_behavior.helpers import set_ros_node
+
+
+def transform_to_scipy(transform: Transform) -> RigidTransform:
+    """Convert a Transform message into a scipy RigidTransform."""
+    translation = [transform.translation.x, transform.translation.y, transform.translation.z]
+    rotation = R.from_quat(
+        [
+            transform.rotation.x,
+            transform.rotation.y,
+            transform.rotation.z,
+            transform.rotation.w,
+        ]
+    )
+    return RigidTransform.from_components(translation, rotation)
+
+
+def scipy_to_transform(rigid_transform: RigidTransform) -> Transform:
+    """Convert a scipy RigidTransform into a Transform message."""
+    translation, rotation = rigid_transform.as_components()
+    xyzw = rotation.as_quat()
+
+    transform = Transform()
+    transform.translation.x = translation[0]
+    transform.translation.y = translation[1]
+    transform.translation.z = translation[2]
+    transform.rotation.x = xyzw[0]
+    transform.rotation.y = xyzw[1]
+    transform.rotation.z = xyzw[2]
+    transform.rotation.w = xyzw[3]
+    return transform
 
 
 class CreatePoseStamped(BehaviourWithPorts):
@@ -810,37 +841,16 @@ class InvertTransformStamped(BehaviourWithPorts):
     OUTPUT_PORTS = {"transform_stamped_out": PortInformation(data_type=TransformStamped, required=True)}
 
     def update(self) -> Status:
-        """Convert TransformStamped message into a 4x4 matrix, invert the matrix, and convert the result back to TransformStamped message."""
+        """Convert TransformStamped message into a RigidTransform, invert it, and convert the result back to a TransformStamped message."""
         tf_in = self.get_input("transform_stamped_in")
 
-        xyz_in = [tf_in.transform.translation.x, tf_in.transform.translation.y, tf_in.transform.translation.z]
-        xyzw_in = [
-            tf_in.transform.rotation.x,
-            tf_in.transform.rotation.y,
-            tf_in.transform.rotation.z,
-            tf_in.transform.rotation.w,
-        ]
-
-        T_in = np.eye(4)
-        T_in[:3, :3] = R.from_quat(xyzw_in).as_matrix()
-        T_in[:3, 3] = xyz_in
-        T_out = np.linalg.inv(T_in)
-
-        xyz_out = T_out[:3, 3]
-        xyzw_out = R.from_matrix(T_out[:3, :3]).as_quat()
+        rt_out = transform_to_scipy(tf_in.transform).inv()
 
         tf_out = TransformStamped()
         tf_out.header.stamp = tf_in.header.stamp
         tf_out.header.frame_id = tf_in.child_frame_id
         tf_out.child_frame_id = tf_in.header.frame_id
-        tf_out.transform.translation.x = xyz_out[0]
-        tf_out.transform.translation.y = xyz_out[1]
-        tf_out.transform.translation.z = xyz_out[2]
-
-        tf_out.transform.rotation.x = xyzw_out[0]
-        tf_out.transform.rotation.y = xyzw_out[1]
-        tf_out.transform.rotation.z = xyzw_out[2]
-        tf_out.transform.rotation.w = xyzw_out[3]
+        tf_out.transform = scipy_to_transform(rt_out)
 
         self._set_output("transform_stamped_out", tf_out)
         return Status.SUCCESS
@@ -862,7 +872,7 @@ class MultiplyTransformStamped(BehaviourWithPorts):
     OUTPUT_PORTS = {"transform_out": PortInformation(data_type=TransformStamped, required=True)}
 
     def update(self) -> Status:
-        """Convert both TransformStamped messages into 4x4 matrices, multiply them, and convert the result back to a TransformStamped message."""
+        """Convert both TransformStamped messages into RigidTransforms, multiply them, and convert the result back to a TransformStamped message."""
         tf_a = self.get_input("transform_first")
         tf_b = self.get_input("transform_second")
 
@@ -874,47 +884,14 @@ class MultiplyTransformStamped(BehaviourWithPorts):
             )
             return Status.FAILURE
 
-        xyz_a = [tf_a.transform.translation.x, tf_a.transform.translation.y, tf_a.transform.translation.z]
-        xyzw_a = [
-            tf_a.transform.rotation.x,
-            tf_a.transform.rotation.y,
-            tf_a.transform.rotation.z,
-            tf_a.transform.rotation.w,
-        ]
-
-        xyz_b = [tf_b.transform.translation.x, tf_b.transform.translation.y, tf_b.transform.translation.z]
-        xyzw_b = [
-            tf_b.transform.rotation.x,
-            tf_b.transform.rotation.y,
-            tf_b.transform.rotation.z,
-            tf_b.transform.rotation.w,
-        ]
-
-        T_a = np.eye(4)
-        T_a[:3, :3] = R.from_quat(xyzw_a).as_matrix()
-        T_a[:3, 3] = xyz_a
-
-        T_b = np.eye(4)
-        T_b[:3, :3] = R.from_quat(xyzw_b).as_matrix()
-        T_b[:3, 3] = xyz_b
-
-        T_out = T_a @ T_b
-
-        xyz_out = T_out[:3, 3]
-        xyzw_out = R.from_matrix(T_out[:3, :3]).as_quat()
+        rt_out = transform_to_scipy(tf_a.transform) * transform_to_scipy(tf_b.transform)
+        assert isinstance(rt_out, RigidTransform)
 
         tf_out = TransformStamped()
         tf_out.header.stamp = tf_a.header.stamp
         tf_out.header.frame_id = tf_a.header.frame_id
         tf_out.child_frame_id = tf_b.child_frame_id
-        tf_out.transform.translation.x = xyz_out[0]
-        tf_out.transform.translation.y = xyz_out[1]
-        tf_out.transform.translation.z = xyz_out[2]
-
-        tf_out.transform.rotation.x = xyzw_out[0]
-        tf_out.transform.rotation.y = xyzw_out[1]
-        tf_out.transform.rotation.z = xyzw_out[2]
-        tf_out.transform.rotation.w = xyzw_out[3]
+        tf_out.transform = scipy_to_transform(rt_out)
 
         self._set_output("transform_out", tf_out)
         return Status.SUCCESS
