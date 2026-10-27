@@ -53,6 +53,14 @@ class CreatePoseStamped(BehaviourWithPorts):
 
     OUTPUT_PORTS = {"msg": PortInformation(data_type=PoseStamped, required=True)}
 
+    def __init__(
+        self,
+        name: str,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(name, **kwargs)
+        self.node: Node
+
     def setup(self, **kwargs):
         """Get access to the ROS node."""
         set_ros_node(self, **kwargs)
