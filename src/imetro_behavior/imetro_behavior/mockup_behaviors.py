@@ -35,19 +35,27 @@ class UpdateMockupStates(RosServiceClientBase):
         super().__init__(name, service_type=SetJointState, **kwargs)
 
     INPUT_PORTS = {
-        "joint_names": PortInformation(data_type=list[str], required=True),
-        "joint_positions": PortInformation(data_type=list[float], required=False, default_value=[]),
-        "joint_velocities": PortInformation(data_type=list[float], required=False, default_value=[]),
-        "joint_efforts": PortInformation(data_type=list[float], required=False, default_value=[]),
+        "joint_names": PortInformation(data_type=list[str] | str, required=True),
+        "joint_positions": PortInformation(data_type=list[float] | float, required=False, default_value=[]),
+        "joint_velocities": PortInformation(data_type=list[float] | float, required=False, default_value=[]),
+        "joint_efforts": PortInformation(data_type=list[float] | float, required=False, default_value=[]),
     }
     OUTPUT_PORTS = {}
 
     def create_request(self) -> SetJointState.Request:
         """Create a SetJointState service request."""
         mockup_joint_names = self.get_input("joint_names")
+        if isinstance(mockup_joint_names, str):
+            mockup_joint_names = [mockup_joint_names]
         mockup_joint_positions = self.get_input("joint_positions")
+        if isinstance(mockup_joint_positions, float):
+            mockup_joint_positions = [mockup_joint_positions]
         mockup_joint_velocities = self.get_input("joint_velocities")
+        if isinstance(mockup_joint_velocities, float):
+            mockup_joint_velocities = [mockup_joint_velocities]
         mockup_joint_efforts = self.get_input("joint_efforts")
+        if isinstance(mockup_joint_efforts, float):
+            mockup_joint_efforts = [mockup_joint_efforts]
 
         req = SetJointState.Request()
         req.joint_state.name = mockup_joint_names
