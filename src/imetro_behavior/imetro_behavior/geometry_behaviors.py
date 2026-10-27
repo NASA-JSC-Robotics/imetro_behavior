@@ -844,3 +844,77 @@ class InvertTransformStamped(BehaviourWithPorts):
 
         self._set_output("transform_stamped_out", tf_out)
         return Status.SUCCESS
+
+
+class MultiplyTransformStamped(BehaviourWithPorts):
+    """Multiply two TransformStamped messages together.
+
+    Multiplication is not commutative: transform_first is the left operand,
+    i.e., T_out = T_first @ T_second, so transform_first's child_frame_id should
+    match transform_second's frame_id for the result to chain correctly.
+    """
+
+    INPUT_PORTS = {
+        "transform_first": PortInformation(data_type=TransformStamped, required=True),
+        "transform_second": PortInformation(data_type=TransformStamped, required=True),
+    }
+
+    OUTPUT_PORTS = {"transform_out": PortInformation(data_type=TransformStamped, required=True)}
+
+    def update(self) -> Status:
+        """Convert both TransformStamped messages into 4x4 matrices, multiply them, and convert the result back to a TransformStamped message."""
+        tf_a = self.get_input("transform_first")
+        tf_b = self.get_input("transform_second")
+
+        if tf_a.child_frame_id != tf_b.header.frame_id:
+            self.logger.error(
+                "Error: transform_first's child frame "
+                f"('{tf_a.child_frame_id}') does not match transform_second's "
+                f"parent frame ('{tf_b.header.frame_id}')."
+            )
+            return Status.FAILURE
+
+        xyz_a = [tf_a.transform.translation.x, tf_a.transform.translation.y, tf_a.transform.translation.z]
+        xyzw_a = [
+            tf_a.transform.rotation.x,
+            tf_a.transform.rotation.y,
+            tf_a.transform.rotation.z,
+            tf_a.transform.rotation.w,
+        ]
+
+        xyz_b = [tf_b.transform.translation.x, tf_b.transform.translation.y, tf_b.transform.translation.z]
+        xyzw_b = [
+            tf_b.transform.rotation.x,
+            tf_b.transform.rotation.y,
+            tf_b.transform.rotation.z,
+            tf_b.transform.rotation.w,
+        ]
+
+        T_a = np.eye(4)
+        T_a[:3, :3] = R.from_quat(xyzw_a).as_matrix()
+        T_a[:3, 3] = xyz_a
+
+        T_b = np.eye(4)
+        T_b[:3, :3] = R.from_quat(xyzw_b).as_matrix()
+        T_b[:3, 3] = xyz_b
+
+        T_out = T_a @ T_b
+
+        xyz_out = T_out[:3, 3]
+        xyzw_out = R.from_matrix(T_out[:3, :3]).as_quat()
+
+        tf_out = TransformStamped()
+        tf_out.header.stamp = tf_a.header.stamp
+        tf_out.header.frame_id = tf_a.header.frame_id
+        tf_out.child_frame_id = tf_b.child_frame_id
+        tf_out.transform.translation.x = xyz_out[0]
+        tf_out.transform.translation.y = xyz_out[1]
+        tf_out.transform.translation.z = xyz_out[2]
+
+        tf_out.transform.rotation.x = xyzw_out[0]
+        tf_out.transform.rotation.y = xyzw_out[1]
+        tf_out.transform.rotation.z = xyzw_out[2]
+        tf_out.transform.rotation.w = xyzw_out[3]
+
+        self._set_output("transform_out", tf_out)
+        return Status.SUCCESS

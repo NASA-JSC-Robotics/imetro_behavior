@@ -34,6 +34,7 @@ from imetro_behavior.geometry_behaviors import (
     GetRollPitchYaw,
     InvertTransformStamped,
     LookupTransform,
+    MultiplyTransformStamped,
     OffsetPoseStamped,
     PoseStampedToTransformStamped,
     PublishStaticTransform,
@@ -754,3 +755,84 @@ def test_invert_transport_stamped() -> None:
         assert tf_out.transform.rotation.y == pytest.approx(b_R_a[1], abs=1e-5)
         assert tf_out.transform.rotation.z == pytest.approx(b_R_a[2], abs=1e-5)
         assert tf_out.transform.rotation.w == pytest.approx(b_R_a[3], abs=1e-5)
+
+
+def test_multiply_transform_stamped() -> None:
+    behavior = MultiplyTransformStamped(name="multiply_transform_stamped")
+    behavior.setup_ports()
+
+    for _ in range(10):
+        a_T_b = np.eye(4)
+        a_T_b[:3, :3] = R.random().as_matrix()
+        a_T_b[:3, 3] = np.random.rand(3)
+
+        b_T_c = np.eye(4)
+        b_T_c[:3, :3] = R.random().as_matrix()
+        b_T_c[:3, 3] = np.random.rand(3)
+
+        tf_first = TransformStamped()
+        tf_first.header.frame_id = "frame_a"
+        tf_first.child_frame_id = "frame_b"
+        a_t_b = a_T_b[:3, 3]
+        a_R_b = R.from_matrix(a_T_b[:3, :3]).as_quat()
+        tf_first.transform.translation.x = a_t_b[0]
+        tf_first.transform.translation.y = a_t_b[1]
+        tf_first.transform.translation.z = a_t_b[2]
+        tf_first.transform.rotation.x = a_R_b[0]
+        tf_first.transform.rotation.y = a_R_b[1]
+        tf_first.transform.rotation.z = a_R_b[2]
+        tf_first.transform.rotation.w = a_R_b[3]
+
+        tf_second = TransformStamped()
+        tf_second.header.frame_id = "frame_b"
+        tf_second.child_frame_id = "frame_c"
+        b_t_c = b_T_c[:3, 3]
+        b_R_c = R.from_matrix(b_T_c[:3, :3]).as_quat()
+        tf_second.transform.translation.x = b_t_c[0]
+        tf_second.transform.translation.y = b_t_c[1]
+        tf_second.transform.translation.z = b_t_c[2]
+        tf_second.transform.rotation.x = b_R_c[0]
+        tf_second.transform.rotation.y = b_R_c[1]
+        tf_second.transform.rotation.z = b_R_c[2]
+        tf_second.transform.rotation.w = b_R_c[3]
+
+        Blackboard.set(behavior._get_blackboard_key("transform_first"), tf_first)
+        Blackboard.set(behavior._get_blackboard_key("transform_second"), tf_second)
+        behavior.tick_once()
+        assert behavior.status == Status.SUCCESS
+        tf_out = behavior.get_last_output("transform_out")
+        assert tf_out.header.frame_id == tf_first.header.frame_id
+        assert tf_out.child_frame_id == tf_second.child_frame_id
+
+        a_T_c = a_T_b @ b_T_c
+        a_t_c = a_T_c[:3, 3]
+        a_R_c = R.from_matrix(a_T_c[:3, :3]).as_quat()
+
+        assert tf_out.transform.translation.x == pytest.approx(a_t_c[0], abs=1e-5)
+        assert tf_out.transform.translation.y == pytest.approx(a_t_c[1], abs=1e-5)
+        assert tf_out.transform.translation.z == pytest.approx(a_t_c[2], abs=1e-5)
+
+        assert tf_out.transform.rotation.x == pytest.approx(a_R_c[0], abs=1e-5)
+        assert tf_out.transform.rotation.y == pytest.approx(a_R_c[1], abs=1e-5)
+        assert tf_out.transform.rotation.z == pytest.approx(a_R_c[2], abs=1e-5)
+        assert tf_out.transform.rotation.w == pytest.approx(a_R_c[3], abs=1e-5)
+
+
+def test_multiply_transform_stamped_mismatched_frames() -> None:
+    behavior = MultiplyTransformStamped(name="multiply_transform_stamped")
+    behavior.setup_ports()
+
+    tf_first = TransformStamped()
+    tf_first.header.frame_id = "frame_a"
+    tf_first.child_frame_id = "frame_b"
+    tf_first.transform.rotation.w = 1.0
+
+    tf_second = TransformStamped()
+    tf_second.header.frame_id = "frame_x"
+    tf_second.child_frame_id = "frame_c"
+    tf_second.transform.rotation.w = 1.0
+
+    Blackboard.set(behavior._get_blackboard_key("transform_first"), tf_first)
+    Blackboard.set(behavior._get_blackboard_key("transform_second"), tf_second)
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
