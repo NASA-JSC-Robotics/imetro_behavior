@@ -15,12 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import numpy as np
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.duration import Duration
 from rclpy.node import Node
 
-from imetro_behavior.basic_behaviors import BlackboardMath, WaitForDuration
+from imetro_behavior.basic_behaviors import BlackboardMath, ToFloatList, WaitForDuration
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -117,6 +118,34 @@ def test_math_div_by_zero(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+
+
+def test_to_float_list(ros_node: Node) -> None:
+    """Tests wrapping a plain float into a single-element list"""
+    behavior = ToFloatList(name="to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("value"), 1.5)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == [1.5]
+
+
+def test_to_float_list_numpy_scalar(ros_node: Node) -> None:
+    """Tests wrapping a numpy.float64 (e.g. from upstream pose math) into a list[float]"""
+    behavior = ToFloatList(name="to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("value"), np.float64(1.5))
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    result = behavior.get_last_output("result")
+    assert result == [1.5]
+    assert type(result[0]) is float
 
 
 def test_math_pow(ros_node: Node) -> None:
