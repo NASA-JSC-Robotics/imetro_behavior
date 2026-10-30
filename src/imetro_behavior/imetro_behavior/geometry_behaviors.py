@@ -465,6 +465,54 @@ class GetRollPitchYaw(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class GetXYZ(BehaviourWithPorts):
+    """Returns x, y, and z position of a given PoseStamped."""
+
+    INPUT_PORTS = {
+        "input_pose": PortInformation(
+            data_type=PoseStamped,
+            required=True,
+            description="PoseStamped to be decomposed into x, y, and z.",
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "x": PortInformation(
+            data_type=float,
+            required=True,
+            description="X position relative to parent frame.",
+        ),
+        "y": PortInformation(
+            data_type=float,
+            required=True,
+            description="Y position relative to parent frame.",
+        ),
+        "z": PortInformation(
+            data_type=float,
+            required=True,
+            description="Z position relative to parent frame.",
+        ),
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        set_ros_node(self, **kwargs)
+
+    def update(self) -> Status:
+        """Get the pose from base to target."""
+        input_pose = self.get_input("input_pose")
+
+        x = input_pose.pose.position.x
+        y = input_pose.pose.position.y
+        z = input_pose.pose.position.z
+
+        self.logger.debug(f"X: {x}, Y: {y}, Z: {z}")
+        self._set_output("x", x)
+        self._set_output("y", y)
+        self._set_output("z", z)
+        return Status.SUCCESS
+
+
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
 
