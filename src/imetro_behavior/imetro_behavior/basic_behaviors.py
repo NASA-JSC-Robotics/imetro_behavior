@@ -117,3 +117,34 @@ class BlackboardMath(BehaviourWithPorts):
         self.logger.debug(f"RESULT: {result}")
         self._set_output("result", result)
         return Status.SUCCESS
+
+
+class ToFloatList(BehaviourWithPorts):
+    """Wrap a scalar float blackboard value into a single-element list[float].
+
+    Useful for feeding a computed value (e.g. from BlackboardMath) into a port
+    that expects list[float], which cannot be assigned directly from a bare float.
+    """
+
+    INPUT_PORTS = {
+        "value": PortInformation(
+            data_type=float,
+            required=True,
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "result": PortInformation(
+            data_type=list[float],
+            required=True,
+        )
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        set_ros_node(self, **kwargs)
+
+    def update(self) -> Status:
+        value = self.get_input("value")
+        self._set_output("result", [float(value)])
+        return Status.SUCCESS

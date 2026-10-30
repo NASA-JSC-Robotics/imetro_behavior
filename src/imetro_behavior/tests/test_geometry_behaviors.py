@@ -33,6 +33,7 @@ from imetro_behavior.geometry_behaviors import (
     DecomposePoseStamped,
     GetRelativePoseStamped,
     GetRollPitchYaw,
+    GetXYZ,
     InvertTransformStamped,
     LookupTransform,
     MultiplyTransformStamped,
@@ -694,6 +695,48 @@ def test_get_rpy_90z(ros_node: Node) -> None:
     assert roll == pytest.approx(0.0, abs=1e-5)
     assert pitch == pytest.approx(0.0, abs=1e-5)
     assert yaw == pytest.approx(1.57079, abs=1e-5)
+
+
+def test_get_xyz(ros_node: Node) -> None:
+    """Tests for x, y, z of a pose with no offset"""
+    behavior = GetXYZ(name="get_xyz")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    input_pose = make_pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    x = behavior.get_last_output("x")
+    y = behavior.get_last_output("y")
+    z = behavior.get_last_output("z")
+
+    assert x == pytest.approx(0.0, abs=1e-5)
+    assert y == pytest.approx(0.0, abs=1e-5)
+    assert z == pytest.approx(0.0, abs=1e-5)
+
+
+def test_get_xyz_offset(ros_node: Node) -> None:
+    """Tests for x, y, z of a pose with a nonzero offset"""
+    behavior = GetXYZ(name="get_xyz")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    input_pose = make_pose([1.0, 2.0, 3.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("input_pose"), input_pose)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    x = behavior.get_last_output("x")
+    y = behavior.get_last_output("y")
+    z = behavior.get_last_output("z")
+
+    assert x == pytest.approx(1.0, abs=1e-5)
+    assert y == pytest.approx(2.0, abs=1e-5)
+    assert z == pytest.approx(3.0, abs=1e-5)
 
 
 def test_decompose_pose_stamped() -> None:
