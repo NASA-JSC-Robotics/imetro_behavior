@@ -115,3 +115,21 @@ class ForEachItem(PortsMixin, Decorator):
             return Status.SUCCESS
         self._set_output("item", self._items[self._index])
         return Status.RUNNING
+
+
+class OutputChildSuccess(PortsMixin, Decorator):
+    """
+    Outputs whether the decorated child succeeded, and succeeds regardless once the child is done.
+
+    This allows behaviors that come after the child to act on its outcome, even if the child fails.
+    """
+
+    INPUT_PORTS = {}
+    OUTPUT_PORTS = {"succeeded": PortInformation(data_type=bool, required=True)}
+
+    def update(self) -> Status:
+        """Stay running until the child is done, and then output its outcome."""
+        if self.decorated.status == Status.RUNNING:
+            return Status.RUNNING
+        self._set_output("succeeded", self.decorated.status == Status.SUCCESS)
+        return Status.SUCCESS

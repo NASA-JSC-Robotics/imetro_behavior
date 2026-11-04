@@ -20,7 +20,12 @@ import pytest
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 
-from imetro_behavior.decorators import ForEachItem, SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
+from imetro_behavior.decorators import (
+    ForEachItem,
+    OutputChildSuccess,
+    SuccessIfVariableIsFalse,
+    SuccessIfVariableIsTrue,
+)
 
 
 def test_success_if_variable_is_true_skips_child() -> None:
@@ -143,3 +148,37 @@ def test_for_each_item_stops_on_child_failure(for_each: ForEachItem) -> None:
     for_each.tick_once()
     assert for_each.status == Status.FAILURE
     assert Blackboard.get(for_each._get_blackboard_key("item")) == "a"
+
+
+@pytest.fixture
+def output_child_success(child: py_trees.behaviour.Behaviour) -> OutputChildSuccess:
+    decorator = OutputChildSuccess(name="output_child_success", child=child)
+    decorator.setup_ports()
+    return decorator
+
+
+def test_output_child_success_when_child_succeeds(output_child_success: OutputChildSuccess) -> None:
+    output_child_success.tick_once()
+    assert output_child_success.status == Status.SUCCESS
+    assert Blackboard.get(output_child_success._get_blackboard_key("succeeded")) is True
+
+
+@pytest.mark.parametrize("child", [py_trees.behaviours.Failure(name="child")])
+def test_output_child_success_when_child_fails(output_child_success: OutputChildSuccess) -> None:
+    output_child_success.tick_once()
+    assert output_child_success.status == Status.SUCCESS
+    assert Blackboard.get(output_child_success._get_blackboard_key("succeeded")) is False
+
+
+@pytest.mark.parametrize(
+    "child",
+    [py_trees.behaviours.StatusQueue(name="child", queue=[Status.RUNNING], eventually=Status.FAILURE)],
+)
+def test_output_child_success_waits_for_child(output_child_success: OutputChildSuccess) -> None:
+    output_child_success.tick_once()
+    assert output_child_success.status == Status.RUNNING
+    assert not Blackboard.exists(output_child_success._get_blackboard_key("succeeded"))
+
+    output_child_success.tick_once()
+    assert output_child_success.status == Status.SUCCESS
+    assert Blackboard.get(output_child_success._get_blackboard_key("succeeded")) is False
