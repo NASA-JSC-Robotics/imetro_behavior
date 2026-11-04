@@ -563,7 +563,7 @@ def test_pose_stamped_to_transform_stamped() -> None:
 
 
 def test_twist_about_pose() -> None:
-    """Tests basic functionality of twist by rotating about a center circle 90 degrees"""
+    """Tests basic functionality of twist by rotating about a center circle 90 degrees, single segment"""
     behavior = TwistAboutPose(name="twist_about_pose")
     behavior.setup_ports()
 
@@ -571,12 +571,15 @@ def test_twist_about_pose() -> None:
 
     Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
     Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
-    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("final_rotation_amount"), 1.57080)
     Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+    Blackboard.set(behavior._get_blackboard_key("num_segments"), 1)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
-    msg = behavior.get_last_output("output_pose")
+    poses = behavior.get_last_output("output_poses")
+    assert len(poses) == 1
+    msg = poses[0]
 
     assert msg.header.frame_id == "world"
     assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
@@ -595,12 +598,15 @@ def test_twist_about_pose_keep_start_orientation() -> None:
 
     Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
     Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
-    Blackboard.set(behavior._get_blackboard_key("rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("final_rotation_amount"), 1.57080)
     Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), True)
+    Blackboard.set(behavior._get_blackboard_key("num_segments"), 1)
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
-    msg = behavior.get_last_output("output_pose")
+    poses = behavior.get_last_output("output_poses")
+    assert len(poses) == 1
+    msg = poses[0]
 
     assert msg.header.frame_id == "world"
     assert msg.pose.position.x == pytest.approx(0.0, abs=1e-5)
@@ -610,6 +616,67 @@ def test_twist_about_pose_keep_start_orientation() -> None:
     assert msg.pose.orientation.y == 0.0
     assert msg.pose.orientation.z == 0.0
     assert msg.pose.orientation.w == 1.0
+
+
+def test_twist_about_pose_num_segments_default() -> None:
+    """Tests that num_segments defaults to 1 when not provided"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("final_rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    poses = behavior.get_last_output("output_poses")
+    assert len(poses) == 1
+
+
+def test_twist_about_pose_multiple_segments() -> None:
+    """Tests that rotating 90 degrees over 3 segments produces 3 evenly spaced poses"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("final_rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+    Blackboard.set(behavior._get_blackboard_key("num_segments"), 3)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    poses = behavior.get_last_output("output_poses")
+    assert len(poses) == 3
+
+    # Midpoint (30deg) should sit between the start and final poses, and the final
+    # pose should match the single-segment 90deg rotation case.
+    assert poses[0].pose.position.x == pytest.approx(0.8660, abs=1e-4)
+    assert poses[0].pose.position.y == pytest.approx(0.5, abs=1e-4)
+    assert poses[-1].pose.position.x == pytest.approx(0.0, abs=1e-5)
+    assert poses[-1].pose.position.y == pytest.approx(1.0, abs=1e-5)
+
+
+def test_twist_about_pose_invalid_num_segments() -> None:
+    """Tests that a non-positive num_segments fails cleanly"""
+    behavior = TwistAboutPose(name="twist_about_pose")
+    behavior.setup_ports()
+
+    target_pose = make_pose([1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], frame_id="world")
+
+    Blackboard.set(behavior._get_blackboard_key("target_pose"), target_pose)
+    Blackboard.set(behavior._get_blackboard_key("rotation_axis"), [0.0, 0.0, 1.0])
+    Blackboard.set(behavior._get_blackboard_key("final_rotation_amount"), 1.57080)
+    Blackboard.set(behavior._get_blackboard_key("keep_start_orientation"), False)
+    Blackboard.set(behavior._get_blackboard_key("num_segments"), 0)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
 
 
 def test_get_relative_pose(ros_node: Node) -> None:
