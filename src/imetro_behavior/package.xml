@@ -15,6 +15,7 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>py_trees_ros</exec_depend>
   <exec_depend>py_trees_ros_viewer</exec_depend>
+  <exec_depend>rosbag2_interfaces</exec_depend>
   <exec_depend>imetro_behavior_msgs</exec_depend>
   <exec_depend>mockup_msgs</exec_depend>
 
