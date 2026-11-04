@@ -21,7 +21,7 @@ from py_trees.common import Status
 from rclpy.duration import Duration
 from rclpy.node import Node
 
-from imetro_behavior.basic_behaviors import BlackboardMath, ToFloatList, WaitForDuration
+from imetro_behavior.basic_behaviors import BlackboardMath, ToList, WaitForDuration
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -120,9 +120,9 @@ def test_math_div_by_zero(ros_node: Node) -> None:
     assert behavior.status == Status.FAILURE
 
 
-def test_to_float_list(ros_node: Node) -> None:
+def test_to_list(ros_node: Node) -> None:
     """Tests wrapping a plain float into a single-element list"""
-    behavior = ToFloatList(name="to_list")
+    behavior = ToList(name="to_list")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -133,9 +133,9 @@ def test_to_float_list(ros_node: Node) -> None:
     assert behavior.get_last_output("result") == [1.5]
 
 
-def test_to_float_list_numpy_scalar(ros_node: Node) -> None:
-    """Tests wrapping a numpy.float64 (e.g. from upstream pose math) into a list[float]"""
-    behavior = ToFloatList(name="to_list")
+def test_to_list_numpy_scalar(ros_node: Node) -> None:
+    """Tests wrapping a numpy.float64 (e.g. from upstream pose math) into a list, unchanged"""
+    behavior = ToList(name="to_list")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -145,7 +145,20 @@ def test_to_float_list_numpy_scalar(ros_node: Node) -> None:
     assert behavior.status == Status.SUCCESS
     result = behavior.get_last_output("result")
     assert result == [1.5]
-    assert type(result[0]) is float
+    assert type(result[0]) is np.float64
+
+
+def test_to_list_non_numeric(ros_node: Node) -> None:
+    """Tests wrapping an arbitrary non-numeric object into a single-element list"""
+    behavior = ToList(name="to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("value"), "hello")
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == ["hello"]
 
 
 def test_math_pow(ros_node: Node) -> None:

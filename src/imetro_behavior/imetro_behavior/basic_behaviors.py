@@ -119,23 +119,23 @@ class BlackboardMath(BehaviourWithPorts):
         return Status.SUCCESS
 
 
-class ToFloatList(BehaviourWithPorts):
-    """Wrap a scalar float blackboard value into a single-element list[float].
+class ToList(BehaviourWithPorts):
+    """Wrap a scalar blackboard value of any type into a single-element list.
 
     Useful for feeding a computed value (e.g. from BlackboardMath) into a port
-    that expects list[float], which cannot be assigned directly from a bare float.
+    that expects a list, which cannot be assigned directly from a bare scalar.
     """
 
     INPUT_PORTS = {
         "value": PortInformation(
-            data_type=float,
+            data_type=object,
             required=True,
         ),
     }
 
     OUTPUT_PORTS = {
         "result": PortInformation(
-            data_type=list[float],
+            data_type=list[object],
             required=True,
         )
     }
@@ -146,5 +146,5 @@ class ToFloatList(BehaviourWithPorts):
 
     def update(self) -> Status:
         value = self.get_input("value")
-        self._set_output("result", [float(value)])
+        self._set_output("result", [value])
         return Status.SUCCESS
