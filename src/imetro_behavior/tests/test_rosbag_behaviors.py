@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import time
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +84,12 @@ def test_starts_bag_before_child_and_stops_after(
 
     behavior.tick_once()
     assert child.status == Status.RUNNING
+    behavior.stop_client.call_async.assert_called_once()
+
+    behavior.tick_once()
+    assert child.status == Status.SUCCESS
+    assert behavior.status == Status.RUNNING
+    assert behavior.stop_client.call_async.call_count == 2
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
@@ -111,11 +118,45 @@ def test_sends_requests_in_order(behavior: RecordRosbag, child: py_trees.behavio
 
 
 @pytest.mark.parametrize("child", [py_trees.behaviours.Failure(name="child")])
-def test_stops_recording_when_child_fails(behavior: RecordRosbag) -> None:
+def test_stops_recording_and_keeps_failure_when_child_fails(behavior: RecordRosbag) -> None:
     behavior.tick_once()
+    behavior.tick_once()
+    assert behavior.status == Status.RUNNING
+    assert behavior.stop_client.call_async.call_count == 2
+
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
     assert behavior.stop_client.call_async.call_count == 2
+
+
+# The child fails if ticked again after succeeding, which would change the final status.
+@pytest.mark.parametrize(
+    "child",
+    [py_trees.behaviours.StatusQueue(name="child", queue=[Status.SUCCESS], eventually=Status.FAILURE)],
+)
+def test_waits_for_bag_to_close_without_ticking_child(behavior: RecordRosbag, mocker: MockerFixture) -> None:
+    behavior.service_timeout = Duration(seconds=30.0)
+    behavior.tick_once()
+    behavior.stop_client.call_async.return_value = mocker.Mock(**{"done.return_value": False})
+
+    behavior.tick_once()
+    behavior.tick_once()
+    assert behavior.status == Status.RUNNING
+
+    behavior.stop_client.call_async.return_value.done.return_value = True
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+
+
+def test_keeps_child_status_if_bag_does_not_close(behavior: RecordRosbag, mocker: MockerFixture) -> None:
+    behavior.tick_once()
+    behavior.stop_client.call_async.return_value = mocker.Mock(**{"done.return_value": False})
+    behavior.tick_once()
+    assert behavior.status == Status.RUNNING
+
+    time.sleep(0.02)
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
 
 
 @pytest.mark.parametrize("child", [py_trees.behaviours.Running(name="child")])

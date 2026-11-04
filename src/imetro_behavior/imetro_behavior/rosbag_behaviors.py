@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,7 @@ class RecordRosbag(PortsMixin, Decorator):
 
     Constructor arguments:
         recorder_name: The name of the recorder node.
-        service_timeout: Seconds to wait for the recorder to start recording.
+        service_timeout: Seconds to wait for the recorder to start recording, or to close the bag.
 
     Input ports:
         output_path: The bag directory to create, which must not already exist.
@@ -75,6 +76,8 @@ class RecordRosbag(PortsMixin, Decorator):
         self.stop_future = None
         self.resume_future = None
         self.record_future = None
+        self.close_future = None
+        self.close_deadline = None
         self.start_time = None
         self.recording = False
 
@@ -92,6 +95,8 @@ class RecordRosbag(PortsMixin, Decorator):
         self.stop_future = None
         self.resume_future = None
         self.record_future = None
+        self.close_future = None
+        self.close_deadline = None
         self.start_time = self.node.get_clock().now()
         self.recording = False
 
@@ -100,6 +105,17 @@ class RecordRosbag(PortsMixin, Decorator):
         if self.status != Status.RUNNING:
             self.initialise()
         self.status = Status.RUNNING
+
+        if self.close_future is not None:
+            # Uses wall time since a simulated clock stops with the executor, as would this response.
+            timed_out = time.monotonic() > self.close_deadline
+            if timed_out:
+                self.logger.warning(f"Timed out waiting for recorder {self.recorder_name} to close the bag.")
+            if timed_out or self.close_future.done():
+                self.logger.info("Stopped recording.")
+                self.stop(self.decorated.status)
+            yield self
+            return
 
         if self.recording:
             yield from super().tick()
@@ -148,8 +164,14 @@ class RecordRosbag(PortsMixin, Decorator):
         yield self
 
     def update(self) -> Status:
-        """Reflect the child's status."""
-        return self.decorated.status
+        """Stay running until the child finishes, and then start closing the bag."""
+        if self.decorated.status == Status.RUNNING:
+            return Status.RUNNING
+
+        self.close_future = self.stop_client.call_async(Stop.Request())
+        self.close_deadline = time.monotonic() + self.service_timeout.nanoseconds * 1e-9
+        self.record_future = None
+        return Status.RUNNING
 
     def terminate(self, new_status: Status) -> None:
         """Stop the recording. There is no need to wait, as requests to the recorder are handled in order."""
