@@ -75,7 +75,8 @@ class RosActionClientBase(BehaviourWithPorts):
         self.action_server_timeout = Duration(seconds=action_server_timeout) if action_server_timeout else None
         self.action_timeout = Duration(seconds=action_timeout) if action_timeout else None
         self.node: Node
-        self.action_client: ActionClient | None = None
+        self.action_client: ActionClient
+        self._client_destroyed = False
         # Goal responses arrive on an executor thread, which must not use the client as it gets destroyed.
         self._client_lock = threading.Lock()
         super().__init__(name, **kwargs)
@@ -105,6 +106,7 @@ class RosActionClientBase(BehaviourWithPorts):
             action_type=self.action_type,
             action_name=self.action_name,
         )
+        self._client_destroyed = False
         self.client_ready = False
 
         self.goal_handle = None
@@ -199,7 +201,7 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Clean up the action client when shutting down.
         """
-        if self.action_client is None:
+        if self._client_destroyed:
             return
         self.send_cancel_request()  # For good measure
         if self.goal_handle is not None:
@@ -208,7 +210,7 @@ class RosActionClientBase(BehaviourWithPorts):
         self.goal_handle = None
         with self._client_lock:
             self.action_client.destroy()
-            self.action_client = None
+            self._client_destroyed = True
 
     def goal_response_callback(self, future: Future) -> None:
         """
@@ -225,7 +227,7 @@ class RosActionClientBase(BehaviourWithPorts):
             self.logger.debug("Goal request accepted.")
 
         with self._client_lock:
-            if self.action_client is not None:
+            if not self._client_destroyed:
                 self.get_result_future = self.goal_handle.get_result_async()
 
     def send_cancel_request(self):

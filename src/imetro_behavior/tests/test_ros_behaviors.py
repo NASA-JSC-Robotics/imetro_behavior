@@ -21,8 +21,8 @@ from control_msgs.action import GripperCommand
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.ports import NoDataAvailable
-from rclpy.duration import Duration
 from pytest_mock import MockerFixture
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.task import Future
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
