@@ -117,3 +117,80 @@ class BlackboardMath(BehaviourWithPorts):
         self.logger.debug(f"RESULT: {result}")
         self._set_output("result", result)
         return Status.SUCCESS
+
+
+class ToList(BehaviourWithPorts):
+    """Wrap a scalar blackboard value of any type into a single-element list.
+
+    Useful for feeding a computed value (e.g. from BlackboardMath) into a port
+    that expects a list, which cannot be assigned directly from a bare scalar.
+    """
+
+    INPUT_PORTS = {
+        "value": PortInformation(
+            data_type=object,
+            required=True,
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "result": PortInformation(
+            data_type=list[object],
+            required=True,
+        )
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        set_ros_node(self, **kwargs)
+
+    def update(self) -> Status:
+        value = self.get_input("value")
+        self._set_output("result", [value])
+        return Status.SUCCESS
+
+
+class GetListItem(BehaviourWithPorts):
+    """Retrieve a single item out of a blackboard list by index.
+
+    Generic counterpart to a pose/message-specific "get a field" behavior (e.g. GetXYZ):
+    useful once a value has already been decomposed into a list (e.g. via
+    DecomposePoseStamped's translation_xyz) and a single element of it is needed.
+    """
+
+    INPUT_PORTS = {
+        "value": PortInformation(
+            data_type=list[object],
+            required=True,
+            description="List to retrieve an item from.",
+        ),
+        "index": PortInformation(
+            data_type=int,
+            required=True,
+            description="Zero-based index of the item to retrieve.",
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "result": PortInformation(
+            data_type=object,
+            required=True,
+        )
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for logger."""
+        set_ros_node(self, **kwargs)
+
+    def update(self) -> Status:
+        values = self.get_input("value")
+        index = self.get_input("index")
+
+        try:
+            item = values[index]
+        except IndexError:
+            self.logger.error(f"Index {index} out of range for list of length {len(values)}")
+            return Status.FAILURE
+
+        self._set_output("result", item)
+        return Status.SUCCESS
