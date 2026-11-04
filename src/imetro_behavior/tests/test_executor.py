@@ -23,6 +23,7 @@ import pytest
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.ports import BehaviourWithPorts
+from pytest_mock import MockerFixture
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
@@ -191,3 +192,31 @@ def test_create_server(ros_node: Node) -> None:
         ros_executor.spin_once(timeout_sec=0.1)
 
     ros_executor.shutdown()
+
+
+@pytest.mark.parametrize(("cancel_requested", "expected_call"), [(True, "canceled"), (False, "abort")])
+def test_execute_cb_stopped_goal_state(
+    ros_node: Node, executor: BehaviorTreeExecutor, mocker: MockerFixture, cancel_requested: bool, expected_call: str
+) -> None:
+    mocker.patch.object(executor, "run_tree", return_value=Status.INVALID)
+    goal_handle = mocker.Mock(is_cancel_requested=cancel_requested)
+
+    BehaviorTreeServer(ros_node, executor).execute_cb(goal_handle)
+    getattr(goal_handle, expected_call).assert_called_once()
+
+
+def test_server_stop_cancels_running_behavior(
+    ros_node: Node, executor: BehaviorTreeExecutor, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    server = BehaviorTreeServer(ros_node, executor)
+    goal_handle = mocker.Mock(is_cancel_requested=False)
+    goal_handle.request.tree_file_name = write_tree(tmp_path, "run_forever", "RunForever")
+    server._requested_behavior = goal_handle.request.tree_file_name
+
+    future = ThreadPoolExecutor(max_workers=1).submit(server.execute_cb, goal_handle)
+    while executor.status != Status.RUNNING and not future.done():
+        time.sleep(0.01)
+
+    server.stop()
+    future.result(timeout=5.0)
+    goal_handle.abort.assert_called_once()
