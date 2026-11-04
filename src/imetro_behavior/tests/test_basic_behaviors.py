@@ -21,7 +21,7 @@ from py_trees.common import Status
 from rclpy.duration import Duration
 from rclpy.node import Node
 
-from imetro_behavior.basic_behaviors import BlackboardMath, ToList, WaitForDuration
+from imetro_behavior.basic_behaviors import BlackboardMath, GetListItem, ToList, WaitForDuration
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -159,6 +159,33 @@ def test_to_list_non_numeric(ros_node: Node) -> None:
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
     assert behavior.get_last_output("result") == ["hello"]
+
+
+def test_get_list_item(ros_node: Node) -> None:
+    """Tests retrieving an item from a list by index"""
+    behavior = GetListItem(name="get_list_item")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("value"), [1.5, "hello", [1, 2]])
+    Blackboard.set(behavior._get_blackboard_key("index"), 1)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == "hello"
+
+
+def test_get_list_item_index_out_of_range(ros_node: Node) -> None:
+    """Tests that an out-of-range index fails cleanly"""
+    behavior = GetListItem(name="get_list_item")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("value"), [1.5, 2.5])
+    Blackboard.set(behavior._get_blackboard_key("index"), 5)
+
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
 
 
 def test_math_pow(ros_node: Node) -> None:
