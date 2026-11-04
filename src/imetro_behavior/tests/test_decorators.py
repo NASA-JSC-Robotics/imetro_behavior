@@ -16,10 +16,11 @@
 # under the License.
 
 import py_trees
+import pytest
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 
-from imetro_behavior.decorators import SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
+from imetro_behavior.decorators import ForEachItem, SuccessIfVariableIsFalse, SuccessIfVariableIsTrue
 
 
 def test_success_if_variable_is_true_skips_child() -> None:
@@ -86,3 +87,59 @@ def test_success_if_variable_is_false_ticks_child() -> None:
     decorator.tick_once()
     assert decorator.status == Status.FAILURE
     assert child.status == Status.FAILURE
+
+
+@pytest.fixture
+def child() -> py_trees.behaviour.Behaviour:
+    """The child of the decorator, which tests can override by parametrizing `child`."""
+    return py_trees.behaviours.Success(name="child")
+
+
+@pytest.fixture
+def items() -> list:
+    """The items to iterate over, which tests can override by parametrizing `items`."""
+    return ["a", "b"]
+
+
+@pytest.fixture
+def for_each(child: py_trees.behaviour.Behaviour, items: list) -> ForEachItem:
+    decorator = ForEachItem(name="for_each", child=child)
+    decorator.setup_ports()
+    Blackboard.set(decorator._get_blackboard_key("items"), items)
+    return decorator
+
+
+def test_for_each_item_runs_child_per_item(for_each: ForEachItem) -> None:
+    for_each.tick_once()
+    assert for_each.status == Status.RUNNING
+    assert Blackboard.get(for_each._get_blackboard_key("item")) == "b"
+
+    for_each.tick_once()
+    assert for_each.status == Status.SUCCESS
+    assert Blackboard.get(for_each._get_blackboard_key("item")) == "b"
+
+
+@pytest.mark.parametrize("items", [["a"]])
+def test_for_each_item_restarts_from_first_item(for_each: ForEachItem) -> None:
+    for_each.tick_once()
+    assert for_each.status == Status.SUCCESS
+
+    Blackboard.set(for_each._get_blackboard_key("items"), ["c", "d"])
+    for_each.tick_once()
+    assert for_each.status == Status.RUNNING
+    assert Blackboard.get(for_each._get_blackboard_key("item")) == "d"
+
+
+@pytest.mark.parametrize("items", [[]])
+@pytest.mark.parametrize("child", [py_trees.behaviours.Failure(name="child")])
+def test_for_each_item_empty_list_skips_child(for_each: ForEachItem, child: py_trees.behaviour.Behaviour) -> None:
+    for_each.tick_once()
+    assert for_each.status == Status.SUCCESS
+    assert child.status == Status.INVALID
+
+
+@pytest.mark.parametrize("child", [py_trees.behaviours.Failure(name="child")])
+def test_for_each_item_stops_on_child_failure(for_each: ForEachItem) -> None:
+    for_each.tick_once()
+    assert for_each.status == Status.FAILURE
+    assert Blackboard.get(for_each._get_blackboard_key("item")) == "a"
