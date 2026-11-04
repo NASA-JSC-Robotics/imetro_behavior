@@ -1,6 +1,20 @@
-"""Behaviors for recording rosbags."""
+# Copyright (c) 2026, United States Government, as represented by the
+# Administrator of the National Aeronautics and Space Administration.
+#
+# All rights reserved.
+#
+# This software is licensed under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with the
+# License. You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
 
-from collections import deque
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -30,7 +44,7 @@ class RecordRosbag(PortsMixin, Decorator):
 
     Constructor arguments:
         recorder_name: The name of the recorder node.
-        service_timeout: Seconds to wait for each recorder service to respond.
+        service_timeout: Seconds to wait for the recorder to start recording.
 
     Input ports:
         output_path: The bag directory to create, which must not already exist.
@@ -52,53 +66,86 @@ class RecordRosbag(PortsMixin, Decorator):
         self.recorder_name = recorder_name
         self.service_timeout = Duration(seconds=service_timeout)
         self.node: Node
-        self._record_requested = False
+
+        self.stop_client = None
+        self.resume_client = None
+        self.record_client = None
+
+        self.output_path = None
+        self.stop_future = None
+        self.resume_future = None
+        self.record_future = None
+        self.start_time = None
+        self.recording = False
 
     def setup(self, **kwargs: Any) -> None:
         """Create the recorder service clients."""
         set_ros_node(self, **kwargs)
-        self._clients = {
-            "stop": self.node.create_client(Stop, f"{self.recorder_name}/stop"),
-            "resume": self.node.create_client(Resume, f"{self.recorder_name}/resume"),
-            "record": self.node.create_client(Record, f"{self.recorder_name}/record"),
-        }
+        self.stop_client = self.node.create_client(Stop, f"{self.recorder_name}/stop")
+        self.resume_client = self.node.create_client(Resume, f"{self.recorder_name}/resume")
+        self.record_client = self.node.create_client(Record, f"{self.recorder_name}/record")
 
     def initialise(self) -> None:
-        """Queue up the recorder services that start a new bag."""
-        # A recorder that was just launched has already opened an empty bag of its own, so stop it first.
-        # Resuming before recording means the bag gets latched messages, such as static transforms.
-        output_path = Path(self.get_input("output_path")).expanduser().absolute()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        self._requests = deque(
-            [
-                ("stop", Stop.Request()),
-                ("resume", Resume.Request()),
-                ("record", Record.Request(uri=str(output_path))),
-            ]
-        )
-        self._service_name = ""
-        self._future = None
-        self._start_time = None
-        self._recording = False
-        self._record_requested = False
+        """Get ready to start a new bag."""
+        self.output_path = Path(self.get_input("output_path")).expanduser().absolute()
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        self.stop_future = None
+        self.resume_future = None
+        self.record_future = None
+        self.start_time = self.node.get_clock().now()
+        self.recording = False
 
     def tick(self) -> Iterator[Behaviour]:
-        """Start the recorder, and tick the child once it is recording."""
+        """Tick the child if recording, otherwise start a new bag, sending each request after the previous one."""
         if self.status != Status.RUNNING:
             self.initialise()
+        self.status = Status.RUNNING
 
-        if not self._recording:
-            status = self._start_recording()
-            if status == Status.FAILURE:
-                self.stop(status)
-                yield self
-                return
-            if not self._recording:
-                self.status = status
-                yield self
-                return
+        if self.recording:
+            yield from super().tick()
+            return
 
-        yield from super().tick()
+        if self.node.get_clock().now() - self.start_time > self.service_timeout:
+            self.logger.error(f"Timed out waiting for recorder {self.recorder_name} to start recording.")
+            self.stop(Status.FAILURE)
+            yield self
+            return
+
+        if not self.stop_client.service_is_ready():
+            yield self
+            return
+
+        # A recorder that was just launched has already opened an empty bag of its own, so stop it first.
+        if self.stop_future is None:
+            self.stop_future = self.stop_client.call_async(Stop.Request())
+        if not self.stop_future.done():
+            yield self
+            return
+
+        # Resuming before recording means the bag gets latched messages, such as static transforms.
+        if self.resume_future is None:
+            self.resume_future = self.resume_client.call_async(Resume.Request())
+        if not self.resume_future.done():
+            yield self
+            return
+
+        if self.record_future is None:
+            self.record_future = self.record_client.call_async(Record.Request(uri=str(self.output_path)))
+        if not self.record_future.done():
+            yield self
+            return
+
+        response = self.record_future.result()
+        if response.return_code != 0:
+            self.logger.error(f"Could not start recording: {response.error_string}")
+            self.record_future = None
+            self.stop(Status.FAILURE)
+            yield self
+            return
+
+        self.logger.info(f"Recording to {self.output_path}.")
+        self.recording = True
+        yield self
 
     def update(self) -> Status:
         """Reflect the child's status."""
@@ -106,51 +153,14 @@ class RecordRosbag(PortsMixin, Decorator):
 
     def terminate(self, new_status: Status) -> None:
         """Stop the recording. There is no need to wait, as requests to the recorder are handled in order."""
-        if self._record_requested:
-            self._clients["stop"].call_async(Stop.Request())
-            self._record_requested = False
+        if self.record_future is not None:
+            self.stop_client.call_async(Stop.Request())
+            self.record_future = None
             self.logger.info("Stopped recording.")
 
     def shutdown(self) -> None:
         """Stop any recording still in progress and clean up the service clients."""
         self.terminate(Status.INVALID)
-        for client in self._clients.values():
-            self.node.destroy_client(client)
-
-    def _start_recording(self) -> Status:
-        """Advance through the requests that start the recorder."""
-        if self._future is None:
-            self._service_name, request = self._requests[0]
-            if not self._clients[self._service_name].service_is_ready():
-                return self._check_timeout(
-                    f"Recorder service {self.recorder_name}/{self._service_name} is not available."
-                )
-            self._future = self._clients[self._service_name].call_async(request)
-            self._start_time = self.node.get_clock().now()
-            self._record_requested = self._record_requested or self._service_name == "record"
-
-        if not self._future.done():
-            return self._check_timeout(f"Recorder service {self.recorder_name}/{self._service_name} timed out.")
-
-        response = self._future.result()
-        if self._service_name == "record" and response.return_code != 0:
-            self.logger.error(f"Could not start recording: {response.error_string}")
-            self._record_requested = False
-            return Status.FAILURE
-
-        self._requests.popleft()
-        self._future = None
-        self._start_time = None
-        self._recording = not self._requests
-        if self._recording:
-            self.logger.info(f"Recording to {self.get_input('output_path')}.")
-        return Status.RUNNING
-
-    def _check_timeout(self, message: str) -> Status:
-        """Fail if the current service has been waited on for too long."""
-        if self._start_time is None:
-            self._start_time = self.node.get_clock().now()
-        if self.node.get_clock().now() - self._start_time > self.service_timeout:
-            self.logger.error(message)
-            return Status.FAILURE
-        return Status.RUNNING
+        for client in (self.stop_client, self.resume_client, self.record_client):
+            if client is not None:
+                self.node.destroy_client(client)
