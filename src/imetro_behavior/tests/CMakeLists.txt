@@ -20,6 +20,8 @@ ament_add_pytest_test(test_nav_behaviors test_nav_behaviors.py)
 
 ament_add_pytest_test(test_ros_behaviors test_ros_behaviors.py)
 
+ament_add_pytest_test(test_rosbag_behaviors test_rosbag_behaviors.py)
+
 ament_add_pytest_test(test_apriltag_behaviors test_apriltag_behaviors.py)
 
 install(
