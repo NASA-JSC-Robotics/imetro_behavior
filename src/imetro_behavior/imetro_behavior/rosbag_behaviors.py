@@ -52,6 +52,7 @@ class RecordRosbag(PortsMixin, Decorator):
         self.recorder_name = recorder_name
         self.service_timeout = Duration(seconds=service_timeout)
         self.node: Node
+        self._record_requested = False
 
     def setup(self, **kwargs: Any) -> None:
         """Create the recorder service clients."""
@@ -109,6 +110,12 @@ class RecordRosbag(PortsMixin, Decorator):
             self._clients["stop"].call_async(Stop.Request())
             self._record_requested = False
             self.logger.info("Stopped recording.")
+
+    def shutdown(self) -> None:
+        """Stop any recording still in progress and clean up the service clients."""
+        self.terminate(Status.INVALID)
+        for client in self._clients.values():
+            self.node.destroy_client(client)
 
     def _start_recording(self) -> Status:
         """Advance through the requests that start the recorder."""

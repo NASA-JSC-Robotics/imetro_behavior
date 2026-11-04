@@ -130,3 +130,18 @@ def test_fails_if_recorder_is_not_running(
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
     assert child.status == Status.INVALID
+
+
+def test_stop_before_starting_does_nothing(behavior: RecordRosbag, clients: dict[str, Any]) -> None:
+    behavior.stop(Status.INVALID)
+    clients["stop"].call_async.assert_not_called()
+
+
+@pytest.mark.parametrize("child", [py_trees.behaviours.Running(name="child")])
+def test_shutdown_stops_recording_and_destroys_clients(behavior: RecordRosbag, clients: dict[str, Any]) -> None:
+    _send_stop_and_resume(behavior)
+    behavior.tick_once()
+    assert clients["stop"].call_async.call_count == 1
+
+    behavior.shutdown()
+    assert clients["stop"].call_async.call_count == 2
