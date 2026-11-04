@@ -24,8 +24,10 @@ from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from py_trees.decorators import Decorator
 from py_trees.ports import PortInformation, PortsMixin
+from rclpy.client import Client
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.time import Time
 from rosbag2_interfaces.srv import Record, Resume, Stop
 
 from imetro_behavior.helpers import set_ros_node
@@ -68,17 +70,17 @@ class RecordRosbag(PortsMixin, Decorator):
         self.service_timeout = Duration(seconds=service_timeout)
         self.node: Node
 
-        self.stop_client = None
-        self.resume_client = None
-        self.record_client = None
+        self.stop_client: Client
+        self.resume_client: Client
+        self.record_client: Client
 
         self.output_path = None
         self.stop_future = None
         self.resume_future = None
         self.record_future = None
         self.close_future = None
-        self.close_deadline = None
-        self.start_time = None
+        self.close_deadline = 0.0
+        self.start_time: Time
         self.recording = False
 
     def setup(self, **kwargs: Any) -> None:
@@ -96,7 +98,7 @@ class RecordRosbag(PortsMixin, Decorator):
         self.resume_future = None
         self.record_future = None
         self.close_future = None
-        self.close_deadline = None
+        self.close_deadline = 0.0
         self.start_time = self.node.get_clock().now()
         self.recording = False
 
@@ -184,5 +186,4 @@ class RecordRosbag(PortsMixin, Decorator):
         """Stop any recording still in progress and clean up the service clients."""
         self.terminate(Status.INVALID)
         for client in (self.stop_client, self.resume_client, self.record_client):
-            if client is not None:
-                self.node.destroy_client(client)
+            self.node.destroy_client(client)

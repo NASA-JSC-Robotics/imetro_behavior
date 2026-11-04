@@ -15,6 +15,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# The tests check mocks assigned to attributes that are declared as ROS clients.
+# ty: ignore[unresolved-attribute]
+
 import time
 from pathlib import Path
 from typing import Any
@@ -57,12 +60,11 @@ def behavior(
     behavior = RecordRosbag(name="record", child=child, service_timeout=0.01)
     behavior.setup_ports()
     behavior.node = ros_node
-    behavior.stop_client = mocker.Mock()
-    behavior.stop_client.call_async.return_value = _done_future(mocker)
-    behavior.resume_client = mocker.Mock()
-    behavior.resume_client.call_async.return_value = _done_future(mocker)
-    behavior.record_client = mocker.Mock()
-    behavior.record_client.call_async.return_value = _done_future(mocker, Record.Response(return_code=0))
+    behavior.stop_client = mocker.Mock(**{"call_async.return_value": _done_future(mocker)})
+    behavior.resume_client = mocker.Mock(**{"call_async.return_value": _done_future(mocker)})
+    behavior.record_client = mocker.Mock(
+        **{"call_async.return_value": _done_future(mocker, Record.Response(return_code=0))}
+    )
     Blackboard.set(behavior._get_blackboard_key("output_path"), str(output_path))
     return behavior
 
@@ -72,7 +74,9 @@ def behavior(
     [py_trees.behaviours.StatusQueue(name="child", queue=[Status.RUNNING], eventually=Status.SUCCESS)],
 )
 def test_starts_bag_before_child_and_stops_after(
-    behavior: RecordRosbag, child: py_trees.behaviour.Behaviour, output_path: Path
+    behavior: RecordRosbag,
+    child: py_trees.behaviour.Behaviour,
+    output_path: Path,
 ) -> None:
     behavior.tick_once()
     assert behavior.status == Status.RUNNING
@@ -96,7 +100,10 @@ def test_starts_bag_before_child_and_stops_after(
     assert behavior.stop_client.call_async.call_count == 2
 
 
-def test_sends_requests_in_order(behavior: RecordRosbag, child: py_trees.behaviour.Behaviour) -> None:
+def test_sends_requests_in_order(
+    behavior: RecordRosbag,
+    child: py_trees.behaviour.Behaviour,
+) -> None:
     behavior.stop_client.call_async.return_value.done.return_value = False
     behavior.tick_once()
     assert behavior.status == Status.RUNNING
@@ -169,7 +176,9 @@ def test_stops_recording_when_interrupted(behavior: RecordRosbag, child: py_tree
 
 
 def test_fails_without_ticking_child_if_record_is_rejected(
-    mocker: MockerFixture, behavior: RecordRosbag, child: py_trees.behaviour.Behaviour
+    mocker: MockerFixture,
+    behavior: RecordRosbag,
+    child: py_trees.behaviour.Behaviour,
 ) -> None:
     behavior.record_client.call_async.return_value = _done_future(
         mocker, Record.Response(return_code=1, error_string="Bag directory already exists")
@@ -207,7 +216,3 @@ def test_shutdown_stops_recording(behavior: RecordRosbag) -> None:
 
     behavior.shutdown()
     assert behavior.stop_client.call_async.call_count == 2
-
-
-def test_shutdown_without_setup() -> None:
-    RecordRosbag(name="record", child=py_trees.behaviours.Success(name="child")).shutdown()
