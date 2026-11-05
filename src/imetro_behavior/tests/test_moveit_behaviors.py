@@ -315,6 +315,27 @@ def test_plan_cartesian_create_request(ros_node: Node) -> None:
     assert request.avoid_collisions
 
 
+def test_plan_cartesian_create_request_waypoint_list(ros_node: Node) -> None:
+    """Tests that a list[PoseStamped] (e.g. from TwistAboutPose) is unpacked into a sequence of Pose waypoints"""
+    behavior = PlanCartesian(name="plan_cartesian", service_name="/plan_cartesian")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    waypoint1 = PoseStamped()
+    waypoint1.pose.position.x = 1.0
+    waypoint1.pose.orientation.w = 1.0
+    waypoint2 = PoseStamped()
+    waypoint2.pose.position.x = 2.0
+    waypoint2.pose.orientation.w = 1.0
+
+    set_input(behavior, "group_name", "arm")
+    set_input(behavior, "waypoints", [waypoint1, waypoint2])
+
+    request = behavior.create_request()
+    assert request.group_name == "arm"
+    assert request.waypoints == [waypoint1.pose, waypoint2.pose]
+
+
 def test_plan_cartesian_process_response(ros_node: Node) -> None:
     behavior = PlanCartesian(name="plan_cartesian", service_name="/plan_cartesian")
     behavior.setup(node=ros_node)

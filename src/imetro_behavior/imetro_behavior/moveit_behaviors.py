@@ -431,8 +431,11 @@ class PlanCartesian(RosServiceClientBase):
     INPUT_PORTS = {
         "group_name": PortInformation(data_type=str, required=True),
         "waypoints": PortInformation(
-            data_type=PoseStamped, required=True
-        ),  # TODO support TransformStamped and support list of waypoints
+            data_type=PoseStamped | list[PoseStamped],
+            required=True,
+            description="A single destination pose, or a vector of poses to pass through in order. "
+            "All poses, single or in a list, are assumed to share the same frame_id.",
+        ),  # TODO support TransformStamped
         "max_step": PortInformation(data_type=float, required=False, default_value=0.01),
         "jump_threshold": PortInformation(data_type=float, required=False, default_value=1.25),
         "avoid_collisions": PortInformation(data_type=bool, required=False, default_value=True),
@@ -451,8 +454,8 @@ class PlanCartesian(RosServiceClientBase):
         waypoints = self.get_input("waypoints")
         if isinstance(waypoints, PoseStamped):
             request.waypoints = [waypoints.pose]
-        else:  # let's assume it's a list
-            request.waypoints = waypoints
+        else:  # a list[PoseStamped]
+            request.waypoints = [waypoint.pose for waypoint in waypoints]
 
         request.group_name = self.get_input("group_name")
         request.max_step = self.get_input("max_step")
