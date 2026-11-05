@@ -62,6 +62,17 @@ class WaitForDuration(BehaviourWithPorts):
 class IsSim(BehaviourWithPorts):
     """Check whether the attached ROS node's `use_sim_time` parameter is True."""
 
+    def __init__(self, name: str, **kwargs):
+        """
+        Construct behavior to check if the `use_sim_time` parameter is set to True.
+
+        Args:
+            name: The name of the behavior (required by PyTrees)
+            kwargs: Additional keyword arguments to pass through to ports.
+        """
+        self.node: Node
+        super().__init__(name, **kwargs)
+
     INPUT_PORTS = {}
 
     OUTPUT_PORTS = {
