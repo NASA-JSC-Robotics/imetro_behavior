@@ -59,6 +59,44 @@ class WaitForDuration(BehaviourWithPorts):
         return Status.RUNNING
 
 
+class IsSim(BehaviourWithPorts):
+    """Check whether the attached ROS node's `use_sim_time` parameter is True."""
+
+    def __init__(self, name: str, **kwargs):
+        """
+        Construct behavior to check if the `use_sim_time` parameter is set to True.
+
+        Args:
+            name: The name of the behavior (required by PyTrees)
+            kwargs: Additional keyword arguments to pass through to ports.
+        """
+        self.node: Node
+        super().__init__(name, **kwargs)
+
+    INPUT_PORTS = {}
+
+    OUTPUT_PORTS = {
+        "is_sim": PortInformation(
+            data_type=bool,
+            required=True,
+        )
+    }
+
+    def setup(self, **kwargs):
+        """Get access to the ROS node for its parameters."""
+        set_ros_node(self, **kwargs)
+
+    def update(self) -> Status:
+        """Write whether `use_sim_time` is True to the output port."""
+        if self.node.has_parameter("use_sim_time"):
+            use_sim_time = self.node.get_parameter("use_sim_time").get_parameter_value().bool_value
+        else:
+            use_sim_time = False
+
+        self._set_output("is_sim", use_sim_time)
+        return Status.SUCCESS
+
+
 class BlackboardMath(BehaviourWithPorts):
     """Allow for doing simple arithmetic (+-/*^) using blackboard values."""
 
