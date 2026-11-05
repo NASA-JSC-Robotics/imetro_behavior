@@ -20,8 +20,9 @@ from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 
-from imetro_behavior.basic_behaviors import AppendToList, BlackboardMath, GetListItem, WaitForDuration
+from imetro_behavior.basic_behaviors import AppendToList, BlackboardMath, GetListItem, IsSim, WaitForDuration
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -44,6 +45,56 @@ def test_wait_for_duration(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
+
+
+def test_is_sim_default(ros_node: Node) -> None:
+    """Tests that `use_sim_time` defaults to False when left unset."""
+    behavior = IsSim(name="is_sim")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("is_sim") is False
+
+
+def test_is_sim_true(ros_node: Node) -> None:
+    """Tests that IsSim outputs True when `use_sim_time` is set to True."""
+    ros_node.set_parameters([Parameter("use_sim_time", Parameter.Type.BOOL, True)])
+
+    behavior = IsSim(name="is_sim")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("is_sim") is True
+
+
+def test_is_sim_false(ros_node: Node) -> None:
+    """Tests that IsSim outputs False when `use_sim_time` is explicitly set to False."""
+    ros_node.set_parameters([Parameter("use_sim_time", Parameter.Type.BOOL, False)])
+
+    behavior = IsSim(name="is_sim")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("is_sim") is False
+
+
+def test_is_sim_parameter_undeclared(ros_node: Node) -> None:
+    """Tests that IsSim defaults to False if `use_sim_time` isn't declared at all."""
+    ros_node.undeclare_parameter("use_sim_time")
+
+    behavior = IsSim(name="is_sim")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("is_sim") is False
 
 
 def test_math_add(ros_node: Node) -> None:
