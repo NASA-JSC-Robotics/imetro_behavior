@@ -313,6 +313,28 @@ def test_plan_cartesian_create_request(ros_node: Node) -> None:
     assert request.max_step == 0.01
     assert request.jump_threshold == 1.25
     assert request.avoid_collisions
+    assert request.max_velocity_scaling_factor == 1.0
+    assert request.max_acceleration_scaling_factor == 1.0
+
+
+def test_plan_cartesian_create_request_scaling(ros_node: Node) -> None:
+    """Tests that max_velocity_scaling/max_acceleration_scaling are forwarded onto the request."""
+    behavior = PlanCartesian(name="plan_cartesian", service_name="/plan_cartesian")
+    behavior.setup(node=ros_node)
+    behavior.setup_ports()
+
+    waypoint = PoseStamped()
+    waypoint.pose.position.x = 1.0
+    waypoint.pose.orientation.w = 1.0
+
+    set_input(behavior, "group_name", "arm")
+    set_input(behavior, "waypoints", waypoint)
+    set_input(behavior, "max_velocity_scaling", 0.5)
+    set_input(behavior, "max_acceleration_scaling", 0.25)
+
+    request = behavior.create_request()
+    assert request.max_velocity_scaling_factor == 0.5
+    assert request.max_acceleration_scaling_factor == 0.25
 
 
 def test_plan_cartesian_create_request_waypoint_list(ros_node: Node) -> None:
