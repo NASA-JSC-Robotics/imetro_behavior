@@ -440,6 +440,8 @@ class PlanCartesian(RosServiceClientBase):
         "jump_threshold": PortInformation(data_type=float, required=False, default_value=1.25),
         "avoid_collisions": PortInformation(data_type=bool, required=False, default_value=True),
         "min_fraction": PortInformation(data_type=float, required=False, default_value=1.0),
+        "max_velocity_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
+        "max_acceleration_scaling": PortInformation(data_type=float, required=False, default_value=1.0),
     }
 
     OUTPUT_PORTS = {
@@ -461,6 +463,8 @@ class PlanCartesian(RosServiceClientBase):
         request.max_step = self.get_input("max_step")
         request.jump_threshold = self.get_input("jump_threshold")
         request.avoid_collisions = self.get_input("avoid_collisions")
+        request.max_velocity_scaling_factor = self.get_input("max_velocity_scaling")
+        request.max_acceleration_scaling_factor = self.get_input("max_acceleration_scaling")
         return request
 
     def process_response(self, response: GetCartesianPath.Response) -> Status:
