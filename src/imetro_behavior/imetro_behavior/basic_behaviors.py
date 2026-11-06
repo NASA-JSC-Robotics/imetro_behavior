@@ -18,7 +18,7 @@
 import operator
 
 from py_trees.common import Status
-from py_trees.ports import BehaviourWithPorts, PortInformation
+from py_trees.ports import BehaviourWithPorts, NoDataAvailable, PortInformation
 from rclpy.duration import Duration
 from rclpy.node import Node
 
@@ -157,17 +157,31 @@ class BlackboardMath(BehaviourWithPorts):
         return Status.SUCCESS
 
 
-class ToList(BehaviourWithPorts):
-    """Wrap a scalar blackboard value of any type into a single-element list.
+class AppendToList(BehaviourWithPorts):
+    """Append a value to a list, returning a new list (the inputs are left untouched).
 
-    Useful for feeding a computed value (e.g. from BlackboardMath) into a port
-    that expects a list, which cannot be assigned directly from a bare scalar.
+    Useful for feeding a computed value (e.g. from BlackboardMath) into a port that expects a
+    list, which cannot be assigned directly from a bare scalar, or for building up a list across
+    loop iterations (e.g. a per-item TransformPose output) by wiring result back into list on the
+    next tick.
+
+    * If list is not wired, it is treated as an empty list, so result becomes a new single-element
+      list containing just value.
+    * If value is also not wired, nothing is appended, so result is an empty list (or, if list is
+      wired, list unchanged).
     """
 
     INPUT_PORTS = {
+        "list": PortInformation(
+            data_type=list[object],
+            required=False,
+            default_value=[],
+            description="List to append value to. Defaults to a new empty list if not wired.",
+        ),
         "value": PortInformation(
             data_type=object,
-            required=True,
+            required=False,
+            description="Value to append to list. If not wired, nothing is appended.",
         ),
     }
 
@@ -183,8 +197,15 @@ class ToList(BehaviourWithPorts):
         set_ros_node(self, **kwargs)
 
     def update(self) -> Status:
-        value = self.get_input("value")
-        self._set_output("result", [value])
+        base_list = self.get_input("list")
+
+        try:
+            value = self.get_input("value")
+        except NoDataAvailable:
+            self._set_output("result", list(base_list))
+            return Status.SUCCESS
+
+        self._set_output("result", [*base_list, value])
         return Status.SUCCESS
 
 

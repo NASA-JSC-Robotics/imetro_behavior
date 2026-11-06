@@ -22,7 +22,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 
-from imetro_behavior.basic_behaviors import BlackboardMath, GetListItem, IsSim, ToList, WaitForDuration
+from imetro_behavior.basic_behaviors import AppendToList, BlackboardMath, GetListItem, IsSim, WaitForDuration
 
 
 def test_wait_for_duration_zero_duration(ros_node: Node) -> None:
@@ -171,9 +171,9 @@ def test_math_div_by_zero(ros_node: Node) -> None:
     assert behavior.status == Status.FAILURE
 
 
-def test_to_list(ros_node: Node) -> None:
-    """Tests wrapping a plain float into a single-element list"""
-    behavior = ToList(name="to_list")
+def test_append_to_list_wraps_value_when_list_unwired(ros_node: Node) -> None:
+    """Tests wrapping a plain float into a single-element list when no list is wired"""
+    behavior = AppendToList(name="append_to_list")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -184,9 +184,9 @@ def test_to_list(ros_node: Node) -> None:
     assert behavior.get_last_output("result") == [1.5]
 
 
-def test_to_list_numpy_scalar(ros_node: Node) -> None:
+def test_append_to_list_numpy_scalar(ros_node: Node) -> None:
     """Tests wrapping a numpy.float64 (e.g. from upstream pose math) into a list, unchanged"""
-    behavior = ToList(name="to_list")
+    behavior = AppendToList(name="append_to_list")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -199,9 +199,9 @@ def test_to_list_numpy_scalar(ros_node: Node) -> None:
     assert type(result[0]) is np.float64
 
 
-def test_to_list_non_numeric(ros_node: Node) -> None:
+def test_append_to_list_non_numeric(ros_node: Node) -> None:
     """Tests wrapping an arbitrary non-numeric object into a single-element list"""
-    behavior = ToList(name="to_list")
+    behavior = AppendToList(name="append_to_list")
     behavior.setup_ports()
     behavior.setup(node=ros_node)
 
@@ -210,6 +210,46 @@ def test_to_list_non_numeric(ros_node: Node) -> None:
     behavior.tick_once()
     assert behavior.status == Status.SUCCESS
     assert behavior.get_last_output("result") == ["hello"]
+
+
+def test_append_to_list_appends_to_existing_list(ros_node: Node) -> None:
+    """Tests appending a value onto an already-wired list, leaving the input list untouched"""
+    behavior = AppendToList(name="append_to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    existing = ["a", "b"]
+    Blackboard.set(behavior._get_blackboard_key("list"), existing)
+    Blackboard.set(behavior._get_blackboard_key("value"), "c")
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == ["a", "b", "c"]
+    assert existing == ["a", "b"]
+
+
+def test_append_to_list_no_value_returns_list_unchanged(ros_node: Node) -> None:
+    """Tests that an unwired value leaves an already-wired list unchanged"""
+    behavior = AppendToList(name="append_to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    Blackboard.set(behavior._get_blackboard_key("list"), ["a", "b"])
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == ["a", "b"]
+
+
+def test_append_to_list_no_list_no_value_returns_empty_list(ros_node: Node) -> None:
+    """Tests that leaving both list and value unwired produces an empty list"""
+    behavior = AppendToList(name="append_to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    assert behavior.get_last_output("result") == []
 
 
 def test_get_list_item(ros_node: Node) -> None:
@@ -266,3 +306,19 @@ def test_math_wrong_operator(ros_node: Node) -> None:
 
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
+
+
+def test_append_to_list_accumulates_when_result_fed_back_as_list(ros_node: Node) -> None:
+    """Tests the loop-accumulation pattern: wiring result back into list across ticks"""
+    behavior = AppendToList(name="append_to_list")
+    behavior.setup_ports()
+    behavior.setup(node=ros_node)
+
+    for value in ["a", "b", "c"]:
+        Blackboard.set(behavior._get_blackboard_key("value"), value)
+        behavior.tick_once()
+        assert behavior.status == Status.SUCCESS
+        # Simulate wiring result back into list for the next iteration.
+        Blackboard.set(behavior._get_blackboard_key("list"), behavior.get_last_output("result"))
+
+    assert behavior.get_last_output("result") == ["a", "b", "c"]

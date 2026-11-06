@@ -231,8 +231,12 @@ class AlignPoseToNearestAxis(BehaviourWithPorts):
 
 class TwistAboutPose(BehaviourWithPorts):
     """
-    Twist a PoseStamped about a given axis of its parent frame by specified amount of radians,
-    outputting a pose rotated about the given rotation pose and parented to reference frame.
+    Twist a PoseStamped about a given axis of its parent frame, up to a final amount of radians,
+    outputting a vector of poses rotated about the given rotation pose and parented to reference frame.
+
+    The rotation from zero up to ``final_rotation_amount`` is divided evenly into ``num_segments``
+    steps, producing ``num_segments`` poses (not including the un-rotated starting pose). Passing
+    ``num_segments=1`` reproduces the single-pose behavior of rotating directly to the final amount.
 
     Commonly used in conjunction with the GetRelativePoseStamped behavior to rotate one frame about another.
     """
@@ -243,7 +247,11 @@ class TwistAboutPose(BehaviourWithPorts):
             required=True,
             description="PoseStamped that will be rotated about its parent, target_T_rotation",
         ),
-        "rotation_amount": PortInformation(data_type=float, required=True, description="Amount of rotation in radians"),
+        "final_rotation_amount": PortInformation(
+            data_type=float,
+            required=True,
+            description="Final amount of rotation in radians, reached at the last of num_segments poses",
+        ),
         "rotation_axis": PortInformation(
             data_type=list[float],
             required=True,
@@ -255,22 +263,35 @@ class TwistAboutPose(BehaviourWithPorts):
             required=True,
             description="Keep orientation of target_pose static throughout rotation",
         ),
+        "num_segments": PortInformation(
+            data_type=int,
+            required=False,
+            default_value=1,
+            description="Number of evenly spaced rotation steps between zero and final_rotation_amount, "
+            "producing that many output poses. Must be >= 1.",
+        ),
     }
 
     OUTPUT_PORTS = {
-        "output_pose": PortInformation(
-            data_type=PoseStamped,
+        "output_poses": PortInformation(
+            data_type=list[PoseStamped],
             required=True,
-            description="Rotated pose, with a parent that shares the reference frame of the given input poses",
+            description="Poses rotated in num_segments even steps from zero up to final_rotation_amount, "
+            "each parented to the reference frame of the given input pose",
         )
     }
 
     def update(self) -> Status:
-        """Twist about the rotation frame."""
+        """Twist about the rotation frame, in num_segments even steps up to the final rotation amount."""
         target_posestamp = self.get_input("target_pose")
-        rotation_amount = self.get_input("rotation_amount")
-        rotation_axis = self.get_input("rotation_axis")
+        final_rotation_amount = self.get_input("final_rotation_amount")
+        rotation_axis = np.array(self.get_input("rotation_axis"))
         keep_start_orientation = self.get_input("keep_start_orientation")
+        num_segments = self.get_input("num_segments")
+
+        if num_segments < 1:
+            self.logger.error(f"num_segments must be >= 1, got {num_segments}")
+            return Status.FAILURE
 
         target_orientation = R.from_quat(
             [
@@ -289,31 +310,36 @@ class TwistAboutPose(BehaviourWithPorts):
         )
         target_T_rotation = RigidTransform.from_components(target_translation, target_orientation)
 
-        # Rotate the EE about the rotation frame by the given axis and angle in radians
-        twist_vector = rotation_amount * np.array(rotation_axis)
-        twist = R.from_rotvec(twist_vector)
-        twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
+        output_poses = []
+        for step in range(1, num_segments + 1):
+            rotation_amount = final_rotation_amount * step / num_segments
 
-        twistedtarget_T_rotation = twist_matrix * target_T_rotation
+            # Rotate the EE about the rotation frame by the given axis and angle in radians
+            twist_vector = rotation_amount * rotation_axis
+            twist = R.from_rotvec(twist_vector)
+            twist_matrix = RigidTransform.from_components(np.zeros(3), twist)
 
-        final_pose = twistedtarget_T_rotation.translation  # ty: ignore[unresolved-attribute] -- should be fixed
-        final_rotation = twistedtarget_T_rotation.rotation.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
+            twistedtarget_T_rotation = twist_matrix * target_T_rotation
 
-        # Output final message
-        output_pose = PoseStamped()
-        output_pose.header = target_posestamp.header
-        output_pose.pose.position.x = final_pose[0]
-        output_pose.pose.position.y = final_pose[1]
-        output_pose.pose.position.z = final_pose[2]
-        if keep_start_orientation:
-            output_pose.pose.orientation = target_posestamp.pose.orientation
-        else:
-            output_pose.pose.orientation.x = final_rotation[0]
-            output_pose.pose.orientation.y = final_rotation[1]
-            output_pose.pose.orientation.z = final_rotation[2]
-            output_pose.pose.orientation.w = final_rotation[3]
+            final_pose = twistedtarget_T_rotation.translation  # ty: ignore[unresolved-attribute] -- should be fixed
+            final_orientation = twistedtarget_T_rotation.rotation.as_quat()  # ty: ignore[unresolved-attribute] -- should be fixed
 
-        self._set_output("output_pose", output_pose)
+            # Output pose for this step
+            output_pose = PoseStamped()
+            output_pose.header = target_posestamp.header
+            output_pose.pose.position.x = final_pose[0]
+            output_pose.pose.position.y = final_pose[1]
+            output_pose.pose.position.z = final_pose[2]
+            if keep_start_orientation:
+                output_pose.pose.orientation = target_posestamp.pose.orientation
+            else:
+                output_pose.pose.orientation.x = final_orientation[0]
+                output_pose.pose.orientation.y = final_orientation[1]
+                output_pose.pose.orientation.z = final_orientation[2]
+                output_pose.pose.orientation.w = final_orientation[3]
+            output_poses.append(output_pose)
+
+        self._set_output("output_poses", output_poses)
         return Status.SUCCESS
 
 
