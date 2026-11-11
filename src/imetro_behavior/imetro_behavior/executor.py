@@ -17,6 +17,7 @@
 
 import os
 import threading
+import time
 from importlib import import_module
 from pathlib import Path
 
@@ -293,8 +294,18 @@ class BehaviorTreeServer:
 
         if final_status == Status.INVALID:
             result.message = "Behavior canceled."
-            goal_handle.canceled()
+            if goal_handle.is_cancel_requested:
+                goal_handle.canceled()
+            else:
+                goal_handle.abort()
         else:
             result.success = final_status == Status.SUCCESS
             goal_handle.succeed()
         return result
+
+    def stop(self, timeout: float = 3.0) -> None:
+        """Cancels any running behavior and waits for it to stop. The ROS executor must still be spinning."""
+        self._executor.request_cancel()
+        deadline = time.monotonic() + timeout
+        while self._requested_behavior is not None and time.monotonic() < deadline:
+            time.sleep(0.01)
