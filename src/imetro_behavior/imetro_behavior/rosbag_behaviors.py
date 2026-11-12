@@ -39,7 +39,7 @@ class RecordRosbag(PortsMixin, Decorator):
 
     This controls a dormant recorder through its services, which must already be running:
 
-        ros2 bag record --start-paused --node-name rosbag_recorder --topics ...
+        ros2 bag record --start-paused --node-name rosbag2_recorder --topics ...
 
     The child only starts once the recorder is recording, and if that fails the child is not ticked.
     The recording always stops when this behavior ends, including if the child fails or is interrupted.
@@ -61,7 +61,7 @@ class RecordRosbag(PortsMixin, Decorator):
         name: str,
         child: Behaviour,
         *,
-        recorder_name: str = "/rosbag_recorder",
+        recorder_name: str = "/rosbag2_recorder",
         service_timeout: float = 5.0,
         **kwargs: Any,
     ):
