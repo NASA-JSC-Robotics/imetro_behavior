@@ -135,8 +135,39 @@ def test_run_trees_to_completion(executor: BehaviorTreeExecutor, tmp_path: Path)
     assert executor.run_tree(success_path) == Status.SUCCESS
 
 
+class RecordingLogger:
+    """Minimal stand-in for an rclpy logger that records messages instead of emitting them."""
+
+    def __init__(self) -> None:
+        self.messages: list[tuple[str, str]] = []
+
+    def info(self, message: str) -> None:
+        self.messages.append(("info", message))
+
+    def warning(self, message: str) -> None:
+        self.messages.append(("warning", message))
+
+    def error(self, message: str) -> None:
+        self.messages.append(("error", message))
+
+
+def test_run_tree_logs_failing_node(executor: BehaviorTreeExecutor, tmp_path: Path) -> None:
+    failure_path = write_tree(tmp_path, "failure_tree", "AlwaysFail")
+
+    recorder = RecordingLogger()
+    executor._logger = recorder
+
+    assert executor.run_tree(failure_path) == Status.FAILURE
+
+    errors = [message for level, message in recorder.messages if level == "error"]
+    assert any("AlwaysFail" in message and "child" in message for message in errors)
+
+
 def test_run_tree_cancel(executor: BehaviorTreeExecutor, tmp_path: Path) -> None:
     tree_path = write_tree(tmp_path, "run_forever", "RunForever")
+
+    recorder = RecordingLogger()
+    executor._logger = recorder
 
     future = ThreadPoolExecutor(max_workers=1).submit(executor.run_tree, tree_path)
 
@@ -150,6 +181,9 @@ def test_run_tree_cancel(executor: BehaviorTreeExecutor, tmp_path: Path) -> None
     assert future.result(timeout=5.0) == Status.INVALID
     assert executor.current_behavior is None
     assert executor.status == Status.INVALID
+
+    errors = [message for level, message in recorder.messages if level == "error"]
+    assert any("RunForever" in message and "child" in message for message in errors)
 
 
 def test_run_tree_ignores_stale_cancel(executor: BehaviorTreeExecutor, tmp_path: Path) -> None:

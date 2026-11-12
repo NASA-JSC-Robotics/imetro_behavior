@@ -208,6 +208,7 @@ class BehaviorTreeExecutor:
             if self._cancel_requested.is_set():
                 self._cancel_requested.clear()
                 self._logger.info("Behavior canceled.")
+                self._log_tip("Behavior canceled while running")
                 self.stop_tree()
                 return Status.INVALID
 
@@ -217,8 +218,25 @@ class BehaviorTreeExecutor:
 
         final_status = self.status
         self._logger.info(f"Behavior completed with status: {final_status}")
+        if final_status == Status.FAILURE:
+            self._log_tip("Behavior failed at")
         self.stop_tree()
         return final_status
+
+    def _log_tip(self, prefix: str):
+        """Logs (as an error) the specific behaviour, and its feedback message if any, at the tree's tip."""
+        if self._tree is None:
+            return
+
+        tip = self._tree.root.tip()
+        if tip is None:
+            self._logger.error(f"{prefix}: no node could be identified.")
+            return
+
+        message = f"{prefix}: {tip.qualified_name}"
+        if tip.feedback_message:
+            message += f" - {tip.feedback_message}"
+        self._logger.error(message)
 
     def stop_tree(self):
         """Stops the currently running behavior tree and resets its state."""
