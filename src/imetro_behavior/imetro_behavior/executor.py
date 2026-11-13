@@ -223,7 +223,7 @@ class BehaviorTreeExecutor:
         self.stop_tree()
         return final_status
 
-    def _log_tip(self, prefix: str):
+    def _log_tip(self, prefix: str = "Tip name"):
         """Logs (as an error) the specific behaviour, and its feedback message if any, at the tree's tip."""
         if self._tree is None:
             return
