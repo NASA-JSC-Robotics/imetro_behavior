@@ -207,7 +207,6 @@ class BehaviorTreeExecutor:
         while True:
             if self._cancel_requested.is_set():
                 self._cancel_requested.clear()
-                self._logger.info("Behavior canceled.")
                 self._log_tip("Behavior canceled while running")
                 self.stop_tree()
                 return Status.INVALID
@@ -217,9 +216,10 @@ class BehaviorTreeExecutor:
             self._clock.sleep_for(self._tick_period)
 
         final_status = self.status
-        self._logger.info(f"Behavior completed with status: {final_status}")
         if final_status == Status.FAILURE:
             self._log_tip("Behavior failed at")
+        else:
+            self._logger.info(f"Behavior completed with status: {final_status}")
         self.stop_tree()
         return final_status
 
