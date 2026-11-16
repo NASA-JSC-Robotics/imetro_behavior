@@ -15,6 +15,7 @@ imports:
   - imetro_behavior.moveit_behaviors
   - imetro_behavior.nav_behaviors
   - imetro_behavior.ros_behaviors
+  - imetro_behavior.rosbag_behaviors
 
   # Omitting this import for now since they require the `color_tools` external repo:
   # https://github.com/NASA-JSC-Robotics/color_tools
