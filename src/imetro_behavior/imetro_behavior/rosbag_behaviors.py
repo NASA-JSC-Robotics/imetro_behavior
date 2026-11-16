@@ -23,7 +23,7 @@ from typing import Any
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status
 from py_trees.decorators import Decorator
-from py_trees.ports import PortInformation, PortsMixin
+from py_trees.ports import NoDataAvailable, PortInformation, PortsMixin
 from rclpy.client import Client
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -50,10 +50,12 @@ class RecordRosbag(PortsMixin, Decorator):
         service_timeout: Seconds to wait for the recorder to start recording, or to close the bag.
 
     Input ports:
-        output_path: The bag directory to create, which must not already exist.
+        output_path: The bag directory to create, which must not already exist. Optional: when not
+            given, this simply resumes the bag the recorder already opened at launch (e.g. via its
+            own `--output`), instead of stopping it and opening a new one.
     """
 
-    INPUT_PORTS = {"output_path": PortInformation(data_type=str, required=True)}
+    INPUT_PORTS = {"output_path": PortInformation(data_type=str, required=False)}
     OUTPUT_PORTS = {}
 
     def __init__(
@@ -92,8 +94,13 @@ class RecordRosbag(PortsMixin, Decorator):
 
     def initialise(self) -> None:
         """Get ready to start a new bag."""
-        self.output_path = Path(self.get_input("output_path")).expanduser().absolute()
-        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            output_path = self.get_input("output_path")
+            self.output_path = Path(output_path).expanduser().absolute()
+            self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        except NoDataAvailable:
+            self.output_path = None
+            self.logger.info("No output_path given, leaving the rosbag path as default.")
         self.stop_future = None
         self.resume_future = None
         self.record_future = None
@@ -130,6 +137,20 @@ class RecordRosbag(PortsMixin, Decorator):
             return
 
         if not self.stop_client.service_is_ready():
+            yield self
+            return
+
+        if self.output_path is None:
+            # No output_path given: just resume the bag the recorder already opened at launch,
+            # rather than stopping it and opening a new one at the same path (which would collide).
+            if self.resume_future is None:
+                self.resume_future = self.resume_client.call_async(Resume.Request())
+            if not self.resume_future.done():
+                yield self
+                return
+
+            self.logger.info("Resumed recording to the recorder's own bag.")
+            self.recording = True
             yield self
             return
 
@@ -177,9 +198,10 @@ class RecordRosbag(PortsMixin, Decorator):
 
     def terminate(self, new_status: Status) -> None:
         """Stop the recording. There is no need to wait, as requests to the recorder are handled in order."""
-        if self.record_future is not None:
+        if self.recording:
             self.stop_client.call_async(Stop.Request())
             self.record_future = None
+            self.recording = False
             self.logger.info("Stopped recording.")
 
     def shutdown(self) -> None:
