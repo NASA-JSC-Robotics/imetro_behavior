@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import threading
 import time
 from typing import Any
 
@@ -74,6 +75,10 @@ class RosActionClientBase(BehaviourWithPorts):
         self.action_server_timeout = Duration(seconds=action_server_timeout) if action_server_timeout else None
         self.action_timeout = Duration(seconds=action_timeout) if action_timeout else None
         self.node: Node
+        self.action_client: ActionClient
+        self._client_destroyed = False
+        # Goal responses arrive on an executor thread, which must not use the client as it gets destroyed.
+        self._client_lock = threading.Lock()
         super().__init__(name, **kwargs)
 
     def create_goal(self) -> Any:
@@ -101,6 +106,7 @@ class RosActionClientBase(BehaviourWithPorts):
             action_type=self.action_type,
             action_name=self.action_name,
         )
+        self._client_destroyed = False
         self.client_ready = False
 
         self.goal_handle = None
@@ -195,12 +201,16 @@ class RosActionClientBase(BehaviourWithPorts):
         """
         Clean up the action client when shutting down.
         """
+        if self._client_destroyed:
+            return
         self.send_cancel_request()  # For good measure
         if self.goal_handle is not None:
             # Give time for the cancel request to clear before destroying the client.
             time.sleep(0.1)
         self.goal_handle = None
-        self.action_client.destroy()
+        with self._client_lock:
+            self.action_client.destroy()
+            self._client_destroyed = True
 
     def goal_response_callback(self, future: Future) -> None:
         """
@@ -216,7 +226,9 @@ class RosActionClientBase(BehaviourWithPorts):
         else:
             self.logger.debug("Goal request accepted.")
 
-        self.get_result_future = self.goal_handle.get_result_async()
+        with self._client_lock:
+            if not self._client_destroyed:
+                self.get_result_future = self.goal_handle.get_result_async()
 
     def send_cancel_request(self):
         """

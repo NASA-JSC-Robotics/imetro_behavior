@@ -21,6 +21,7 @@ from control_msgs.action import GripperCommand
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.ports import NoDataAvailable
+from pytest_mock import MockerFixture
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.task import Future
@@ -90,6 +91,19 @@ def test_action_client_fails_without_goal_success(
     assert completed_action_behavior.update() == Status.FAILURE
     # process_result() should never be called when the goal did not succeed.
     assert completed_action_behavior.received_result is None
+
+
+def test_action_client_ignores_goal_response_after_shutdown(
+    completed_action_behavior: TrackingActionBehavior, mocker: MockerFixture
+) -> None:
+    completed_action_behavior.shutdown()
+    completed_action_behavior.shutdown()
+
+    goal_handle = mocker.Mock(accepted=True)
+    future = Future()
+    future.set_result(goal_handle)
+    completed_action_behavior.goal_response_callback(future)
+    goal_handle.get_result_async.assert_not_called()
 
 
 def test_call_trigger_service(ros_node: Node) -> None:
