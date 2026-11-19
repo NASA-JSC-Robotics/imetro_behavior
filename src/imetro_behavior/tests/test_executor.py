@@ -20,13 +20,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+from diagnostic_msgs.msg import KeyValue
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
-from py_trees.ports import BehaviourWithPorts
+from py_trees.ports import BehaviourWithPorts, PortInformation
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
-from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer
+from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer, input_mappings_to_dict
 
 
 class AlwaysSucceed(BehaviourWithPorts):
@@ -57,6 +58,16 @@ class RunForever(BehaviourWithPorts):
 
     def update(self) -> Status:
         return Status.RUNNING
+
+
+class SucceedIfPositive(BehaviourWithPorts):
+    """Test behavior that succeeds if its input is positive. Auto-registered for use in tree XML."""
+
+    INPUT_PORTS = {"value": PortInformation(data_type=float, required=True)}
+    OUTPUT_PORTS = {}
+
+    def update(self) -> Status:
+        return Status.SUCCESS if self.get_input("value") > 0.0 else Status.FAILURE
 
 
 @pytest.fixture()
@@ -225,3 +236,35 @@ def test_create_server(ros_node: Node) -> None:
         ros_executor.spin_once(timeout_sec=0.1)
 
     ros_executor.shutdown()
+
+
+def test_input_mappings_to_dict() -> None:
+    assert input_mappings_to_dict([]) == {}
+    mappings = [KeyValue(key="a", value="1.0"), KeyValue(key="b", value="c:/path"), KeyValue(key="c", value="")]
+    assert input_mappings_to_dict(mappings) == {"a": "1.0", "b": "c:/path", "c": ""}
+
+
+@pytest.mark.parametrize(
+    "mappings",
+    [[KeyValue(key="", value="1")], [KeyValue(key="a", value="1"), KeyValue(key="a", value="2")]],
+)
+def test_input_mappings_to_dict_invalid(mappings: list[KeyValue]) -> None:
+    with pytest.raises(RuntimeError):
+        input_mappings_to_dict(mappings)
+
+
+def test_run_tree_with_input_mappings(executor: BehaviorTreeExecutor, tmp_path: Path) -> None:
+    tree_path = tmp_path / "mapped_tree.xml"
+    tree_path.write_text(
+        """
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree" value="1.0">
+    <SucceedIfPositive name="check_value" value="{value}" />
+  </BehaviorTree>
+</root>
+"""
+    )
+    assert executor.run_tree(tree_path.as_posix()) == Status.SUCCESS
+    assert executor.run_tree(tree_path.as_posix(), {"value": "-1.0"}) == Status.FAILURE
+    # The mapping does not carry over to the next run.
+    assert executor.run_tree(tree_path.as_posix()) == Status.SUCCESS

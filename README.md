@@ -37,6 +37,19 @@ For example,
 ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehavior '{tree_file_name: nav_tree}'
 ```
 
+The goal can also override the port values of the tree's main `BehaviorTree` with `input_mappings`.
+Values are strings, as they would be written in the tree XML.
+
+```bash
+ros2 action send_goal /execute_behavior imetro_behavior_msgs/action/ExecuteBehavior \
+  '{tree_file_name: my_tree, input_mappings: [{key: speed, value: "0.02"}]}'
+```
+
+## Running Behavior Trials
+
+The `imetro_behavior_testing` package runs a behavior tree once per trial of a test file, with different parameters each time.
+See [its README](src/imetro_behavior_testing/README.md).
+
 ## Developing
 
 We use [pre-commit](https://github.com/pre-commit/pre-commit) inside the pixi configuration in this repo.

@@ -1,6 +1,10 @@
 # Goal definition
 string tree_file_name
 
+# Optional overrides of the main tree's port values.
+# Values are strings, as they would be written in the tree XML.
+diagnostic_msgs/KeyValue[] input_mappings
+
 ---
 
 # Result definition

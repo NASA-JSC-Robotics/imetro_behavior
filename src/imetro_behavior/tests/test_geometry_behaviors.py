@@ -31,6 +31,7 @@ from imetro_behavior.geometry_behaviors import (
     AlignPoseToNearestAxis,
     CreatePoseStamped,
     DecomposePoseStamped,
+    EulerToQuaternion,
     GetRelativePoseStamped,
     GetRollPitchYaw,
     InvertTransformStamped,
@@ -860,5 +861,33 @@ def test_multiply_transform_stamped_mismatched_frames() -> None:
 
     Blackboard.set(behavior._get_blackboard_key("transform_first"), tf_first)
     Blackboard.set(behavior._get_blackboard_key("transform_second"), tf_second)
+    behavior.tick_once()
+    assert behavior.status == Status.FAILURE
+
+
+@pytest.mark.parametrize(
+    ("euler_xyz", "degrees"),
+    [([0.0, 0.0, 90.0], True), ([0.1, -0.2, 0.3], False), ([10.0, 20.0, -30.0], True)],
+)
+def test_euler_to_quaternion(euler_xyz: list[float], degrees: bool) -> None:
+    behavior = EulerToQuaternion(name="euler_to_quaternion")
+    behavior.setup_ports()
+    Blackboard.set(behavior._get_blackboard_key("euler_xyz"), euler_xyz)
+    Blackboard.set(behavior._get_blackboard_key("degrees"), degrees)
+
+    behavior.tick_once()
+    assert behavior.status == Status.SUCCESS
+    quaternion = behavior.get_last_output("orientation_xyzw")
+    assert all(isinstance(v, float) for v in quaternion)
+    expected = R.from_euler("xyz", euler_xyz, degrees=degrees)
+    # Either sign of a quaternion is the same rotation.
+    assert abs(np.dot(quaternion, expected.as_quat())) == pytest.approx(1.0)
+
+
+def test_euler_to_quaternion_wrong_length() -> None:
+    behavior = EulerToQuaternion(name="euler_to_quaternion")
+    behavior.setup_ports()
+    Blackboard.set(behavior._get_blackboard_key("euler_xyz"), [0.0, 0.0])
+
     behavior.tick_once()
     assert behavior.status == Status.FAILURE
