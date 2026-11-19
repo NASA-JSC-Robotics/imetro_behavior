@@ -1,6 +1,6 @@
 # imetro_behavior_testing
 
-Runs a behavior tree once per trial of a test file, and saves the results of each trial.
+Infrastructure to manage behavior tree based testing using `imetro_behavior`.
 
 With a behavior tree executor running:
 
@@ -21,15 +21,19 @@ input_mappings:
 stop_on_failure: true  # End the run if a trial's tree fails (default true)
 repeats: 3             # Default 1, and a sweep can override it
 
+# Global parameters that apply to all trials below.
 params:
   speed: 0.02
   offset_xyz: [0.0, 0.0, 0.0]
 
+# Individual sweeps
 sweeps:
   - name: baseline
   - name: fast_offset_x
+    # Per-sweep overrides to the global parameters defined in `params`.
     params:
       speed: 0.04
+    # Parameter variations for this sweep.
     vary:
       offset_xyz[0]: [-0.01, 0.01]
 ```
