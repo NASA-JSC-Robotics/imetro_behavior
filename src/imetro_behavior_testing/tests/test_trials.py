@@ -19,7 +19,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from imetro_behavior_testing.test_runner import expand_trials, load_test_file, resolve_input_mappings, set_param
 
 

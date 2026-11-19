@@ -102,9 +102,7 @@ class GetDictValue(BehaviourWithPorts):
 
     INPUT_PORTS = {
         "dict": PortInformation(data_type=dict, required=True, description="The dictionary to read from."),
-        "key": PortInformation(
-            data_type=str, required=True, description="The key, with dots separating nested keys."
-        ),
+        "key": PortInformation(data_type=str, required=True, description="The key, with dots separating nested keys."),
     }
     OUTPUT_PORTS = {
         "value": PortInformation(data_type=object, required=True, description="The value of the key."),
@@ -148,9 +146,7 @@ class SetDictValue(BehaviourWithPorts):
             default_value={},
             description="The dictionary to set the value in. Defaults to a new empty dictionary if not wired.",
         ),
-        "key": PortInformation(
-            data_type=str, required=True, description="The key, with dots separating nested keys."
-        ),
+        "key": PortInformation(data_type=str, required=True, description="The key, with dots separating nested keys."),
         "value": PortInformation(data_type=object, required=False, description="The value to set."),
     }
     OUTPUT_PORTS = {

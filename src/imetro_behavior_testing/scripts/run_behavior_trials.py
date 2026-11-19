@@ -25,10 +25,9 @@ import argparse
 import sys
 
 import rclpy
+from imetro_behavior_testing.test_runner import BehaviorTrialRunner
 from rclpy.node import Node
 from rclpy.signals import SignalHandlerOptions
-
-from imetro_behavior_testing.test_runner import BehaviorTrialRunner
 
 
 def main() -> int:

@@ -189,7 +189,7 @@ def load_test_file(test_file: str | Path) -> tuple[dict[str, Any], list[dict[str
     """
     config = yaml.safe_load(Path(test_file).read_text())
     if not isinstance(config, dict):
-        raise ValueError(f"Test file {test_file} does not contain a mapping.")
+        raise ValueError(f"Test file {test_file} does not contain a mapping.")  # noqa: TRY004 -- every invalid test file raises ValueError
     unknown = set(config) - TEST_FILE_KEYS
     if unknown:
         raise ValueError(f"Unknown keys in test file {test_file}: {sorted(unknown)}")
@@ -247,7 +247,7 @@ class BehaviorTrialRunner:
         if not self._client.wait_for_server(timeout_sec=self._server_timeout):
             raise RuntimeError(f"Action server {self._action_name} is not available.")
 
-        session_dir = Path(output_dir).absolute() / datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_dir = Path(output_dir).absolute() / datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         session_dir.mkdir(parents=True)
         shutil.copyfile(test_file, session_dir / "test_file.yaml")
         self._logger.info(f"Running {len(trials)} trials of {config['behavior']}, saving results to {session_dir}.")

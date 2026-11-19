@@ -23,12 +23,12 @@ from pathlib import Path
 import pytest
 import rclpy
 import yaml
+from imetro_behavior_testing.test_runner import BehaviorTrialRunner
 from py_trees.blackboard import Blackboard
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 
 from imetro_behavior.executor import BehaviorTreeExecutor, BehaviorTreeServer
-from imetro_behavior_testing.test_runner import BehaviorTrialRunner
 
 # Reads the speed parameter, fails if it is zero, and writes it back out as a result.
 TRIAL_TREE = """
