@@ -221,7 +221,9 @@ class BehaviorTrialRunner:
         self._goal_handle = None
 
     def _wait_for(self, future: Future) -> Any:
-        rclpy.spin_until_future_complete(self._node, future)
+        # Spin in short slices, since a KeyboardInterrupt is only raised once rclpy returns to Python.
+        while not future.done():
+            rclpy.spin_until_future_complete(self._node, future, timeout_sec=0.1)
         return future.result()
 
     def run(self, test_file: str | Path, output_dir: str | Path = "test_results") -> bool:
