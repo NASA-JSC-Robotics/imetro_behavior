@@ -22,6 +22,7 @@ from pathlib import Path
 
 import yaml
 from ament_index_python.packages import get_package_share_path
+from diagnostic_msgs.msg import KeyValue
 from py_trees.blackboard import Blackboard
 from py_trees.common import Status
 from py_trees.composites import Sequence
@@ -131,9 +132,13 @@ class BehaviorTreeExecutor:
                 return candidate_path
         return None
 
-    def load_tree(self, tree_file_name: str):
+    def load_tree(self, tree_file_name: str, input_mappings: dict[str, str] | None = None):
         """
         Loads and sets up a behavior tree, making it the current behavior.
+
+        Args:
+            tree_file_name: The name (resolved through the search paths) or path of the tree XML file.
+            input_mappings: Optional overrides of the main tree's port values, as strings.
 
         Raises:
             RuntimeError: If the tree cannot be found or parsed.
@@ -146,7 +151,7 @@ class BehaviorTreeExecutor:
             raise RuntimeError(f"Could not find tree: {tree_file_name}")
 
         try:
-            root = parse_behaviour_tree_xml(xml_path, search_paths=self._search_paths)
+            root = parse_behaviour_tree_xml(xml_path, search_paths=self._search_paths, input_mappings=input_mappings)
         except Exception as e:
             raise RuntimeError(f"Failed to parse XML file: {e}") from e
 
@@ -185,12 +190,13 @@ class BehaviorTreeExecutor:
         """
         self._cancel_requested.set()
 
-    def run_tree(self, tree_file_name: str) -> Status:
+    def run_tree(self, tree_file_name: str, input_mappings: dict[str, str] | None = None) -> Status:
         """
         Loads a behavior tree and runs it to completion or cancellation.
 
         Args:
             tree_file_name: The name (resolved through the search paths) or path of the tree XML file.
+            input_mappings: Optional overrides of the main tree's port values, as strings.
 
         Returns:
             The final tree status: SUCCESS or FAILURE, or INVALID if the run was canceled.
@@ -198,7 +204,7 @@ class BehaviorTreeExecutor:
         Raises:
             RuntimeError: If the tree cannot be loaded.
         """
-        self.load_tree(tree_file_name)
+        self.load_tree(tree_file_name, input_mappings)
         self._logger.info(f"Running behavior: {tree_file_name}")
 
         # Drop any cancellation that was requested before this run started.
@@ -253,6 +259,23 @@ class BehaviorTreeExecutor:
         self._init_global_blackboard()
 
 
+def input_mappings_to_dict(mappings: list[KeyValue]) -> dict[str, str]:
+    """
+    Converts the input mappings of an ExecuteBehavior goal to a dictionary.
+
+    Raises:
+        RuntimeError: If a mapping has an empty key, or if a key appears more than once.
+    """
+    result = {}
+    for mapping in mappings:
+        if not mapping.key:
+            raise RuntimeError(f"Input mapping with value '{mapping.value}' has an empty key.")
+        if mapping.key in result:
+            raise RuntimeError(f"Input mapping for '{mapping.key}' is specified more than once.")
+        result[mapping.key] = mapping.value
+    return result
+
+
 class BehaviorTreeServer:
     """
     Wraps a behavior tree executor with a ROS action server for starting and stopping behaviors.
@@ -300,7 +323,8 @@ class BehaviorTreeServer:
         """Runs the requested behavior tree to completion, or until it is canceled."""
         result = ExecuteBehavior.Result()
         try:
-            final_status = self._executor.run_tree(goal_handle.request.tree_file_name)
+            input_mappings = input_mappings_to_dict(goal_handle.request.input_mappings)
+            final_status = self._executor.run_tree(goal_handle.request.tree_file_name, input_mappings)
         except (NoDataAvailable, RuntimeError) as e:
             result.message = str(e)
             self._logger.error(result.message)

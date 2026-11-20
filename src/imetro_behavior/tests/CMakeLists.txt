@@ -22,6 +22,8 @@ ament_add_pytest_test(test_ros_behaviors test_ros_behaviors.py)
 
 ament_add_pytest_test(test_rosbag_behaviors test_rosbag_behaviors.py)
 
+ament_add_pytest_test(test_dict_behaviors test_dict_behaviors.py)
+
 ament_add_pytest_test(test_apriltag_behaviors test_apriltag_behaviors.py)
 
 install(

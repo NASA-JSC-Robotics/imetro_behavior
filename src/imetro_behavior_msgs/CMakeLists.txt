@@ -8,12 +8,13 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(moveit_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   action/ExecuteBehavior.action
   action/PreviewTrajectory.action
-  DEPENDENCIES moveit_msgs
+  DEPENDENCIES diagnostic_msgs moveit_msgs
 )
 
 ament_package()

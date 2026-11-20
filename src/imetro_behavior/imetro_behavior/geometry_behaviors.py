@@ -491,6 +491,43 @@ class GetRollPitchYaw(BehaviourWithPorts):
         return Status.SUCCESS
 
 
+class EulerToQuaternion(BehaviourWithPorts):
+    """Converts rotations about the fixed x, y, and z axes, applied in that order, to a quaternion."""
+
+    INPUT_PORTS = {
+        "euler_xyz": PortInformation(
+            data_type=list[float],
+            required=True,
+            description="Rotations about the x, y, and z axes.",
+        ),
+        "degrees": PortInformation(
+            data_type=bool,
+            required=False,
+            default_value=False,
+            description="Whether the rotations are in degrees rather than radians.",
+        ),
+    }
+
+    OUTPUT_PORTS = {
+        "orientation_xyzw": PortInformation(
+            data_type=list[float],
+            required=True,
+            description="The rotation as a quaternion.",
+        ),
+    }
+
+    def update(self) -> Status:
+        """Converts the rotation."""
+        euler_xyz = self.get_input("euler_xyz")
+        if len(euler_xyz) != 3:
+            self.logger.error(f"euler_xyz must have 3 values, but has {len(euler_xyz)}.")
+            return Status.FAILURE
+
+        rotation = R.from_euler("xyz", euler_xyz, degrees=self.get_input("degrees"))
+        self._set_output("orientation_xyzw", [float(v) for v in rotation.as_quat()])
+        return Status.SUCCESS
+
+
 class OffsetPoseStamped(BehaviourWithPorts):
     """Offset a PoseStamped ROS message based on input translation and rotation offsets."""
 
