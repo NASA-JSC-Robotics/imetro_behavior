@@ -105,7 +105,7 @@ class PublishString(RosPublisherBase):
     """
 
     def __init__(self, name: str, **kwargs: Any):
-        super().__init__(name, topic_type=String, **kwargs)
+        super().__init__(name, topic_type=String, qos_profile="action_status_default", **kwargs)
 
     INPUT_PORTS = {"string_data": PortInformation(data_type=str, required=True)}
 
